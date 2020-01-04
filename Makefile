@@ -6,7 +6,7 @@ SOURCES = $(wildcard *.go) cmd/main.go
 
 all: $(PROGRAM)
 
-.PHONY: all clean
+.PHONY: all clean $(PROGRAM)
 
 $(PROGRAM): $(SOURCES)
 	go build -ldflags "-s -w" -o $@ cmd/main.go

@@ -2,6 +2,7 @@ package mqtt
 
 import (
 	"fmt"
+	"io"
 	"net"
 
 	"github.com/google/uuid"
@@ -44,25 +45,28 @@ func (p *Proxy) accept(l net.Listener) {
 }
 
 func (p *Proxy) handleConnection(inbound net.Conn) {
-	addr := fmt.Sprintf("%s:%s", p.targetHost, p.targetPort)
+	defer inbound.Close()
 
-	println("CONNECTING TO", addr)
+	addr := fmt.Sprintf("%s:%s", p.targetHost, p.targetPort)
 	outbound, err := net.Dial("tcp", addr)
 	if err != nil {
 		p.logger.Warn(fmt.Sprintf("Cannot connect to remote broker %s", addr))
 		return
 	}
+	defer outbound.Close()
 
 	uuid, err := uuid.NewRandom()
 	if err != nil {
 		return
 	}
 
-	println(uuid.String())
-
 	s := newSession(uuid.String(), inbound, outbound, p.logger)
 	p.sessions[s.id] = s
-	s.stream()
+	if err := s.stream(); err != io.EOF {
+		p.logger.Warn(fmt.Sprintf("Exited session %s with error: %s", s.id, err))
+	}
+	s.logger.Info(fmt.Sprintf("Session %s closed: %s", s.id, s.outbound.LocalAddr().String()))
+	delete(p.sessions, s.id)
 }
 
 // Proxy of the server, this will block.

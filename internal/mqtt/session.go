@@ -1,24 +1,21 @@
 package mqtt
 
 import (
-	"fmt"
 	"net"
-	"sync"
 
 	"github.com/eclipse/paho.mqtt.golang/packets"
 	"github.com/mainflux/mainflux/logger"
 )
 
 const (
-	up Direction = iota
+	up direction = iota
 	down
 )
 
-type Direction int
+type direction int
 
 type session struct {
 	id       string
-	wg       sync.WaitGroup
 	logger   logger.Logger
 	inbound  net.Conn
 	outbound net.Conn
@@ -33,31 +30,30 @@ func newSession(uuid string, inbound, outbound net.Conn, logger logger.Logger) *
 	}
 }
 
-func (s *session) stream() {
-
-	// In parallel reas from client, send to broker
+func (s *session) stream() error {
+	// In parallel read from client, send to broker
 	// and read from broker, send to client
-	s.wg.Add(2)
-	go s.streamUnidir(up, s.inbound, s.outbound)
-	go s.streamUnidir(down, s.outbound, s.inbound)
-	s.wg.Wait()
+	errs := make(chan error, 2)
 
-	s.logger.Info(fmt.Sprintf("Session %s closed: %s", s.id, s.outbound.LocalAddr().String()))
+	go s.streamUnidir(up, s.inbound, s.outbound, errs)
+	go s.streamUnidir(down, s.outbound, s.inbound, errs)
+
+	return <-errs
 }
 
-func (s *session) streamUnidir(dir Direction, r, w net.Conn) error {
+func (s *session) streamUnidir(dir direction, r, w net.Conn, errs chan error) {
+	for {
+		// Read from one connection
+		pkt, err := packets.ReadPacket(r)
+		if err != nil {
+			errs <- err
+			return
+		}
 
-	// Read from one connection
-	pkt, err := packets.ReadPacket(r)
-	if err != nil {
-		return err
+		// Send to another
+		if err := pkt.Write(w); err != nil {
+			errs <- err
+			return
+		}
 	}
-	
-	// Send to another
-	if err := pkt.Write(w); err != nil {
-		return err
-	}
-
-	return nil
 }
-
