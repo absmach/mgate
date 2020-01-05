@@ -1,5 +1,5 @@
 # mProxy
-mProxy is an IoT proxy.
+mProxy is an MQTT proxy.
 
 Highly experimental - not usable for now.
 
