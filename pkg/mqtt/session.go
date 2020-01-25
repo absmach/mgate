@@ -88,7 +88,7 @@ func (s *session) authorize(pkt packets.ControlPacket) error {
 		s.clientID = p.ClientIdentifier
 		return nil
 	case *packets.PublishPacket:
-		return s.event.AuthPublish(s.clientID, &p.TopicName)
+		return s.event.AuthPublish(s.clientID, &p.TopicName, &p.Payload)
 	case *packets.SubscribePacket:
 		return s.event.AuthSubscribe(s.clientID, &p.Topics)
 	default:
@@ -101,7 +101,7 @@ func (s *session) notify(pkt packets.ControlPacket) {
 	case *packets.ConnectPacket:
 		s.event.Register(s.clientID)
 	case *packets.PublishPacket:
-		s.event.Publish(s.clientID, p.TopicName)
+		s.event.Publish(s.clientID, p.TopicName, p.Payload)
 	case *packets.SubscribePacket:
 		s.event.Subscribe(s.clientID, p.Topics)
 	case *packets.UnsubscribePacket:

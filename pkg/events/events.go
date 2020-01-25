@@ -8,7 +8,7 @@ type Event interface {
 
 	// Athorization on client `PUBLISH`
 	// Topic is passed by reference, so that it can be modified
-	AuthPublish(clientID string, topic *string) error
+	AuthPublish(clientID string, topic *string, payload *[]byte) error
 
 	// Athorization on client `SUBSCRIBE`
 	// Topics are passed by reference, so that they can be modified
@@ -18,7 +18,7 @@ type Event interface {
 	Register(clientID string)
 
 	// After client sucesfully published
-	Publish(clientID, topic string)
+	Publish(clientID, topic string, payload []byte)
 
 	// After client sucesfully subscribed
 	Subscribe(clientID string, topics []string)

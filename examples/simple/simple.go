@@ -31,8 +31,8 @@ func (e *Event) AuthRegister(clientID, username *string, password *[]byte) error
 
 // AuthPublish is called on device publish,
 // prior forwarding to the MQTT broker
-func (e *Event) AuthPublish(clientID string, topic *string) error {
-	e.logger.Info(fmt.Sprintf("AuthPublish() - clientID: %s, topic: %s", clientID, *topic))
+func (e *Event) AuthPublish(clientID string, topic *string, payload *[]byte) error {
+	e.logger.Info(fmt.Sprintf("AuthPublish() - clientID: %s, topic: %s, payload: %s", clientID, *topic, string(*payload)))
 	return nil
 }
 
@@ -50,8 +50,8 @@ func (e *Event) Register(clientID string) {
 }
 
 // Publish - after client sucesfully published
-func (e *Event) Publish(clientID, topic string) {
-	e.logger.Info(fmt.Sprintf("Publish() - clientID: %s, topic: %s", clientID, topic))
+func (e *Event) Publish(clientID, topic string, payload []byte) {
+	e.logger.Info(fmt.Sprintf("Publish() - clientID: %s, topic: %s, payload: %s", clientID, topic, string(payload)))
 }
 
 // Subscribe - after client sucesfully subscribed
