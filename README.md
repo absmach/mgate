@@ -5,7 +5,7 @@ It is deployed in front of MQTT broker and can be used for authorization, packet
 logging and debugging and various other purposes.
 
 ## Usage
-```
+```bash
 go get github.com/mainflux/mproxy
 cd $(GOPATH)/github.com/mainflux/mproxy
 make
@@ -17,18 +17,18 @@ mProxy starts TCP and WS servers, offering connections to devices. Upon the conn
 It then pipes packets from devices to MQTT broker, inspecting or modifying them as they flow through proxy.
 
 Here is the flow in more details:
-- Device connects to mProxy TCP server
+- Device connects to mProxy's TCP server
 - mProxy accepts the inbound (IN) connection and estabishes a new session with remote MQTT broker
 (i.e. it dials out to MQTT broker only once it accepted new connection from a device.
 This way one device-mProxy connection corresponds to one mProxy-MQTT broker connection.)
 - mProxy then spawn 2 goroutines: one that will read incoming packets from device-mProxy socket (INBOUND or UPLINK),
-inspect them (calling event handlers) and wite them to mProxy-broker socket (forwarding them towards the broker)
+inspect them (calling event handlers) and write them to mProxy-broker socket (forwarding them towards the broker)
 and other that will be reading MQTT broker responses from mProxy-broker socket and writing them towards device,
 in device-mProxy socket (OUTBOUND or DOWNLINK).
 
-![mProxy](docs/img/mproxy.png)
+<p align="center"><img src="docs/img/mproxy.png"></p>
 
-mProxy can parse and understand MQTT packages, and upon their detection it actually calls an external event handlers.
+mProxy can parse and understand MQTT packages, and upon their detection it actually calls external event handlers.
 Event handlers should implement the following interface defined in [pkg/events/events.go](pkg/events/events.go):
 
 ```go
@@ -60,15 +60,15 @@ type Event interface {
 }
 ```
 
-An example of implementation is given [here](examples/simple.go), alongside with it's [`main()` function](cmd/main.go).
+An example of implementation is given [here](examples/simple/simple.go), alongside with it's [`main()` function](cmd/main.go).
 
-# Deployment
-mProxy does not do load balancing - just pure and simple proxying. this is why it should be deployed
-right in front of it's corresponding MQTT broker instance: one mProxy for each MQTT broker instance in and MQTT cluster.
+## Deployment
+mProxy does not do load balancing - just pure and simple proxying. This is why it should be deployed
+right in front of it's corresponding MQTT broker instance: one mProxy for each MQTT broker instance in the MQTT cluster.
 
 Usually this is done by deploying mProxy as a side-car in the same Kubernetes pod alongside with MQTT broker instance (MQTT cluster node).
 
-![mProxy cluster](docs/img/mproxy-cluster.png)
+<p align="center"><img src="docs/img/mproxy-cluster.png"></p>
 
 TLS termination and LB tasks can be offloaded to a standard ingress proxy - for example NginX.
 
