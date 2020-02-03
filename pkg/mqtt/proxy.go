@@ -53,7 +53,7 @@ func (p *Proxy) handleConnection(inbound net.Conn) {
 	addr := fmt.Sprintf("%s:%s", p.targetHost, p.targetPort)
 	outbound, err := net.Dial("tcp", addr)
 	if err != nil {
-		p.logger.Warn(fmt.Sprintf("Cannot connect to remote broker %s", addr))
+		p.logger.Error(fmt.Sprintf("Cannot connect to remote broker %s", addr))
 		return
 	}
 	defer outbound.Close()

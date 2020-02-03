@@ -24,21 +24,21 @@ func New(logger logger.Logger) *Event {
 
 // AuthRegister is called on device connection,
 // prior forwarding to the MQTT broker
-func (e *Event) AuthRegister(clientID, username *string, password *[]byte) error {
+func (e *Event) AuthRegister(username, clientID *string, password *[]byte) error {
 	e.logger.Info(fmt.Sprintf("AuthRegister() - clientID: %s, username: %s, password: %s", *clientID, *username, string(*password)))
 	return nil
 }
 
 // AuthPublish is called on device publish,
 // prior forwarding to the MQTT broker
-func (e *Event) AuthPublish(clientID string, topic *string, payload *[]byte) error {
+func (e *Event) AuthPublish(username, clientID string, topic *string, payload *[]byte) error {
 	e.logger.Info(fmt.Sprintf("AuthPublish() - clientID: %s, topic: %s, payload: %s", clientID, *topic, string(*payload)))
 	return nil
 }
 
 // AuthSubscribe is called on device publish,
 // prior forwarding to the MQTT broker
-func (e *Event) AuthSubscribe(clientID string, topics *[]string) error {
+func (e *Event) AuthSubscribe(username, clientID string, topics *[]string) error {
 
 	e.logger.Info(fmt.Sprintf("AuthSubscribe() - clientID: %s, topics: %s", clientID, strings.Join(*topics, ",")))
 	return nil
