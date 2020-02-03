@@ -15,17 +15,19 @@ const (
 
 type direction int
 
+type mqttClient struct {
+	ID       string
+	username string
+	password []byte
+}
+
 type session struct {
 	id       string
 	logger   logger.Logger
 	inbound  net.Conn
 	outbound net.Conn
 	event    events.Event
-
-	// MQTT specific stuff
-	clientID string
-	username string
-	password []byte
+	client   mqttClient
 }
 
 func newSession(uuid string, inbound, outbound net.Conn, event events.Event, logger logger.Logger) *session {
@@ -80,17 +82,17 @@ func (s *session) streamUnidir(dir direction, r, w net.Conn, errs chan error) {
 func (s *session) authorize(pkt packets.ControlPacket) error {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
-		if err := s.event.AuthRegister(&p.Username, &p.Username, &p.Password); err != nil {
+		if err := s.event.AuthRegister(&p.Username, &p.ClientIdentifier, &p.Password); err != nil {
 			return err
 		}
-		s.username = p.Username
-		s.password = p.Password
-		s.clientID = p.ClientIdentifier
+		s.client.username = p.Username
+		s.client.password = p.Password
+		s.client.ID = p.ClientIdentifier
 		return nil
 	case *packets.PublishPacket:
-		return s.event.AuthPublish(s.clientID, &p.TopicName, &p.Payload)
+		return s.event.AuthPublish(s.client.username, s.client.ID, &p.TopicName, &p.Payload)
 	case *packets.SubscribePacket:
-		return s.event.AuthSubscribe(s.clientID, &p.Topics)
+		return s.event.AuthSubscribe(s.client.username, s.client.ID, &p.Topics)
 	default:
 		return nil
 	}
@@ -99,13 +101,13 @@ func (s *session) authorize(pkt packets.ControlPacket) error {
 func (s *session) notify(pkt packets.ControlPacket) {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
-		s.event.Register(s.clientID)
+		s.event.Register(s.client.ID)
 	case *packets.PublishPacket:
-		s.event.Publish(s.clientID, p.TopicName, p.Payload)
+		s.event.Publish(s.client.ID, p.TopicName, p.Payload)
 	case *packets.SubscribePacket:
-		s.event.Subscribe(s.clientID, p.Topics)
+		s.event.Subscribe(s.client.ID, p.Topics)
 	case *packets.UnsubscribePacket:
-		s.event.Unubscribe(s.clientID, p.Topics)
+		s.event.Unubscribe(s.client.ID, p.Topics)
 	default:
 		return
 	}
