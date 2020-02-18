@@ -16,7 +16,6 @@ type Proxy struct {
 	port       string
 	targetHost string
 	targetPort string
-	sessions   map[string]*session
 	event      events.Event
 	logger     logger.Logger
 }
@@ -30,7 +29,6 @@ func New(host, port, targetHost, targetPort string, event events.Event, logger l
 		targetPort: targetPort,
 		event:      event,
 		logger:     logger,
-		sessions:   make(map[string]*session),
 	}
 }
 
@@ -64,12 +62,10 @@ func (p *Proxy) handleConnection(inbound net.Conn) {
 	}
 
 	s := newSession(uuid.String(), inbound, outbound, p.event, p.logger)
-	p.sessions[s.id] = s
 	if err := s.stream(); err != io.EOF {
 		p.logger.Warn(fmt.Sprintf("Exited session %s with error: %s", s.id, err))
 	}
 	s.logger.Info(fmt.Sprintf("Session %s closed: %s", s.id, s.outbound.LocalAddr().String()))
-	delete(p.sessions, s.id)
 }
 
 // Proxy of the server, this will block.
