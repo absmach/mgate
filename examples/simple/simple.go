@@ -39,28 +39,26 @@ func (e *Event) AuthPublish(username, clientID string, topic *string, payload *[
 // AuthSubscribe is called on device publish,
 // prior forwarding to the MQTT broker
 func (e *Event) AuthSubscribe(username, clientID string, topics *[]string) error {
-
 	e.logger.Info(fmt.Sprintf("AuthSubscribe() - clientID: %s, topics: %s", clientID, strings.Join(*topics, ",")))
 	return nil
 }
 
-// Register - after client sucesfully connected
+// Register - after client successfully connected
 func (e *Event) Register(clientID string) {
 	e.logger.Info(fmt.Sprintf("Register() - clientID: %s", clientID))
 }
 
-// Publish - after client sucesfully published
+// Publish - after client successfully published
 func (e *Event) Publish(clientID, topic string, payload []byte) {
 	e.logger.Info(fmt.Sprintf("Publish() - clientID: %s, topic: %s, payload: %s", clientID, topic, string(payload)))
 }
 
-// Subscribe - after client sucesfully subscribed
+// Subscribe - after client successfully subscribed
 func (e *Event) Subscribe(clientID string, topics []string) {
 	e.logger.Info(fmt.Sprintf("Subscribe() - clientID: %s, topics: %s", clientID, strings.Join(topics, ",")))
 }
 
-// Unubscribe - after client unsubscribed
-func (e *Event) Unubscribe(clientID string, topics []string) {
-
-	e.logger.Info(fmt.Sprintf("Unubscribe() - clientID: %s, topics: %s", clientID, strings.Join(topics, ",")))
+// Unsubscribe - after client unsubscribed
+func (e *Event) Unsubscribe(clientID string, topics []string) {
+	e.logger.Info(fmt.Sprintf("Unsubscribe() - clientID: %s, topics: %s", clientID, strings.Join(topics, ",")))
 }
