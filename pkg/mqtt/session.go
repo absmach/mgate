@@ -107,7 +107,7 @@ func (s *session) notify(pkt packets.ControlPacket) {
 	case *packets.SubscribePacket:
 		s.event.Subscribe(s.client.ID, p.Topics)
 	case *packets.UnsubscribePacket:
-		s.event.Unubscribe(s.client.ID, p.Topics)
+		s.event.Unsubscribe(s.client.ID, p.Topics)
 	default:
 		return
 	}

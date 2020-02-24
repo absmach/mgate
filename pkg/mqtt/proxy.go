@@ -12,23 +12,21 @@ import (
 
 // Proxy is main MQTT proxy struct
 type Proxy struct {
-	host       string
-	port       string
-	targetHost string
-	targetPort string
-	event      events.Event
-	logger     logger.Logger
+	host   string
+	port   string
+	target string
+	event  events.Event
+	logger logger.Logger
 }
 
 // New will setup a new Proxy struct after parsing the options
 func New(host, port, targetHost, targetPort string, event events.Event, logger logger.Logger) *Proxy {
 	return &Proxy{
-		host:       host,
-		port:       port,
-		targetHost: targetHost,
-		targetPort: targetPort,
-		event:      event,
-		logger:     logger,
+		host:   host,
+		port:   port,
+		target: fmt.Sprintf("%s:%s", targetHost, targetPort),
+		event:  event,
+		logger: logger,
 	}
 }
 
@@ -36,7 +34,7 @@ func (p *Proxy) accept(l net.Listener) {
 	for {
 		conn, err := l.Accept()
 		if err != nil {
-			p.logger.Warn(fmt.Sprintf("Accept error %s", err))
+			p.logger.Warn("Accept error " + err.Error())
 			continue
 		}
 
@@ -48,10 +46,9 @@ func (p *Proxy) accept(l net.Listener) {
 func (p *Proxy) handleConnection(inbound net.Conn) {
 	defer inbound.Close()
 
-	addr := fmt.Sprintf("%s:%s", p.targetHost, p.targetPort)
-	outbound, err := net.Dial("tcp", addr)
+	outbound, err := net.Dial("tcp", p.target)
 	if err != nil {
-		p.logger.Error(fmt.Sprintf("Cannot connect to remote broker %s", addr))
+		p.logger.Error("Cannot connect to remote broker " + p.target)
 		return
 	}
 	defer outbound.Close()
@@ -63,9 +60,9 @@ func (p *Proxy) handleConnection(inbound net.Conn) {
 
 	s := newSession(uuid.String(), inbound, outbound, p.event, p.logger)
 	if err := s.stream(); err != io.EOF {
-		p.logger.Warn(fmt.Sprintf("Exited session %s with error: %s", s.id, err))
+		p.logger.Warn("Exited session " + s.id + "with error: " + err.Error())
 	}
-	s.logger.Info(fmt.Sprintf("Session %s closed: %s", s.id, s.outbound.LocalAddr().String()))
+	s.logger.Info("Session " + s.id + "closed: " + s.outbound.LocalAddr().String())
 }
 
 // Proxy of the server, this will block.

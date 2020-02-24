@@ -2,27 +2,27 @@ package events
 
 // Event is an interface for mProxy hooks
 type Event interface {
-	// Athorization on client `CONNECT`
+	// Authorization on client `CONNECT`
 	// Each of the params are passed by reference, so that it can be changed
 	AuthRegister(username, clientID *string, password *[]byte) error
 
-	// Athorization on client `PUBLISH`
+	// Authorization on client `PUBLISH`
 	// Topic is passed by reference, so that it can be modified
 	AuthPublish(username, clientID string, topic *string, payload *[]byte) error
 
-	// Athorization on client `SUBSCRIBE`
+	// Authorization on client `SUBSCRIBE`
 	// Topics are passed by reference, so that they can be modified
 	AuthSubscribe(username, clientID string, topics *[]string) error
 
-	// After client sucesfully connected
+	// After client successfully connected
 	Register(clientID string)
 
-	// After client sucesfully published
+	// After client successfully published
 	Publish(clientID, topic string, payload []byte)
 
-	// After client sucesfully subscribed
+	// After client successfully subscribed
 	Subscribe(clientID string, topics []string)
 
 	// After client unsubscribed
-	Unubscribe(clientID string, topics []string)
+	Unsubscribe(clientID string, topics []string)
 }
