@@ -22,11 +22,16 @@ func New(logger logger.Logger) *Event {
 	}
 }
 
-// AuthRegister is called on device connection,
+// AuthConnect is called on device connection,
 // prior forwarding to the MQTT broker
-func (e *Event) AuthRegister(username, clientID *string, password *[]byte) error {
+func (e *Event) AuthConnect(username, clientID *string, password *[]byte) error {
 	e.logger.Info(fmt.Sprintf("AuthRegister() - clientID: %s, username: %s, password: %s", *clientID, *username, string(*password)))
 	return nil
+}
+
+// Disconnect on conection lost
+func (e *Event) Disconnect(clientID string) {
+	e.logger.Info(fmt.Sprintf("Deregister() - clientID: %s", clientID))
 }
 
 // AuthPublish is called on device publish,

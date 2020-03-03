@@ -9,7 +9,7 @@ all: $(PROGRAM)
 .PHONY: all clean $(PROGRAM)
 
 $(PROGRAM): $(SOURCES)
-	go build -ldflags "-s -w" -o $@ cmd/main.go
+	go build -ldflags "-s -w" -o ./build/mainflux-mproxy cmd/main.go
 
 clean:
 	rm -rf $(PROGRAM)

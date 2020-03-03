@@ -48,7 +48,9 @@ func (s *session) stream() error {
 	go s.streamUnidir(up, s.inbound, s.outbound, errs)
 	go s.streamUnidir(down, s.outbound, s.inbound, errs)
 
-	return <-errs
+	err := <-errs
+	s.event.Disconnect(s.client.ID)
+	return err
 }
 
 func (s *session) streamUnidir(dir direction, r, w net.Conn, errs chan error) {
@@ -82,7 +84,7 @@ func (s *session) streamUnidir(dir direction, r, w net.Conn, errs chan error) {
 func (s *session) authorize(pkt packets.ControlPacket) error {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
-		if err := s.event.AuthRegister(&p.Username, &p.ClientIdentifier, &p.Password); err != nil {
+		if err := s.event.AuthConnect(&p.Username, &p.ClientIdentifier, &p.Password); err != nil {
 			return err
 		}
 		s.client.username = p.Username

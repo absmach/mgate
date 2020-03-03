@@ -60,9 +60,9 @@ func (p *Proxy) handleConnection(inbound net.Conn) {
 
 	s := newSession(uuid.String(), inbound, outbound, p.event, p.logger)
 	if err := s.stream(); err != io.EOF {
-		p.logger.Warn("Exited session " + s.id + "with error: " + err.Error())
+		p.logger.Warn("Exited session " + s.id + " with error: " + err.Error())
 	}
-	s.logger.Info("Session " + s.id + "closed: " + s.outbound.LocalAddr().String())
+	s.logger.Info("Session " + s.id + " closed: " + s.outbound.LocalAddr().String())
 }
 
 // Proxy of the server, this will block.
