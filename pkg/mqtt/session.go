@@ -22,7 +22,6 @@ type mqttClient struct {
 }
 
 type session struct {
-	id       string
 	logger   logger.Logger
 	inbound  net.Conn
 	outbound net.Conn
@@ -30,9 +29,8 @@ type session struct {
 	client   mqttClient
 }
 
-func newSession(uuid string, inbound, outbound net.Conn, event events.Event, logger logger.Logger) *session {
+func newSession(inbound, outbound net.Conn, event events.Event, logger logger.Logger) *session {
 	return &session{
-		id:       uuid,
 		logger:   logger,
 		inbound:  inbound,
 		outbound: outbound,
