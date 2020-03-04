@@ -22,7 +22,6 @@ type mqttClient struct {
 }
 
 type session struct {
-	id       string
 	logger   logger.Logger
 	inbound  net.Conn
 	outbound net.Conn
@@ -30,9 +29,8 @@ type session struct {
 	client   mqttClient
 }
 
-func newSession(uuid string, inbound, outbound net.Conn, event events.Event, logger logger.Logger) *session {
+func newSession(inbound, outbound net.Conn, event events.Event, logger logger.Logger) *session {
 	return &session{
-		id:       uuid,
 		logger:   logger,
 		inbound:  inbound,
 		outbound: outbound,
@@ -48,7 +46,9 @@ func (s *session) stream() error {
 	go s.streamUnidir(up, s.inbound, s.outbound, errs)
 	go s.streamUnidir(down, s.outbound, s.inbound, errs)
 
-	return <-errs
+	err := <-errs
+	s.event.Disconnect(s.client.username, s.client.ID)
+	return err
 }
 
 func (s *session) streamUnidir(dir direction, r, w net.Conn, errs chan error) {
@@ -82,7 +82,7 @@ func (s *session) streamUnidir(dir direction, r, w net.Conn, errs chan error) {
 func (s *session) authorize(pkt packets.ControlPacket) error {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
-		if err := s.event.AuthRegister(&p.Username, &p.ClientIdentifier, &p.Password); err != nil {
+		if err := s.event.AuthConnect(&p.Username, &p.ClientIdentifier, &p.Password); err != nil {
 			return err
 		}
 		s.client.username = p.Username
@@ -101,13 +101,13 @@ func (s *session) authorize(pkt packets.ControlPacket) error {
 func (s *session) notify(pkt packets.ControlPacket) {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
-		s.event.Register(s.client.ID)
+		s.event.Connect(s.client.username, s.client.ID)
 	case *packets.PublishPacket:
-		s.event.Publish(s.client.ID, p.TopicName, p.Payload)
+		s.event.Publish(s.client.username, s.client.ID, p.TopicName, p.Payload)
 	case *packets.SubscribePacket:
-		s.event.Subscribe(s.client.ID, p.Topics)
+		s.event.Subscribe(s.client.username, s.client.ID, p.Topics)
 	case *packets.UnsubscribePacket:
-		s.event.Unsubscribe(s.client.ID, p.Topics)
+		s.event.Unsubscribe(s.client.username, s.client.ID, p.Topics)
 	default:
 		return
 	}
