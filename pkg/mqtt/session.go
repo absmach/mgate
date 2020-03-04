@@ -40,7 +40,7 @@ func (s *session) stream() error {
 	go s.streamUnidir(down, s.outbound, s.inbound, errs)
 
 	err := <-errs
-	s.event.Disconnect(s.client)
+	s.event.Disconnect(&s.client)
 	return err
 }
 
@@ -80,11 +80,11 @@ func (s *session) authorize(pkt packets.ControlPacket) error {
 			Username: p.Username,
 			Password: p.Password,
 		}
-		return s.event.AuthConnect(s.client)
+		return s.event.AuthConnect(&s.client)
 	case *packets.PublishPacket:
-		return s.event.AuthPublish(s.client, p.TopicName, p.Payload)
+		return s.event.AuthPublish(&s.client, &p.TopicName, p.Payload)
 	case *packets.SubscribePacket:
-		return s.event.AuthSubscribe(s.client, p.Topics)
+		return s.event.AuthSubscribe(&s.client, p.Topics)
 	default:
 		return nil
 	}
@@ -93,13 +93,13 @@ func (s *session) authorize(pkt packets.ControlPacket) error {
 func (s *session) notify(pkt packets.ControlPacket) {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
-		s.event.Connect(s.client)
+		s.event.Connect(&s.client)
 	case *packets.PublishPacket:
-		s.event.Publish(s.client, p.TopicName, p.Payload)
+		s.event.Publish(&s.client, &p.TopicName, p.Payload)
 	case *packets.SubscribePacket:
-		s.event.Subscribe(s.client, p.Topics)
+		s.event.Subscribe(&s.client, p.Topics)
 	case *packets.UnsubscribePacket:
-		s.event.Unsubscribe(s.client, p.Topics)
+		s.event.Unsubscribe(&s.client, p.Topics)
 	default:
 		return
 	}
