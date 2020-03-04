@@ -29,7 +29,7 @@ in device-mProxy socket (OUTBOUND or DOWNLINK).
 <p align="center"><img src="docs/img/mproxy.png"></p>
 
 mProxy can parse and understand MQTT packages, and upon their detection it actually calls external event handlers.
-Event handlers should implement the following interface defined in [pkg/events/events.go](pkg/events/events.go):
+Event handlers should implement the following interface defined in [pkg/mqtt/events.go](pkg/mqtt/events.go):
 
 ```go
 // Event is an interface for mProxy hooks
