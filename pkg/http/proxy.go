@@ -20,9 +20,10 @@ type Proxy struct {
 }
 
 // New - creates new HTTP proxy
-func New(host, port string, event events.Event, logger logger.Logger) *Proxy {
+func New(host, port, scheme string, event events.Event, logger logger.Logger) *Proxy {
 	url := url.URL{
-		Host: fmt.Sprintf("%s:%s", host, port),
+		Host:   fmt.Sprintf("%s:%s", host, port),
+		Scheme: scheme,
 	}
 	return &Proxy{
 		host:         host,

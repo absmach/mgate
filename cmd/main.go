@@ -18,12 +18,14 @@ import (
 const (
 	// HTTP
 	defHTTPHost       = "0.0.0.0"
-	defHTTPPort       = "7777"
+	defHTTPPort       = "8080"
+	defHTTPScheme     = "http"
 	defHTTPTargetHost = "0.0.0.0"
-	defHTTPTargetPort = "8080"
+	defHTTPTargetPort = "8888"
 
 	envHTTPHost       = "MPROXY_HTTP_HOST"
 	envHTTPPort       = "MPROXY_HTTP_PORT"
+	envHTTPScheme     = "MPROXY_HTTP_SCHEMA"
 	envHTTPTargetHost = "MPROXY_HTTP_TARGET_HOST"
 	envHTTPTargetPort = "MPROXY_HTTP_TARGET_PORT"
 
@@ -45,6 +47,7 @@ const (
 type config struct {
 	httpHost       string
 	httpPort       string
+	httpScheme     string
 	httpTargetHost string
 	httpTargetPort string
 
@@ -99,6 +102,7 @@ func loadConfig() config {
 		// HTTP
 		httpHost:       env(envHTTPHost, defHTTPHost),
 		httpPort:       env(envHTTPPort, defHTTPPort),
+		httpScheme:     env(envHTTPScheme, defHTTPScheme),
 		httpTargetHost: env(envHTTPTargetHost, defHTTPTargetHost),
 		httpTargetPort: env(envHTTPTargetPort, defHTTPTargetPort),
 
@@ -114,7 +118,7 @@ func loadConfig() config {
 }
 
 func proxyHTTP(cfg config, logger logger.Logger, evt events.Event, errs chan error) {
-	hp := hp.New(cfg.httpTargetHost, cfg.httpTargetPort, evt, logger)
+	hp := hp.New(cfg.httpTargetHost, cfg.httpTargetPort, cfg.httpScheme, evt, logger)
 	http.Handle("/", hp.ReverseProxy)
 
 	p := fmt.Sprintf(":%s", cfg.httpPort)
