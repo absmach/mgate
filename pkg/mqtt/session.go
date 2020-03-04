@@ -47,7 +47,7 @@ func (s *session) stream() error {
 	go s.streamUnidir(down, s.outbound, s.inbound, errs)
 
 	err := <-errs
-	s.event.Disconnect(s.client.ID)
+	s.event.Disconnect(s.client.username, s.client.ID)
 	return err
 }
 
@@ -101,13 +101,13 @@ func (s *session) authorize(pkt packets.ControlPacket) error {
 func (s *session) notify(pkt packets.ControlPacket) {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
-		s.event.Register(s.client.ID)
+		s.event.Connect(s.client.username, s.client.ID)
 	case *packets.PublishPacket:
-		s.event.Publish(s.client.ID, p.TopicName, p.Payload)
+		s.event.Publish(s.client.username, s.client.ID, p.TopicName, p.Payload)
 	case *packets.SubscribePacket:
-		s.event.Subscribe(s.client.ID, p.Topics)
+		s.event.Subscribe(s.client.username, s.client.ID, p.Topics)
 	case *packets.UnsubscribePacket:
-		s.event.Unsubscribe(s.client.ID, p.Topics)
+		s.event.Unsubscribe(s.client.username, s.client.ID, p.Topics)
 	default:
 		return
 	}
