@@ -31,15 +31,15 @@ func (e *Event) AuthConnect(c *mqtt.Client) error {
 
 // AuthPublish is called on device publish,
 // prior forwarding to the MQTT broker
-func (e *Event) AuthPublish(c *mqtt.Client, topic *string, payload []byte) error {
-	e.logger.Info(fmt.Sprintf("AuthPublish() - clientID: %s, topic: %s, payload: %s", c.ID, *topic, string(payload)))
+func (e *Event) AuthPublish(c *mqtt.Client, topic *string, payload *[]byte) error {
+	e.logger.Info(fmt.Sprintf("AuthPublish() - clientID: %s, topic: %s, payload: %s", c.ID, *topic, string(*payload)))
 	return nil
 }
 
 // AuthSubscribe is called on device publish,
 // prior forwarding to the MQTT broker
-func (e *Event) AuthSubscribe(c *mqtt.Client, topics []string) error {
-	e.logger.Info(fmt.Sprintf("AuthSubscribe() - clientID: %s, topics: %s", c.ID, strings.Join(topics, ",")))
+func (e *Event) AuthSubscribe(c *mqtt.Client, topics *[]string) error {
+	e.logger.Info(fmt.Sprintf("AuthSubscribe() - clientID: %s, topics: %s", c.ID, strings.Join(*topics, ",")))
 	return nil
 }
 
@@ -49,18 +49,18 @@ func (e *Event) Connect(c *mqtt.Client) {
 }
 
 // Publish - after client successfully published
-func (e *Event) Publish(c *mqtt.Client, topic *string, payload []byte) {
-	e.logger.Info(fmt.Sprintf("Publish() - username: %s, clientID: %s, topic: %s, payload: %s", c.Username, c.ID, *topic, string(payload)))
+func (e *Event) Publish(c *mqtt.Client, topic *string, payload *[]byte) {
+	e.logger.Info(fmt.Sprintf("Publish() - username: %s, clientID: %s, topic: %s, payload: %s", c.Username, c.ID, *topic, string(*payload)))
 }
 
 // Subscribe - after client successfully subscribed
-func (e *Event) Subscribe(c *mqtt.Client, topics []string) {
-	e.logger.Info(fmt.Sprintf("Subscribe() - username: %s, clientID: %s, topics: %s", c.Username, c.ID, strings.Join(topics, ",")))
+func (e *Event) Subscribe(c *mqtt.Client, topics *[]string) {
+	e.logger.Info(fmt.Sprintf("Subscribe() - username: %s, clientID: %s, topics: %s", c.Username, c.ID, strings.Join(*topics, ",")))
 }
 
 // Unsubscribe - after client unsubscribed
-func (e *Event) Unsubscribe(c *mqtt.Client, topics []string) {
-	e.logger.Info(fmt.Sprintf("Unsubscribe() - username: %s, clientID: %s, topics: %s", c.Username, c.ID, strings.Join(topics, ",")))
+func (e *Event) Unsubscribe(c *mqtt.Client, topics *[]string) {
+	e.logger.Info(fmt.Sprintf("Unsubscribe() - username: %s, clientID: %s, topics: %s", c.Username, c.ID, strings.Join(*topics, ",")))
 }
 
 // Disconnect on conection lost

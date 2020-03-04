@@ -81,17 +81,18 @@ func (s *session) authorize(pkt packets.ControlPacket) error {
 			Password: p.Password,
 		}
 		if err := s.event.AuthConnect(&s.client); err != nil {
-			return nil
+			return err
 		}
 		// Copy back to the packet in case values are changed by Event handler.
 		// This is specific to CONN, as only that package type has credentials.
 		p.ClientIdentifier = s.client.ID
 		p.Username = s.client.Username
 		p.Password = s.client.Password
+		return nil
 	case *packets.PublishPacket:
-		return s.event.AuthPublish(&s.client, &p.TopicName, p.Payload)
+		return s.event.AuthPublish(&s.client, &p.TopicName, &p.Payload)
 	case *packets.SubscribePacket:
-		return s.event.AuthSubscribe(&s.client, p.Topics)
+		return s.event.AuthSubscribe(&s.client, &p.Topics)
 	default:
 		return nil
 	}
@@ -102,11 +103,11 @@ func (s *session) notify(pkt packets.ControlPacket) {
 	case *packets.ConnectPacket:
 		s.event.Connect(&s.client)
 	case *packets.PublishPacket:
-		s.event.Publish(&s.client, &p.TopicName, p.Payload)
+		s.event.Publish(&s.client, &p.TopicName, &p.Payload)
 	case *packets.SubscribePacket:
-		s.event.Subscribe(&s.client, p.Topics)
+		s.event.Subscribe(&s.client, &p.Topics)
 	case *packets.UnsubscribePacket:
-		s.event.Unsubscribe(&s.client, p.Topics)
+		s.event.Unsubscribe(&s.client, &p.Topics)
 	default:
 		return
 	}
