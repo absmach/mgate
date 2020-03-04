@@ -6,9 +6,6 @@ type Event interface {
 	// Each of the params are passed by reference, so that it can be changed
 	AuthConnect(username, clientID *string, password *[]byte) error
 
-	// Disconnect on connection with client lost
-	Disconnect(clientID string)
-
 	// Authorization on client `PUBLISH`
 	// Topic is passed by reference, so that it can be modified
 	AuthPublish(username, clientID string, topic *string, payload *[]byte) error
@@ -18,14 +15,17 @@ type Event interface {
 	AuthSubscribe(username, clientID string, topics *[]string) error
 
 	// After client successfully connected
-	Register(clientID string)
+	Connect(username, clientID string)
 
 	// After client successfully published
-	Publish(clientID, topic string, payload []byte)
+	Publish(username, clientID, topic string, payload []byte)
 
 	// After client successfully subscribed
-	Subscribe(clientID string, topics []string)
+	Subscribe(username, clientID string, topics []string)
 
 	// After client unsubscribed
-	Unsubscribe(clientID string, topics []string)
+	Unsubscribe(username, clientID string, topics []string)
+
+	// Disconnect on connection with client lost
+	Disconnect(username, clientID string)
 }
