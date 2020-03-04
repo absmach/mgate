@@ -80,7 +80,14 @@ func (s *session) authorize(pkt packets.ControlPacket) error {
 			Username: p.Username,
 			Password: p.Password,
 		}
-		return s.event.AuthConnect(&s.client)
+		if err := s.event.AuthConnect(&s.client); err != nil {
+			return nil
+		}
+		// Copy back to the packet in case values are changed by Event handler.
+		// This is specific to CONN, as only that package type has credentials.
+		p.ClientIdentifier = s.client.ID
+		p.Username = s.client.Username
+		p.Password = s.client.Password
 	case *packets.PublishPacket:
 		return s.event.AuthPublish(&s.client, &p.TopicName, p.Payload)
 	case *packets.SubscribePacket:
