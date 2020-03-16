@@ -19,15 +19,17 @@ const (
 	// HTTP
 	defHTTPHost       = "0.0.0.0"
 	defHTTPPort       = "8080"
-	defHTTPScheme     = "http"
-	defHTTPTargetHost = "0.0.0.0"
+	defHTTPScheme     = "ws"
+	defHTTPTargetHost = "localhost"
 	defHTTPTargetPort = "8888"
+	defHTTPTargetPath = "/mqtt"
 
 	envHTTPHost       = "MPROXY_HTTP_HOST"
 	envHTTPPort       = "MPROXY_HTTP_PORT"
 	envHTTPScheme     = "MPROXY_HTTP_SCHEMA"
 	envHTTPTargetHost = "MPROXY_HTTP_TARGET_HOST"
 	envHTTPTargetPort = "MPROXY_HTTP_TARGET_PORT"
+	envHTTPTargetPath = "MPROXY_HTTP_TARGET_PATH"
 
 	// MQTT
 	defMQTTHost       = "0.0.0.0"
@@ -40,7 +42,7 @@ const (
 	envMQTTTargetHost = "MPROXY_MQTT_TARGET_HOST"
 	envMQTTTargetPort = "MPROXY_MQTT_TARGET_PORT"
 
-	defLogLevel = "error"
+	defLogLevel = "debug"
 	envLogLevel = "MPROXY_LOG_LEVEL"
 )
 
@@ -50,6 +52,7 @@ type config struct {
 	httpScheme     string
 	httpTargetHost string
 	httpTargetPort string
+	httpTargetPath string
 
 	mqttHost       string
 	mqttPort       string
@@ -80,7 +83,7 @@ func main() {
 	go proxyMQTT(cfg, logger, ev, errs)
 
 	go func() {
-		c := make(chan os.Signal)
+		c := make(chan os.Signal, 2)
 		signal.Notify(c, syscall.SIGINT)
 		errs <- fmt.Errorf("%s", <-c)
 	}()
@@ -105,6 +108,7 @@ func loadConfig() config {
 		httpScheme:     env(envHTTPScheme, defHTTPScheme),
 		httpTargetHost: env(envHTTPTargetHost, defHTTPTargetHost),
 		httpTargetPort: env(envHTTPTargetPort, defHTTPTargetPort),
+		httpTargetPath: env(envHTTPTargetPath, defHTTPTargetPath),
 
 		// MQTT
 		mqttHost:       env(envMQTTHost, defMQTTHost),
@@ -118,8 +122,8 @@ func loadConfig() config {
 }
 
 func proxyHTTP(cfg config, logger logger.Logger, evt events.Event, errs chan error) {
-	hp := hp.New(cfg.httpTargetHost, cfg.httpTargetPort, cfg.httpScheme, evt, logger)
-	http.Handle("/", hp.ReverseProxy)
+	hp := hp.New(cfg.httpTargetHost, cfg.httpTargetPort, cfg.httpTargetPath, cfg.httpScheme, evt, logger)
+	http.Handle(cfg.httpScheme, hp.Handler())
 
 	p := fmt.Sprintf(":%s", cfg.httpPort)
 	errs <- http.ListenAndServe(p, nil)

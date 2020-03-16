@@ -52,8 +52,8 @@ func (p *Proxy) handleConnection(inbound net.Conn) {
 	}
 	defer outbound.Close()
 
-	s := newSession(inbound, outbound, p.event, p.logger)
-	if err := s.stream(); err != io.EOF {
+	s := NewSession(inbound, outbound, p.event, p.logger)
+	if err := s.Stream(); err != io.EOF {
 		p.logger.Warn("Exited session for client " + s.client.ID + " with error: " + err.Error())
 	}
 	s.logger.Info("Session for client " + s.client.ID + " closed: " + s.outbound.LocalAddr().String())
