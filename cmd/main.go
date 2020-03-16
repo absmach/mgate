@@ -10,9 +10,8 @@ import (
 
 	"github.com/mainflux/mainflux/logger"
 	"github.com/mainflux/mproxy/examples/simple"
-	"github.com/mainflux/mproxy/pkg/events"
 	hp "github.com/mainflux/mproxy/pkg/http"
-	mp "github.com/mainflux/mproxy/pkg/mqtt"
+	"github.com/mainflux/mproxy/pkg/mqtt"
 )
 
 const (
@@ -42,7 +41,7 @@ const (
 	envMQTTTargetHost = "MPROXY_MQTT_TARGET_HOST"
 	envMQTTTargetPort = "MPROXY_MQTT_TARGET_PORT"
 
-	defLogLevel = "error"
+	defLogLevel = "debug"
 	envLogLevel = "MPROXY_LOG_LEVEL"
 )
 
@@ -121,16 +120,16 @@ func loadConfig() config {
 	}
 }
 
-func proxyHTTP(cfg config, logger logger.Logger, evt events.Event, errs chan error) {
+func proxyHTTP(cfg config, logger logger.Logger, evt mqtt.Event, errs chan error) {
 	hp := hp.New(cfg.httpTargetHost, cfg.httpTargetPort, cfg.httpTargetPath, cfg.httpScheme, evt, logger)
-	http.Handle(cfg.httpScheme, hp.Handler())
+	http.Handle("/mqtt", hp.Handler())
 
 	p := fmt.Sprintf(":%s", cfg.httpPort)
 	errs <- http.ListenAndServe(p, nil)
 }
 
-func proxyMQTT(cfg config, logger logger.Logger, evt events.Event, errs chan error) {
-	mp := mp.New(cfg.mqttHost, cfg.mqttPort, cfg.mqttTargetHost, cfg.mqttTargetPort, evt, logger)
+func proxyMQTT(cfg config, logger logger.Logger, evt mqtt.Event, errs chan error) {
+	mp := mqtt.New(cfg.mqttHost, cfg.mqttPort, cfg.mqttTargetHost, cfg.mqttTargetPort, evt, logger)
 
 	errs <- mp.Proxy()
 }

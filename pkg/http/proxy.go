@@ -8,7 +8,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/mainflux/mainflux/logger"
-	"github.com/mainflux/mproxy/pkg/events"
 	"github.com/mainflux/mproxy/pkg/mqtt"
 )
 
@@ -18,7 +17,7 @@ type Proxy struct {
 	port    string
 	path    string
 	scheme  string
-	event   events.Event
+	event   mqtt.Event
 	logger  logger.Logger
 	session mqtt.Session
 }
@@ -36,7 +35,7 @@ var upgrader = websocket.Upgrader{
 }
 
 // New - creates new HTTP proxy
-func New(host, port, path, scheme string, event events.Event, logger logger.Logger) *Proxy {
+func New(host, port, path, scheme string, event mqtt.Event, logger logger.Logger) *Proxy {
 	return &Proxy{
 		host:    host,
 		port:    port,

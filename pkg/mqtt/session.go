@@ -14,7 +14,7 @@ const (
 
 type direction int
 
-type session struct {
+type Session struct {
 	logger   logger.Logger
 	inbound  net.Conn
 	outbound net.Conn
@@ -22,8 +22,8 @@ type session struct {
 	client   Client
 }
 
-func newSession(inbound, outbound net.Conn, event Event, logger logger.Logger) *session {
-	return &session{
+func NewSession(inbound, outbound net.Conn, event Event, logger logger.Logger) *Session {
+	return &Session{
 		logger:   logger,
 		inbound:  inbound,
 		outbound: outbound,
@@ -31,7 +31,7 @@ func newSession(inbound, outbound net.Conn, event Event, logger logger.Logger) *
 	}
 }
 
-func (s *session) stream() error {
+func (s *Session) Stream() error {
 	// In parallel read from client, send to broker
 	// and read from broker, send to client
 	errs := make(chan error, 2)
@@ -44,7 +44,7 @@ func (s *session) stream() error {
 	return err
 }
 
-func (s *session) streamUnidir(dir direction, r, w net.Conn, errs chan error) {
+func (s *Session) streamUnidir(dir direction, r, w net.Conn, errs chan error) {
 	for {
 		// Read from one connection
 		pkt, err := packets.ReadPacket(r)
@@ -72,7 +72,7 @@ func (s *session) streamUnidir(dir direction, r, w net.Conn, errs chan error) {
 	}
 }
 
-func (s *session) authorize(pkt packets.ControlPacket) error {
+func (s *Session) authorize(pkt packets.ControlPacket) error {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
 		s.client = Client{
@@ -98,7 +98,7 @@ func (s *session) authorize(pkt packets.ControlPacket) error {
 	}
 }
 
-func (s *session) notify(pkt packets.ControlPacket) {
+func (s *Session) notify(pkt packets.ControlPacket) {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
 		s.event.Connect(&s.client)
