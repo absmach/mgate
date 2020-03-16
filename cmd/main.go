@@ -42,7 +42,7 @@ const (
 	envMQTTTargetHost = "MPROXY_MQTT_TARGET_HOST"
 	envMQTTTargetPort = "MPROXY_MQTT_TARGET_PORT"
 
-	defLogLevel = "debug"
+	defLogLevel = "error"
 	envLogLevel = "MPROXY_LOG_LEVEL"
 )
 
