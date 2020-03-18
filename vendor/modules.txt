@@ -11,9 +11,9 @@ github.com/google/uuid
 github.com/gorilla/websocket
 # github.com/kr/logfmt v0.0.0-20140226030751-b84e30acd515
 github.com/kr/logfmt
-# github.com/mainflux/mainflux v0.0.0-20191223163044-f42f2095bab4
+# github.com/mainflux/mainflux v0.0.0-20200314190902-c91fe0d45353
 github.com/mainflux/mainflux/logger
-# golang.org/x/net v0.0.0-20190522155817-f3200d17e092
+# golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
 golang.org/x/net/websocket

@@ -1,4 +1,4 @@
-package http
+package proxy
 
 import (
 	"io"
@@ -9,17 +9,16 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// websocketConnector is a websocket wrapper so it satisfies the net.Conn interface.
-// Inspiration taken from https://github.com/gorilla/websocket/issues/282
-type websocketConnector struct {
+// wsWrapper is a websocket wrapper so it satisfies the net.Conn interface.
+type wsWrapper struct {
 	*websocket.Conn
 	r   io.Reader
 	rio sync.Mutex
 	wio sync.Mutex
 }
 
-func NewConn(ws *websocket.Conn) net.Conn {
-	wrapper := &websocketConnector{
+func wrappWSConn(ws *websocket.Conn) net.Conn {
+	wrapper := &wsWrapper{
 		Conn: ws,
 	}
 	return wrapper
@@ -27,7 +26,7 @@ func NewConn(ws *websocket.Conn) net.Conn {
 }
 
 // SetDeadline sets both the read and write deadlines
-func (c *websocketConnector) SetDeadline(t time.Time) error {
+func (c *wsWrapper) SetDeadline(t time.Time) error {
 	if err := c.SetReadDeadline(t); err != nil {
 		return err
 	}
@@ -36,7 +35,7 @@ func (c *websocketConnector) SetDeadline(t time.Time) error {
 }
 
 // Write writes data to the websocket
-func (c *websocketConnector) Write(p []byte) (int, error) {
+func (c *wsWrapper) Write(p []byte) (int, error) {
 	c.wio.Lock()
 	defer c.wio.Unlock()
 
@@ -48,7 +47,7 @@ func (c *websocketConnector) Write(p []byte) (int, error) {
 }
 
 // Read reads the current websocket frame
-func (c *websocketConnector) Read(p []byte) (int, error) {
+func (c *wsWrapper) Read(p []byte) (int, error) {
 	c.rio.Lock()
 	defer c.rio.Unlock()
 	for {
@@ -74,6 +73,6 @@ func (c *websocketConnector) Read(p []byte) (int, error) {
 	}
 }
 
-func (c *websocketConnector) Close() error {
+func (c *wsWrapper) Close() error {
 	return c.Conn.Close()
 }

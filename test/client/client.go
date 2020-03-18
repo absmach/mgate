@@ -111,7 +111,6 @@ func (cfg config) load() (config, error) {
 }
 
 func main() {
-
 	// Connect single client over WS and publish every 10 sec
 	cfg, err := config{}.load()
 	if err != nil {

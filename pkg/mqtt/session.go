@@ -19,7 +19,7 @@ type Session struct {
 	inbound  net.Conn
 	outbound net.Conn
 	event    Event
-	client   Client
+	Client   Client
 }
 
 func NewSession(inbound, outbound net.Conn, event Event, logger logger.Logger) *Session {
@@ -31,20 +31,20 @@ func NewSession(inbound, outbound net.Conn, event Event, logger logger.Logger) *
 	}
 }
 
-func (s *Session) Stream() error {
+func (s Session) Stream() error {
 	// In parallel read from client, send to broker
 	// and read from broker, send to client
 	errs := make(chan error, 2)
 
-	go s.streamUnidir(up, s.inbound, s.outbound, errs)
-	go s.streamUnidir(down, s.outbound, s.inbound, errs)
+	go s.stream(up, s.inbound, s.outbound, errs)
+	go s.stream(down, s.outbound, s.inbound, errs)
 
 	err := <-errs
-	s.event.Disconnect(&s.client)
+	s.event.Disconnect(&s.Client)
 	return err
 }
 
-func (s *Session) streamUnidir(dir direction, r, w net.Conn, errs chan error) {
+func (s Session) stream(dir direction, r, w net.Conn, errs chan error) {
 	for {
 		// Read from one connection
 		pkt, err := packets.ReadPacket(r)
@@ -75,39 +75,39 @@ func (s *Session) streamUnidir(dir direction, r, w net.Conn, errs chan error) {
 func (s *Session) authorize(pkt packets.ControlPacket) error {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
-		s.client = Client{
+		s.Client = Client{
 			ID:       p.ClientIdentifier,
 			Username: p.Username,
 			Password: p.Password,
 		}
-		if err := s.event.AuthConnect(&s.client); err != nil {
+		if err := s.event.AuthConnect(&s.Client); err != nil {
 			return err
 		}
 		// Copy back to the packet in case values are changed by Event handler.
 		// This is specific to CONN, as only that package type has credentials.
-		p.ClientIdentifier = s.client.ID
-		p.Username = s.client.Username
-		p.Password = s.client.Password
+		p.ClientIdentifier = s.Client.ID
+		p.Username = s.Client.Username
+		p.Password = s.Client.Password
 		return nil
 	case *packets.PublishPacket:
-		return s.event.AuthPublish(&s.client, &p.TopicName, &p.Payload)
+		return s.event.AuthPublish(&s.Client, &p.TopicName, &p.Payload)
 	case *packets.SubscribePacket:
-		return s.event.AuthSubscribe(&s.client, &p.Topics)
+		return s.event.AuthSubscribe(&s.Client, &p.Topics)
 	default:
 		return nil
 	}
 }
 
-func (s *Session) notify(pkt packets.ControlPacket) {
+func (s Session) notify(pkt packets.ControlPacket) {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
-		s.event.Connect(&s.client)
+		s.event.Connect(&s.Client)
 	case *packets.PublishPacket:
-		s.event.Publish(&s.client, &p.TopicName, &p.Payload)
+		s.event.Publish(&s.Client, &p.TopicName, &p.Payload)
 	case *packets.SubscribePacket:
-		s.event.Subscribe(&s.client, &p.Topics)
+		s.event.Subscribe(&s.Client, &p.Topics)
 	case *packets.UnsubscribePacket:
-		s.event.Unsubscribe(&s.client, &p.Topics)
+		s.event.Unsubscribe(&s.Client, &p.Topics)
 	default:
 		return
 	}

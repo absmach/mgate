@@ -10,8 +10,8 @@ import (
 
 	"github.com/mainflux/mainflux/logger"
 	"github.com/mainflux/mproxy/examples/simple"
-	hp "github.com/mainflux/mproxy/pkg/http"
 	"github.com/mainflux/mproxy/pkg/mqtt"
+	"github.com/mainflux/mproxy/pkg/proxy"
 )
 
 const (
@@ -121,15 +121,15 @@ func loadConfig() config {
 }
 
 func proxyHTTP(cfg config, logger logger.Logger, evt mqtt.Event, errs chan error) {
-	hp := hp.New(cfg.httpTargetHost, cfg.httpTargetPort, cfg.httpTargetPath, cfg.httpScheme, evt, logger)
-	http.Handle("/mqtt", hp.Handler())
+	wp := proxy.NewWS(cfg.httpTargetHost, cfg.httpTargetPort, cfg.httpTargetPath, cfg.httpScheme, evt, logger)
+	http.Handle("/mqtt", wp.Handler())
 
 	p := fmt.Sprintf(":%s", cfg.httpPort)
 	errs <- http.ListenAndServe(p, nil)
 }
 
 func proxyMQTT(cfg config, logger logger.Logger, evt mqtt.Event, errs chan error) {
-	mp := mqtt.New(cfg.mqttHost, cfg.mqttPort, cfg.mqttTargetHost, cfg.mqttTargetPort, evt, logger)
+	mp := proxy.NewMQTT(cfg.mqttHost, cfg.mqttPort, cfg.mqttTargetHost, cfg.mqttTargetPort, evt, logger)
 
 	errs <- mp.Proxy()
 }

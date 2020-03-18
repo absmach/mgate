@@ -1,4 +1,4 @@
-package http
+package proxy
 
 import (
 	"fmt"
@@ -7,24 +7,11 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/mainflux/mainflux/logger"
 	"github.com/mainflux/mproxy/pkg/mqtt"
 )
 
-// Proxy - struct that holds HTTP proxy info
-type Proxy struct {
-	host    string
-	port    string
-	path    string
-	scheme  string
-	event   mqtt.Event
-	logger  logger.Logger
-	session mqtt.Session
-}
-
 var upgrader = websocket.Upgrader{
-	ReadBufferSize:   1048562,
-	WriteBufferSize:  1048562,
+	// Timeout for WS upgrade request handshake
 	HandshakeTimeout: 10 * time.Second,
 	// Paho JS client expecting header Sec-WebSocket-Protocol:mqtt in Upgrade response during handshake.
 	Subprotocols: []string{"mqtt"},
@@ -34,25 +21,12 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// New - creates new HTTP proxy
-func New(host, port, path, scheme string, event mqtt.Event, logger logger.Logger) *Proxy {
-	return &Proxy{
-		host:    host,
-		port:    port,
-		path:    path,
-		scheme:  scheme,
-		event:   event,
-		logger:  logger,
-		session: mqtt.Session{},
-	}
-}
-
 // Handle - proxies HTTP traffic
-func (p *Proxy) Handler() http.Handler {
+func (p wsProxy) Handler() http.Handler {
 	return p.handle()
 }
 
-func (p *Proxy) handle() http.Handler {
+func (p wsProxy) handle() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cconn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
@@ -65,7 +39,7 @@ func (p *Proxy) handle() http.Handler {
 	})
 }
 
-func (p Proxy) pass(in *websocket.Conn) {
+func (p wsProxy) pass(in *websocket.Conn) {
 	defer in.Close()
 
 	url := url.URL{
@@ -82,8 +56,8 @@ func (p Proxy) pass(in *websocket.Conn) {
 	}
 
 	errc := make(chan error, 1)
-	c := NewConn(in)
-	s := NewConn(srv)
+	c := wrappWSConn(in)
+	s := wrappWSConn(srv)
 
 	defer s.Close()
 	defer c.Close()
@@ -91,6 +65,6 @@ func (p Proxy) pass(in *websocket.Conn) {
 	session := mqtt.NewSession(c, s, p.event, p.logger)
 	err = session.Stream()
 	errc <- err
-	p.logger.Error("Streaming error:" + err.Error())
+	p.logger.Warn("Broken connection for client: " + session.Client.ID + " with error: " + err.Error())
 
 }
