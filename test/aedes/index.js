@@ -1,9 +1,20 @@
 var aedes = require('aedes')()
 var server = require('net').createServer(aedes.handle)
+var httpServer = require("http").createServer()
+var ws = require("websocket-stream")
 var port = 1884
+var wsPort = 8888
 
 server.listen(port, function () {
   console.log('server listening on port', port)
+})
+
+ws.createServer({
+  server: httpServer
+}, aedes.handle)
+
+httpServer.listen(wsPort, function () {
+  console.log("Websocket server listening on port", wsPort)
 })
 
 aedes.on('subscribe', function (subscriptions, client) {
@@ -24,7 +35,7 @@ aedes.on('client', function (client) {
 // fired when a client disconnects
 aedes.on('clientDisconnect', function (client) {
     console.log('Client Disconnected: \x1b[31m' + (client ? client.id : client) + '\x1b[0m', 'to broker', aedes.id)
-})
+  })
 
 // fired when a message is published
 aedes.on('publish', async function (packet, client) {

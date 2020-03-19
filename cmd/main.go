@@ -10,21 +10,25 @@ import (
 
 	"github.com/mainflux/mainflux/logger"
 	"github.com/mainflux/mproxy/examples/simple"
-	hp "github.com/mainflux/mproxy/pkg/http"
 	"github.com/mainflux/mproxy/pkg/mqtt"
+	"github.com/mainflux/mproxy/pkg/websocket"
 )
 
 const (
 	// HTTP
 	defHTTPHost       = "0.0.0.0"
-	defHTTPPort       = "7777"
-	defHTTPTargetHost = "0.0.0.0"
-	defHTTPTargetPort = "8080"
+	defHTTPPort       = "8080"
+	defHTTPScheme     = "ws"
+	defHTTPTargetHost = "localhost"
+	defHTTPTargetPort = "8888"
+	defHTTPTargetPath = "/mqtt"
 
 	envHTTPHost       = "MPROXY_HTTP_HOST"
 	envHTTPPort       = "MPROXY_HTTP_PORT"
+	envHTTPScheme     = "MPROXY_HTTP_SCHEMA"
 	envHTTPTargetHost = "MPROXY_HTTP_TARGET_HOST"
 	envHTTPTargetPort = "MPROXY_HTTP_TARGET_PORT"
+	envHTTPTargetPath = "MPROXY_HTTP_TARGET_PATH"
 
 	// MQTT
 	defMQTTHost       = "0.0.0.0"
@@ -37,15 +41,17 @@ const (
 	envMQTTTargetHost = "MPROXY_MQTT_TARGET_HOST"
 	envMQTTTargetPort = "MPROXY_MQTT_TARGET_PORT"
 
-	defLogLevel = "error"
+	defLogLevel = "debug"
 	envLogLevel = "MPROXY_LOG_LEVEL"
 )
 
 type config struct {
 	httpHost       string
 	httpPort       string
+	httpScheme     string
 	httpTargetHost string
 	httpTargetPort string
+	httpTargetPath string
 
 	mqttHost       string
 	mqttPort       string
@@ -76,7 +82,7 @@ func main() {
 	go proxyMQTT(cfg, logger, ev, errs)
 
 	go func() {
-		c := make(chan os.Signal)
+		c := make(chan os.Signal, 2)
 		signal.Notify(c, syscall.SIGINT)
 		errs <- fmt.Errorf("%s", <-c)
 	}()
@@ -98,8 +104,10 @@ func loadConfig() config {
 		// HTTP
 		httpHost:       env(envHTTPHost, defHTTPHost),
 		httpPort:       env(envHTTPPort, defHTTPPort),
+		httpScheme:     env(envHTTPScheme, defHTTPScheme),
 		httpTargetHost: env(envHTTPTargetHost, defHTTPTargetHost),
 		httpTargetPort: env(envHTTPTargetPort, defHTTPTargetPort),
+		httpTargetPath: env(envHTTPTargetPath, defHTTPTargetPath),
 
 		// MQTT
 		mqttHost:       env(envMQTTHost, defMQTTHost),
@@ -113,8 +121,8 @@ func loadConfig() config {
 }
 
 func proxyHTTP(cfg config, logger logger.Logger, evt mqtt.Event, errs chan error) {
-	hp := hp.New(cfg.httpTargetHost, cfg.httpTargetPort, evt, logger)
-	http.Handle("/", hp.ReverseProxy)
+	wp := websocket.New(cfg.httpTargetHost, cfg.httpTargetPort, cfg.httpTargetPath, cfg.httpScheme, evt, logger)
+	http.Handle("/mqtt", wp.Handler())
 
 	p := fmt.Sprintf(":%s", cfg.httpPort)
 	errs <- http.ListenAndServe(p, nil)

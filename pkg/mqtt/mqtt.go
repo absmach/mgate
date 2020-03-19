@@ -6,6 +6,7 @@ import (
 	"net"
 
 	"github.com/mainflux/mainflux/logger"
+	"github.com/mainflux/mproxy/pkg/session"
 )
 
 // Proxy is main MQTT proxy struct
@@ -13,22 +14,21 @@ type Proxy struct {
 	host   string
 	port   string
 	target string
-	event  Event
+	event  session.Event
 	logger logger.Logger
 }
 
-// New will setup a new Proxy struct after parsing the options
-func New(host, port, targetHost, targetPort string, event Event, logger logger.Logger) *Proxy {
+func New(host, port, path, scheme string, event session.Event, logger logger.Logger) *Proxy {
 	return &Proxy{
 		host:   host,
 		port:   port,
-		target: fmt.Sprintf("%s:%s", targetHost, targetPort),
+		target: path,
 		event:  event,
 		logger: logger,
 	}
 }
 
-func (p *Proxy) accept(l net.Listener) {
+func (p Proxy) accept(l net.Listener) {
 	for {
 		conn, err := l.Accept()
 		if err != nil {
@@ -41,7 +41,7 @@ func (p *Proxy) accept(l net.Listener) {
 	}
 }
 
-func (p *Proxy) handleConnection(inbound net.Conn) {
+func (p Proxy) handleConnection(inbound net.Conn) {
 	defer inbound.Close()
 
 	outbound, err := net.Dial("tcp", p.target)
@@ -51,15 +51,15 @@ func (p *Proxy) handleConnection(inbound net.Conn) {
 	}
 	defer outbound.Close()
 
-	s := newSession(inbound, outbound, p.event, p.logger)
-	if err := s.stream(); err != io.EOF {
-		p.logger.Warn("Exited session for client " + s.client.ID + " with error: " + err.Error())
+	c := session.New(inbound, outbound, p.event, p.logger)
+
+	if err := c.Stream(); err != io.EOF {
+		p.logger.Warn("Broken connection for client: " + c.Client.ID + " with error: " + err.Error())
 	}
-	s.logger.Info("Session for client " + s.client.ID + " closed: " + s.outbound.LocalAddr().String())
 }
 
 // Proxy of the server, this will block.
-func (p *Proxy) Proxy() error {
+func (p Proxy) Proxy() error {
 	addr := fmt.Sprintf("%s:%s", p.host, p.port)
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
