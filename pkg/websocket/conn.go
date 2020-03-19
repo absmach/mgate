@@ -1,4 +1,4 @@
-package proxy
+package websocket
 
 import (
 	"io"
@@ -17,7 +17,7 @@ type wsWrapper struct {
 	wio sync.Mutex
 }
 
-func wrappWSConn(ws *websocket.Conn) net.Conn {
+func newConn(ws *websocket.Conn) net.Conn {
 	wrapper := &wsWrapper{
 		Conn: ws,
 	}

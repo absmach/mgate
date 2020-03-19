@@ -1,4 +1,4 @@
-package proxy
+package websocket
 
 import (
 	"fmt"
@@ -7,8 +7,30 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/mainflux/mproxy/pkg/mqtt"
+	"github.com/mainflux/mainflux/logger"
+	"github.com/mainflux/mproxy/pkg/session"
 )
+
+// New - creates new HTTP proxy
+type Proxy struct {
+	host   string
+	port   string
+	path   string
+	scheme string
+	event  session.Event
+	logger logger.Logger
+}
+
+func New(host, port, path, scheme string, event session.Event, logger logger.Logger) *Proxy {
+	return &Proxy{
+		host:   host,
+		port:   port,
+		path:   path,
+		scheme: scheme,
+		event:  event,
+		logger: logger,
+	}
+}
 
 var upgrader = websocket.Upgrader{
 	// Timeout for WS upgrade request handshake
@@ -22,11 +44,11 @@ var upgrader = websocket.Upgrader{
 }
 
 // Handle - proxies HTTP traffic
-func (p wsProxy) Handler() http.Handler {
+func (p Proxy) Handler() http.Handler {
 	return p.handle()
 }
 
-func (p wsProxy) handle() http.Handler {
+func (p Proxy) handle() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cconn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
@@ -39,7 +61,7 @@ func (p wsProxy) handle() http.Handler {
 	})
 }
 
-func (p wsProxy) pass(in *websocket.Conn) {
+func (p Proxy) pass(in *websocket.Conn) {
 	defer in.Close()
 
 	url := url.URL{
@@ -56,13 +78,13 @@ func (p wsProxy) pass(in *websocket.Conn) {
 	}
 
 	errc := make(chan error, 1)
-	c := wrappWSConn(in)
-	s := wrappWSConn(srv)
+	c := newConn(in)
+	s := newConn(srv)
 
 	defer s.Close()
 	defer c.Close()
 
-	session := mqtt.NewSession(c, s, p.event, p.logger)
+	session := session.New(c, s, p.event, p.logger)
 	err = session.Stream()
 	errc <- err
 	p.logger.Warn("Broken connection for client: " + session.Client.ID + " with error: " + err.Error())

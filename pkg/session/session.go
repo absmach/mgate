@@ -1,4 +1,4 @@
-package mqtt
+package session
 
 import (
 	"net"
@@ -22,7 +22,7 @@ type Session struct {
 	Client   Client
 }
 
-func NewSession(inbound, outbound net.Conn, event Event, logger logger.Logger) *Session {
+func New(inbound, outbound net.Conn, event Event, logger logger.Logger) *Session {
 	return &Session{
 		logger:   logger,
 		inbound:  inbound,
