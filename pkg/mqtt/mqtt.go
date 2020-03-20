@@ -18,11 +18,11 @@ type Proxy struct {
 	logger logger.Logger
 }
 
-func New(host, port, path, scheme string, event session.Event, logger logger.Logger) *Proxy {
+func New(host, port, targetHost, targetPort string, event session.Event, logger logger.Logger) *Proxy {
 	return &Proxy{
 		host:   host,
 		port:   port,
-		target: path,
+		target: fmt.Sprintf("%s:%s", targetHost, targetPort),
 		event:  event,
 		logger: logger,
 	}
