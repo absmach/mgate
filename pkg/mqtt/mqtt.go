@@ -1,7 +1,6 @@
 package mqtt
 
 import (
-	"fmt"
 	"io"
 	"net"
 
@@ -11,20 +10,18 @@ import (
 
 // Proxy is main MQTT proxy struct
 type Proxy struct {
-	host   string
-	port   string
-	target string
-	event  session.Event
-	logger logger.Logger
+	address string
+	target  string
+	event   session.Event
+	logger  logger.Logger
 }
 
-func New(host, port, path, scheme string, event session.Event, logger logger.Logger) *Proxy {
+func New(address, target string, event session.Event, logger logger.Logger) *Proxy {
 	return &Proxy{
-		host:   host,
-		port:   port,
-		target: path,
-		event:  event,
-		logger: logger,
+		address: address,
+		target:  target,
+		event:   event,
+		logger:  logger,
 	}
 }
 
@@ -60,8 +57,7 @@ func (p Proxy) handleConnection(inbound net.Conn) {
 
 // Proxy of the server, this will block.
 func (p Proxy) Proxy() error {
-	addr := fmt.Sprintf("%s:%s", p.host, p.port)
-	l, err := net.Listen("tcp", addr)
+	l, err := net.Listen("tcp", p.address)
 	if err != nil {
 		return err
 	}
