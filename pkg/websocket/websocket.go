@@ -1,7 +1,6 @@
 package websocket
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -13,18 +12,16 @@ import (
 
 // New - creates new HTTP proxy
 type Proxy struct {
-	host   string
-	port   string
+	target string
 	path   string
 	scheme string
 	event  session.Event
 	logger logger.Logger
 }
 
-func New(host, port, path, scheme string, event session.Event, logger logger.Logger) *Proxy {
+func New(target, path, scheme string, event session.Event, logger logger.Logger) *Proxy {
 	return &Proxy{
-		host:   host,
-		port:   port,
+		target: target,
 		path:   path,
 		scheme: scheme,
 		event:  event,
@@ -66,7 +63,7 @@ func (p Proxy) pass(in *websocket.Conn) {
 
 	url := url.URL{
 		Scheme: p.scheme,
-		Host:   fmt.Sprintf("%s:%s", p.host, p.port),
+		Host:   p.target,
 		Path:   p.path,
 	}
 

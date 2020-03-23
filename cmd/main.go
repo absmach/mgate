@@ -121,7 +121,8 @@ func loadConfig() config {
 }
 
 func proxyHTTP(cfg config, logger logger.Logger, evt mqtt.Event, errs chan error) {
-	wp := websocket.New(cfg.httpTargetHost, cfg.httpTargetPort, cfg.httpTargetPath, cfg.httpScheme, evt, logger)
+	target := fmt.Sprintf("%s:%s", cfg.httpTargetHost, cfg.httpTargetPort)
+	wp := websocket.New(target, cfg.httpTargetPath, cfg.httpScheme, evt, logger)
 	http.Handle("/mqtt", wp.Handler())
 
 	p := fmt.Sprintf(":%s", cfg.httpPort)
@@ -129,7 +130,9 @@ func proxyHTTP(cfg config, logger logger.Logger, evt mqtt.Event, errs chan error
 }
 
 func proxyMQTT(cfg config, logger logger.Logger, evt mqtt.Event, errs chan error) {
-	mp := mqtt.New(cfg.mqttHost, cfg.mqttPort, cfg.mqttTargetHost, cfg.mqttTargetPort, evt, logger)
+	address := fmt.Sprintf("%s:%s", cfg.mqttHost, cfg.mqttPort)
+	target := fmt.Sprintf("%s:%s", cfg.mqttTargetHost, cfg.mqttTargetPort)
+	mp := mqtt.New(address, target, evt, logger)
 
 	errs <- mp.Proxy()
 }
