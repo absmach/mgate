@@ -20,7 +20,7 @@ const (
 	defScheme      = "ws"
 	defRetry       = 0
 	defMode        = publisher
-	defChannel     = "channels/19b9568f-914e-4894-92f1-ce95cd1a55da/messages"
+	defChannel     = ""
 	defPubPoolSize = 1
 )
 

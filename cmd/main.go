@@ -11,6 +11,7 @@ import (
 	"github.com/mainflux/mainflux/logger"
 	"github.com/mainflux/mproxy/examples/simple"
 	"github.com/mainflux/mproxy/pkg/mqtt"
+	"github.com/mainflux/mproxy/pkg/session"
 	"github.com/mainflux/mproxy/pkg/websocket"
 )
 
@@ -120,7 +121,7 @@ func loadConfig() config {
 	}
 }
 
-func proxyHTTP(cfg config, logger logger.Logger, evt mqtt.Event, errs chan error) {
+func proxyHTTP(cfg config, logger logger.Logger, evt session.Event, errs chan error) {
 	target := fmt.Sprintf("%s:%s", cfg.httpTargetHost, cfg.httpTargetPort)
 	wp := websocket.New(target, cfg.httpTargetPath, cfg.httpScheme, evt, logger)
 	http.Handle("/mqtt", wp.Handler())
@@ -129,7 +130,7 @@ func proxyHTTP(cfg config, logger logger.Logger, evt mqtt.Event, errs chan error
 	errs <- http.ListenAndServe(p, nil)
 }
 
-func proxyMQTT(cfg config, logger logger.Logger, evt mqtt.Event, errs chan error) {
+func proxyMQTT(cfg config, logger logger.Logger, evt session.Event, errs chan error) {
 	address := fmt.Sprintf("%s:%s", cfg.mqttHost, cfg.mqttPort)
 	target := fmt.Sprintf("%s:%s", cfg.mqttTargetHost, cfg.mqttTargetPort)
 	mp := mqtt.New(address, target, evt, logger)

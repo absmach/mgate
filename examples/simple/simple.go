@@ -5,11 +5,10 @@ import (
 	"strings"
 
 	"github.com/mainflux/mainflux/logger"
-	"github.com/mainflux/mainflux/mqtt"
 	"github.com/mainflux/mproxy/pkg/session"
 )
 
-var _ mqtt.Event = (*Event)(nil)
+var _ session.Event = (*Event)(nil)
 
 // Event implements mqtt.Event interface
 type Event struct {
