@@ -1,6 +1,7 @@
 package mqtt
 
 import (
+	"fmt"
 	"io"
 	"net"
 
@@ -16,6 +17,7 @@ type Proxy struct {
 	logger  logger.Logger
 }
 
+// New returns a new mqtt Proxy instance.
 func New(address, target string, event session.Event, logger logger.Logger) *Proxy {
 	return &Proxy{
 		address: address,
@@ -39,14 +41,14 @@ func (p Proxy) accept(l net.Listener) {
 }
 
 func (p Proxy) handleConnection(inbound net.Conn) {
-	defer inbound.Close()
+	defer p.close(inbound)
 
 	outbound, err := net.Dial("tcp", p.target)
 	if err != nil {
 		p.logger.Error("Cannot connect to remote broker " + p.target)
 		return
 	}
-	defer outbound.Close()
+	defer p.close(outbound)
 
 	c := session.New(inbound, outbound, p.event, p.logger)
 
@@ -68,4 +70,10 @@ func (p Proxy) Proxy() error {
 
 	p.logger.Info("Server Exiting...")
 	return nil
+}
+
+func (p Proxy) close(conn net.Conn) {
+	if err := conn.Close(); err != nil {
+		p.logger.Warn(fmt.Sprintf("Error closing connection: %s", err.Error()))
+	}
 }
