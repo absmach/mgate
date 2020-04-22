@@ -52,7 +52,7 @@ func (s *Session) Stream() error {
 		s.logger.Warn(fmt.Sprintf("Error closing client connection %s", err))
 	}
 	if err := s.outbound.Close(); err != nil {
-		s.logger.Warn(fmt.Sprintf("Error closing target connection %s", err))
+		s.logger.Warn(fmt.Sprintf("Error closing broker connection %s", err))
 	}
 
 	s.handler.Disconnect(&s.Client)
