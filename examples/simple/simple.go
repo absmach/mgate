@@ -8,7 +8,7 @@ import (
 	"github.com/mainflux/mproxy/pkg/session"
 )
 
-var _ session.EventHandler = (*Handler)(nil)
+var _ session.Handler = (*Handler)(nil)
 
 // Handler implements mqtt.Handler interface
 type Handler struct {

@@ -12,12 +12,12 @@ import (
 type Proxy struct {
 	address string
 	target  string
-	handler session.EventHandler
+	handler session.Handler
 	logger  logger.Logger
 }
 
 // New returns a new mqtt Proxy instance.
-func New(address, target string, handler session.EventHandler, logger logger.Logger) *Proxy {
+func New(address, target string, handler session.Handler, logger logger.Logger) *Proxy {
 	return &Proxy{
 		address: address,
 		target:  target,

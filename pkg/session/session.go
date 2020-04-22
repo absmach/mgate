@@ -22,12 +22,12 @@ type Session struct {
 	logger   logger.Logger
 	inbound  net.Conn
 	outbound net.Conn
-	handler  EventHandler
+	handler  Handler
 	Client   Client
 }
 
 // New creates a new Session.
-func New(inbound, outbound net.Conn, handler EventHandler, logger logger.Logger) *Session {
+func New(inbound, outbound net.Conn, handler Handler, logger logger.Logger) *Session {
 	return &Session{
 		logger:   logger,
 		inbound:  inbound,

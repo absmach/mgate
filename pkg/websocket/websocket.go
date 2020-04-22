@@ -15,12 +15,12 @@ type Proxy struct {
 	target string
 	path   string
 	scheme string
-	event  session.EventHandler
+	event  session.Handler
 	logger logger.Logger
 }
 
 // New - creates new HTTP proxy
-func New(target, path, scheme string, event session.EventHandler, logger logger.Logger) *Proxy {
+func New(target, path, scheme string, event session.Handler, logger logger.Logger) *Proxy {
 	return &Proxy{
 		target: target,
 		path:   path,
