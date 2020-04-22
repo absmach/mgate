@@ -70,17 +70,17 @@ func main() {
 		log.Fatalf(err.Error())
 	}
 
-	ev := simple.New(logger)
+	h := simple.New(logger)
 
 	errs := make(chan error, 3)
 
 	// HTTP
 	logger.Info(fmt.Sprintf("Starting HTTP proxy on port %s ", cfg.httpPort))
-	go proxyHTTP(cfg, logger, ev, errs)
+	go proxyHTTP(cfg, logger, h, errs)
 
 	// MQTT
 	logger.Info(fmt.Sprintf("Starting MQTT proxy on port %s ", cfg.mqttPort))
-	go proxyMQTT(cfg, logger, ev, errs)
+	go proxyMQTT(cfg, logger, h, errs)
 
 	go func() {
 		c := make(chan os.Signal, 2)
@@ -121,7 +121,7 @@ func loadConfig() config {
 	}
 }
 
-func proxyHTTP(cfg config, logger logger.Logger, evt session.Event, errs chan error) {
+func proxyHTTP(cfg config, logger logger.Logger, evt session.Handler, errs chan error) {
 	target := fmt.Sprintf("%s:%s", cfg.httpTargetHost, cfg.httpTargetPort)
 	wp := websocket.New(target, cfg.httpTargetPath, cfg.httpScheme, evt, logger)
 	http.Handle("/mqtt", wp.Handler())
@@ -130,7 +130,7 @@ func proxyHTTP(cfg config, logger logger.Logger, evt session.Event, errs chan er
 	errs <- http.ListenAndServe(p, nil)
 }
 
-func proxyMQTT(cfg config, logger logger.Logger, evt session.Event, errs chan error) {
+func proxyMQTT(cfg config, logger logger.Logger, evt session.Handler, errs chan error) {
 	address := fmt.Sprintf("%s:%s", cfg.mqttHost, cfg.mqttPort)
 	target := fmt.Sprintf("%s:%s", cfg.mqttTargetHost, cfg.mqttTargetPort)
 	mp := mqtt.New(address, target, evt, logger)
