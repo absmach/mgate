@@ -12,7 +12,7 @@ import (
 type Proxy struct {
 	address string
 	target  string
-	event   session.EventHandler
+	handler session.EventHandler
 	logger  logger.Logger
 }
 
@@ -21,7 +21,7 @@ func New(address, target string, event session.EventHandler, logger logger.Logge
 	return &Proxy{
 		address: address,
 		target:  target,
-		event:   event,
+		handler: event,
 		logger:  logger,
 	}
 }
@@ -46,7 +46,7 @@ func (p Proxy) handle(inbound net.Conn) {
 		return
 	}
 
-	s := session.New(inbound, outbound, p.event, p.logger)
+	s := session.New(inbound, outbound, p.handler, p.logger)
 
 	if err = s.Stream(); err != io.EOF {
 		p.logger.Warn("Broken connection for client: " + s.Client.ID + " with error: " + err.Error())

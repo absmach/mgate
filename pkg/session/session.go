@@ -22,7 +22,7 @@ type Session struct {
 	logger   logger.Logger
 	inbound  net.Conn
 	outbound net.Conn
-	event    EventHandler
+	handler  EventHandler
 	Client   Client
 }
 
@@ -32,7 +32,7 @@ func New(inbound, outbound net.Conn, event EventHandler, logger logger.Logger) *
 		logger:   logger,
 		inbound:  inbound,
 		outbound: outbound,
-		event:    event,
+		handler:  event,
 	}
 }
 
@@ -55,7 +55,7 @@ func (s *Session) Stream() error {
 		s.logger.Warn(fmt.Sprintf("Error closing target connection %s", err))
 	}
 
-	s.event.Disconnect(&s.Client)
+	s.handler.Disconnect(&s.Client)
 	// Drain errors channel and close it.
 	err2 := <-errs
 	close(errs)
@@ -104,7 +104,7 @@ func (s *Session) authorize(pkt packets.ControlPacket) error {
 			Username: p.Username,
 			Password: p.Password,
 		}
-		if err := s.event.AuthConnect(&s.Client); err != nil {
+		if err := s.handler.AuthConnect(&s.Client); err != nil {
 			return err
 		}
 		// Copy back to the packet in case values are changed by Event handler.
@@ -114,9 +114,9 @@ func (s *Session) authorize(pkt packets.ControlPacket) error {
 		p.Password = s.Client.Password
 		return nil
 	case *packets.PublishPacket:
-		return s.event.AuthPublish(&s.Client, &p.TopicName, &p.Payload)
+		return s.handler.AuthPublish(&s.Client, &p.TopicName, &p.Payload)
 	case *packets.SubscribePacket:
-		return s.event.AuthSubscribe(&s.Client, &p.Topics)
+		return s.handler.AuthSubscribe(&s.Client, &p.Topics)
 	default:
 		return nil
 	}
@@ -125,13 +125,13 @@ func (s *Session) authorize(pkt packets.ControlPacket) error {
 func (s Session) notify(pkt packets.ControlPacket) {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
-		s.event.Connect(&s.Client)
+		s.handler.Connect(&s.Client)
 	case *packets.PublishPacket:
-		s.event.Publish(&s.Client, &p.TopicName, &p.Payload)
+		s.handler.Publish(&s.Client, &p.TopicName, &p.Payload)
 	case *packets.SubscribePacket:
-		s.event.Subscribe(&s.Client, &p.Topics)
+		s.handler.Subscribe(&s.Client, &p.Topics)
 	case *packets.UnsubscribePacket:
-		s.event.Unsubscribe(&s.Client, &p.Topics)
+		s.handler.Unsubscribe(&s.Client, &p.Topics)
 	default:
 		return
 	}
