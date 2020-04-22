@@ -65,5 +65,5 @@ func (h *Handler) Unsubscribe(c *session.Client, topics *[]string) {
 
 // Disconnect on conection lost
 func (h *Handler) Disconnect(c *session.Client) {
-	h.logger.Info(fmt.Sprintf("Disconnect() - client with username: %s and ID: %s disconenectd", c.Username, c.ID))
+	h.logger.Info(fmt.Sprintf("Disconnect() - client with username: %s and ID: %s disconenected", c.Username, c.ID))
 }

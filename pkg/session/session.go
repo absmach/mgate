@@ -1,12 +1,9 @@
 package session
 
 import (
-	"fmt"
-	"io"
 	"net"
 
 	"github.com/eclipse/paho.mqtt.golang/packets"
-	mferrors "github.com/mainflux/mainflux/errors"
 	"github.com/mainflux/mainflux/logger"
 )
 
@@ -45,27 +42,13 @@ func (s *Session) Stream() error {
 	go s.stream(up, s.inbound, s.outbound, errs)
 	go s.stream(down, s.outbound, s.inbound, errs)
 
-	err1 := <-errs
-
-	// Close both connections when error occurs.
-	if err := s.inbound.Close(); err != nil {
-		s.logger.Warn(fmt.Sprintf("Error closing client connection %s", err))
-	}
-	if err := s.outbound.Close(); err != nil {
-		s.logger.Warn(fmt.Sprintf("Error closing broker connection %s", err))
-	}
+	// Handle whichever error happens first.
+	// The other routine won't be blocked when writing
+	// to the errors channel because it is buffered.
+	err := <-errs
 
 	s.handler.Disconnect(&s.Client)
-	// Drain errors channel and close it.
-	err2 := <-errs
-	close(errs)
-
-	// If the first error is EOF, either client or broker
-	// disconnected and we don't care for the other error.
-	if err1 != io.EOF {
-		return mferrors.Wrap(err1, err2)
-	}
-	return err1
+	return err
 }
 
 func (s *Session) stream(dir direction, r, w net.Conn, errs chan error) {
