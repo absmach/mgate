@@ -27,12 +27,12 @@ type Session struct {
 }
 
 // New creates a new Session.
-func New(inbound, outbound net.Conn, event EventHandler, logger logger.Logger) *Session {
+func New(inbound, outbound net.Conn, handler EventHandler, logger logger.Logger) *Session {
 	return &Session{
 		logger:   logger,
 		inbound:  inbound,
 		outbound: outbound,
-		handler:  event,
+		handler:  handler,
 	}
 }
 
@@ -60,8 +60,8 @@ func (s *Session) Stream() error {
 	err2 := <-errs
 	close(errs)
 
-	// If the first error is EOF, either client or broker disconnected
-	// and we don't care for the other error.
+	// If the first error is EOF, either client or broker
+	// disconnected and we don't care for the other error.
 	if err1 != io.EOF {
 		return mferrors.Wrap(err1, err2)
 	}

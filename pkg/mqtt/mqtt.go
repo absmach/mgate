@@ -17,11 +17,11 @@ type Proxy struct {
 }
 
 // New returns a new mqtt Proxy instance.
-func New(address, target string, event session.EventHandler, logger logger.Logger) *Proxy {
+func New(address, target string, handler session.EventHandler, logger logger.Logger) *Proxy {
 	return &Proxy{
 		address: address,
 		target:  target,
-		handler: event,
+		handler: handler,
 		logger:  logger,
 	}
 }
