@@ -59,7 +59,7 @@ func (p Proxy) handle(inbound net.Conn) {
 		p.logger.Error("Client conenction error: " + err.Error())
 		return
 	}
-	if err := setKeepAlive(inbound, p.keepAlive); err != nil {
+	if err := setKeepAlive(outbound, p.keepAlive); err != nil {
 		p.logger.Error("Broker connection error: " + err.Error())
 		return
 	}
@@ -96,6 +96,9 @@ func setKeepAlive(conn net.Conn, period time.Duration) error {
 	tcpConn, ok := conn.(*net.TCPConn)
 	if !ok {
 		return errNotTCPConn
+	}
+	if err := tcpConn.SetKeepAlive(true); err != nil {
+		return err
 	}
 	return tcpConn.SetKeepAlivePeriod(period)
 }
