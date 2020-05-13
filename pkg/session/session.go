@@ -51,6 +51,7 @@ func (s *Session) Stream() error {
 	// Handle whichever error happens first.
 	// The other routine won't be blocked when writing
 	// to the errors channel because it is buffered.
+	// Connections are closed in the caller method.
 	err := <-errs
 
 	s.handler.Disconnect(&s.Client)
@@ -111,7 +112,7 @@ func (s *Session) authorize(pkt packets.ControlPacket) error {
 	}
 }
 
-func (s Session) notify(pkt packets.ControlPacket) {
+func (s *Session) notify(pkt packets.ControlPacket) {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
 		s.handler.Connect(&s.Client)
