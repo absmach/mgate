@@ -6,9 +6,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
+	"time"
 
-	"github.com/mainflux/mainflux/logger"
+	"github.com/mainflux/mainflux"
+	mflog "github.com/mainflux/mainflux/logger"
 	"github.com/mainflux/mproxy/examples/simple"
 	"github.com/mainflux/mproxy/pkg/mqtt"
 	"github.com/mainflux/mproxy/pkg/session"
@@ -32,15 +35,19 @@ const (
 	envHTTPTargetPath = "MPROXY_HTTP_TARGET_PATH"
 
 	// MQTT
-	defMQTTHost       = "0.0.0.0"
-	defMQTTPort       = "1883"
-	defMQTTTargetHost = "0.0.0.0"
-	defMQTTTargetPort = "1884"
+	defKeepAlive       = "true"
+	defKeepAlivePeriod = "60" // In seconds
+	defMQTTHost        = "0.0.0.0"
+	defMQTTPort        = "1883"
+	defMQTTTargetHost  = "0.0.0.0"
+	defMQTTTargetPort  = "1884"
 
-	envMQTTHost       = "MPROXY_MQTT_HOST"
-	envMQTTPort       = "MPROXY_MQTT_PORT"
-	envMQTTTargetHost = "MPROXY_MQTT_TARGET_HOST"
-	envMQTTTargetPort = "MPROXY_MQTT_TARGET_PORT"
+	envKeepAlive       = "MPROXY_KEEP_ALIVE"
+	envKeepAlivePeriod = "MPROXY_KEEP_ALIVE_PERIOD"
+	envMQTTHost        = "MPROXY_MQTT_HOST"
+	envMQTTPort        = "MPROXY_MQTT_PORT"
+	envMQTTTargetHost  = "MPROXY_MQTT_TARGET_HOST"
+	envMQTTTargetPort  = "MPROXY_MQTT_TARGET_PORT"
 
 	defLogLevel = "debug"
 	envLogLevel = "MPROXY_LOG_LEVEL"
@@ -59,13 +66,16 @@ type config struct {
 	mqttTargetHost string
 	mqttTargetPort string
 
+	keepAlive       bool
+	keepAlivePariod time.Duration
+
 	logLevel string
 }
 
 func main() {
 	cfg := loadConfig()
 
-	logger, err := logger.New(os.Stdout, cfg.logLevel)
+	logger, err := mflog.New(os.Stdout, cfg.logLevel)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
@@ -101,6 +111,15 @@ func env(key, fallback string) string {
 }
 
 func loadConfig() config {
+	ka, err := strconv.ParseBool(mainflux.Env(envKeepAlive, defKeepAlive))
+	if err != nil {
+		log.Fatalf("Invalid value passed for %s\n", envKeepAlive)
+	}
+	kaPeriod, err := strconv.ParseInt(mainflux.Env(envKeepAlivePeriod, defKeepAlivePeriod), 10, 64)
+	if err != nil {
+		log.Fatalf("Invalid %s value: %s", envKeepAlivePeriod, err.Error())
+	}
+
 	return config{
 		// HTTP
 		httpHost:       env(envHTTPHost, defHTTPHost),
@@ -116,12 +135,14 @@ func loadConfig() config {
 		mqttTargetHost: env(envMQTTTargetHost, defMQTTTargetHost),
 		mqttTargetPort: env(envMQTTTargetPort, defMQTTTargetPort),
 
-		// Log
-		logLevel: env(envLogLevel, defLogLevel),
+		// mProxy config
+		keepAlive:       ka,
+		keepAlivePariod: time.Duration(kaPeriod) * time.Second,
+		logLevel:        env(envLogLevel, defLogLevel),
 	}
 }
 
-func proxyHTTP(cfg config, logger logger.Logger, evt session.Handler, errs chan error) {
+func proxyHTTP(cfg config, logger mflog.Logger, evt session.Handler, errs chan error) {
 	target := fmt.Sprintf("%s:%s", cfg.httpTargetHost, cfg.httpTargetPort)
 	wp := websocket.New(target, cfg.httpTargetPath, cfg.httpScheme, evt, logger)
 	http.Handle("/mqtt", wp.Handler())
@@ -130,10 +151,10 @@ func proxyHTTP(cfg config, logger logger.Logger, evt session.Handler, errs chan 
 	errs <- http.ListenAndServe(p, nil)
 }
 
-func proxyMQTT(cfg config, logger logger.Logger, evt session.Handler, errs chan error) {
+func proxyMQTT(cfg config, logger mflog.Logger, handler session.Handler, errs chan error) {
 	address := fmt.Sprintf("%s:%s", cfg.mqttHost, cfg.mqttPort)
 	target := fmt.Sprintf("%s:%s", cfg.mqttTargetHost, cfg.mqttTargetPort)
-	mp := mqtt.New(address, target, evt, logger)
+	mp := mqtt.New(address, target, cfg.keepAlive, cfg.keepAlivePariod, handler, logger)
 
 	errs <- mp.Proxy()
 }
