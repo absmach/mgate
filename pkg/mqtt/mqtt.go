@@ -1,29 +1,35 @@
 package mqtt
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net"
+	"time"
 
 	"github.com/mainflux/mainflux/logger"
 	"github.com/mainflux/mproxy/pkg/session"
 )
 
+var errNotTCPConn = errors.New("not a TCP connection")
+
 // Proxy is main MQTT proxy struct
 type Proxy struct {
-	address string
-	target  string
-	handler session.Handler
-	logger  logger.Logger
+	address   string
+	target    string
+	handler   session.Handler
+	logger    logger.Logger
+	keepAlive time.Duration
 }
 
 // New returns a new mqtt Proxy instance.
-func New(address, target string, handler session.Handler, logger logger.Logger) *Proxy {
+func New(address, target string, keepAlive time.Duration, handler session.Handler, logger logger.Logger) *Proxy {
 	return &Proxy{
-		address: address,
-		target:  target,
-		handler: handler,
-		logger:  logger,
+		address:   address,
+		target:    target,
+		handler:   handler,
+		logger:    logger,
+		keepAlive: keepAlive,
 	}
 }
 
@@ -44,10 +50,19 @@ func (p Proxy) handle(inbound net.Conn) {
 	defer p.close(inbound)
 	outbound, err := net.Dial("tcp", p.target)
 	if err != nil {
-		p.logger.Error("Cannot connect to remote broker " + p.target)
+		p.logger.Error("Cannot connect to remote broker " + p.target + " due to: " + err.Error())
 		return
 	}
 	defer p.close(outbound)
+
+	if err := setKeepAlive(inbound, p.keepAlive); err != nil {
+		p.logger.Error("Client conenction error: " + err.Error())
+		return
+	}
+	if err := setKeepAlive(inbound, p.keepAlive); err != nil {
+		p.logger.Error("Broker connection error: " + err.Error())
+		return
+	}
 
 	s := session.New(inbound, outbound, p.handler, p.logger)
 
@@ -75,4 +90,12 @@ func (p Proxy) close(conn net.Conn) {
 	if err := conn.Close(); err != nil {
 		p.logger.Warn(fmt.Sprintf("Error closing connection %s", err.Error()))
 	}
+}
+
+func setKeepAlive(conn net.Conn, period time.Duration) error {
+	tcpConn, ok := conn.(*net.TCPConn)
+	if !ok {
+		return errNotTCPConn
+	}
+	return tcpConn.SetKeepAlivePeriod(period)
 }
