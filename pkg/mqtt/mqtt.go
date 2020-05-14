@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 
+	"github.com/mainflux/mainflux/errors"
 	"github.com/mainflux/mainflux/logger"
 	"github.com/mainflux/mproxy/pkg/session"
 )
@@ -51,7 +52,7 @@ func (p Proxy) handle(inbound net.Conn) {
 
 	s := session.New(inbound, outbound, p.handler, p.logger)
 
-	if err = s.Stream(); err != io.EOF {
+	if err = s.Stream(); !errors.Contains(err, io.EOF) {
 		p.logger.Warn("Broken connection for client: " + s.Client.ID + " with error: " + err.Error())
 	}
 }
