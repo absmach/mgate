@@ -111,7 +111,7 @@ func (s *Session) authorize(pkt packets.ControlPacket) error {
 	}
 }
 
-func (s Session) notify(pkt packets.ControlPacket) {
+func (s *Session) notify(pkt packets.ControlPacket) {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
 		s.handler.Connect(&s.Client)
