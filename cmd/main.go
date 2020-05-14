@@ -113,11 +113,11 @@ func env(key, fallback string) string {
 func loadConfig() config {
 	ka, err := strconv.ParseBool(mainflux.Env(envKeepAlive, defKeepAlive))
 	if err != nil {
-		log.Fatalf("Invalid value passed for %s\n", envKeepAlive)
+		log.Fatalf("Invalid value passed for %s: %s", envKeepAlive, err.Error())
 	}
 	kaPeriod, err := strconv.ParseInt(mainflux.Env(envKeepAlivePeriod, defKeepAlivePeriod), 10, 64)
 	if err != nil {
-		log.Fatalf("Invalid %s value: %s", envKeepAlivePeriod, err.Error())
+		log.Fatalf("Invalid value passed for %s: %s", envKeepAlivePeriod, err.Error())
 	}
 
 	return config{
