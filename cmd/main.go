@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/mainflux/mainflux/logger"
+	mflog "github.com/mainflux/mainflux/logger"
 	"github.com/mainflux/mproxy/examples/simple"
 	"github.com/mainflux/mproxy/pkg/mqtt"
 	"github.com/mainflux/mproxy/pkg/session"
@@ -65,7 +65,7 @@ type config struct {
 func main() {
 	cfg := loadConfig()
 
-	logger, err := logger.New(os.Stdout, cfg.logLevel)
+	logger, err := mflog.New(os.Stdout, cfg.logLevel)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
@@ -121,7 +121,7 @@ func loadConfig() config {
 	}
 }
 
-func proxyHTTP(cfg config, logger logger.Logger, handler session.Handler, errs chan error) {
+func proxyHTTP(cfg config, logger mflog.Logger, handler session.Handler, errs chan error) {
 	target := fmt.Sprintf("%s:%s", cfg.httpTargetHost, cfg.httpTargetPort)
 	wp := websocket.New(target, cfg.httpTargetPath, cfg.httpScheme, handler, logger)
 	http.Handle("/mqtt", wp.Handler())
@@ -130,7 +130,7 @@ func proxyHTTP(cfg config, logger logger.Logger, handler session.Handler, errs c
 	errs <- http.ListenAndServe(p, nil)
 }
 
-func proxyMQTT(cfg config, logger logger.Logger, handler session.Handler, errs chan error) {
+func proxyMQTT(cfg config, logger mflog.Logger, handler session.Handler, errs chan error) {
 	address := fmt.Sprintf("%s:%s", cfg.mqttHost, cfg.mqttPort)
 	target := fmt.Sprintf("%s:%s", cfg.mqttTargetHost, cfg.mqttTargetPort)
 	mp := mqtt.New(address, target, handler, logger)
