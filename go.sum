@@ -148,6 +148,7 @@ github.com/mainflux/mainflux v0.0.0-20200324100741-6ffa916ed229 h1:8GiJNFNtDivLS
 github.com/mainflux/mainflux v0.0.0-20200324100741-6ffa916ed229/go.mod h1:mde8cQhTPjLulu2pn/x8OgQ2S++lDufS+ODE93zuHjY=
 github.com/mainflux/mainflux v0.0.0-20200512161904-df6f5adff8e4 h1:b7u3106dJlpq1gFFx1+V/IxC3NdTkdrSPY5bXVINbd4=
 github.com/mainflux/mainflux v0.0.0-20200512161904-df6f5adff8e4/go.mod h1:2caJ68GaQPVNe85z5pNJMJk0CflgcS3XWghYsJSBesU=
+github.com/mainflux/mainflux v0.11.0 h1:zCQ4lp3KwE2L+Y0A1WJAKo1yQ6wyyDXJxBU9e4rXADE=
 github.com/mainflux/mproxy v0.1.3/go.mod h1:/BdaBfgye1GNCD+eat4ipFamy9IEVRH5nhZS0yEShVg=
 github.com/mainflux/mproxy v0.1.5/go.mod h1:MBLtv/RvhT8QsmXz4g3GxkRaP8PqlVqBWeqvw9QmO8k=
 github.com/mainflux/mproxy v0.1.8/go.mod h1:NnhrUDytvV4pCI5LDuet86/WrymrUaX0/x1tlUHTKhU=
