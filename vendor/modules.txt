@@ -2,9 +2,9 @@
 ## explicit
 github.com/eclipse/paho.mqtt.golang
 github.com/eclipse/paho.mqtt.golang/packets
-# github.com/go-kit/kit v0.9.0
+# github.com/go-kit/kit v0.10.0
 github.com/go-kit/kit/log
-# github.com/go-logfmt/logfmt v0.4.0
+# github.com/go-logfmt/logfmt v0.5.0
 github.com/go-logfmt/logfmt
 # github.com/google/uuid v1.1.1
 ## explicit
@@ -12,13 +12,13 @@ github.com/google/uuid
 # github.com/gorilla/websocket v1.4.2
 ## explicit
 github.com/gorilla/websocket
-# github.com/kr/logfmt v0.0.0-20140226030751-b84e30acd515
-github.com/kr/logfmt
-# github.com/mainflux/mainflux v0.0.0-20200512161904-df6f5adff8e4
+# github.com/mainflux/mainflux v0.11.1-0.20200603183352-7f3e2c1b21ed
 ## explicit
-github.com/mainflux/mainflux/errors
 github.com/mainflux/mainflux/logger
-# golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
+github.com/mainflux/mainflux/pkg/errors
+# golang.org/x/net v0.0.0-20200602114024-627f9648deb9
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
 golang.org/x/net/websocket
+# google.golang.org/genproto v0.0.0-20200604104852-0b0486081ffb
+## explicit
