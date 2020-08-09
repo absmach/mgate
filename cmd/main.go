@@ -135,5 +135,5 @@ func proxyMQTT(cfg config, logger mflog.Logger, handler session.Handler, errs ch
 	target := fmt.Sprintf("%s:%s", cfg.mqttTargetHost, cfg.mqttTargetPort)
 	mp := mqtt.New(address, target, handler, logger)
 
-	errs <- mp.Proxy()
+	errs <- mp.Listen()
 }

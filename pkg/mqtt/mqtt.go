@@ -1,8 +1,11 @@
 package mqtt
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 
 	"github.com/mainflux/mainflux/logger"
@@ -17,6 +20,9 @@ type Proxy struct {
 	handler session.Handler
 	logger  logger.Logger
 	dialer  net.Dialer
+	ca      string
+	crt     string
+	key     string
 }
 
 // New returns a new mqtt Proxy instance.
@@ -58,9 +64,52 @@ func (p Proxy) handle(inbound net.Conn) {
 	}
 }
 
-// Proxy of the server, this will block.
-func (p Proxy) Proxy() error {
+// Listen of the server, this will block.
+func (p Proxy) Listen() error {
 	l, err := net.Listen("tcp", p.address)
+	if err != nil {
+		return err
+	}
+	defer l.Close()
+
+	// Acceptor loop
+	p.accept(l)
+
+	p.logger.Info("Server Exiting...")
+	return nil
+}
+
+func (p Proxy) certConfig() (tls.Config, error) {
+	caCertPEM, err := ioutil.ReadFile(p.ca)
+	if err != nil {
+		return tls.Config{}, err
+	}
+
+	roots := x509.NewCertPool()
+	ok := roots.AppendCertsFromPEM(caCertPEM)
+	if !ok {
+		panic("failed to parse root certificate")
+	}
+
+	cert, err := tls.LoadX509KeyPair(p.crt, p.key)
+	if err != nil {
+		return tls.Config{}, err
+	}
+	return tls.Config{
+		Certificates: []tls.Certificate{cert},
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		ClientCAs:    roots,
+	}, nil
+}
+
+// ListenTLS - version of Listen with TLS encryption
+func (p Proxy) ListenTLS() error {
+	config, err := p.certConfig()
+	if err != nil {
+		return err
+	}
+
+	l, err := tls.Listen("tcp", p.address, &config)
 	if err != nil {
 		return err
 	}
