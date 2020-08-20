@@ -36,6 +36,9 @@ const (
 	defMQTTPort       = "1883"
 	defMQTTTargetHost = "0.0.0.0"
 	defMQTTTargetPort = "1884"
+	defCAPath         = "/home/ivke/work/src/github.com/mainflux/mproxy/build/ca.crt"
+	defCrtPath        = "/home/ivke/work/src/github.com/mainflux/mproxy/build/mainflux-server.crt"
+	defKeyPath        = "/home/ivke/work/src/github.com/mainflux/mproxy/build/mainflux-server.key"
 
 	envMQTTHost       = "MPROXY_MQTT_HOST"
 	envMQTTPort       = "MPROXY_MQTT_PORT"
@@ -58,6 +61,9 @@ type config struct {
 	mqttPort       string
 	mqttTargetHost string
 	mqttTargetPort string
+	caPath         string
+	crtPath        string
+	keyPath        string
 
 	logLevel string
 }
@@ -115,6 +121,9 @@ func loadConfig() config {
 		mqttPort:       env(envMQTTPort, defMQTTPort),
 		mqttTargetHost: env(envMQTTTargetHost, defMQTTTargetHost),
 		mqttTargetPort: env(envMQTTTargetPort, defMQTTTargetPort),
+		caPath:         env(envCAPath, defCAPath),
+		crtPath:        env(envCrtPath, defCrtPath),
+		keyPath:        env(envKeyPath, defKeyPath),
 
 		// Log
 		logLevel: env(envLogLevel, defLogLevel),
@@ -133,7 +142,7 @@ func proxyWS(cfg config, logger mflog.Logger, handler session.Handler, errs chan
 func proxyMQTT(cfg config, logger mflog.Logger, handler session.Handler, errs chan error) {
 	address := fmt.Sprintf("%s:%s", cfg.mqttHost, cfg.mqttPort)
 	target := fmt.Sprintf("%s:%s", cfg.mqttTargetHost, cfg.mqttTargetPort)
-	mp := mqtt.New(address, target, handler, logger)
+	mp := mqtt.New(address, target, handler, logger, cfg.caPath, cfg.crtPath, cfg.keyPath)
 
-	errs <- mp.Listen()
+	errs <- mp.ListenTLS()
 }

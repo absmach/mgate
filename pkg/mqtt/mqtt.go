@@ -26,12 +26,15 @@ type Proxy struct {
 }
 
 // New returns a new mqtt Proxy instance.
-func New(address, target string, handler session.Handler, logger logger.Logger) *Proxy {
+func New(address, target string, handler session.Handler, logger logger.Logger, ca, crt, key string) *Proxy {
 	return &Proxy{
 		address: address,
 		target:  target,
 		handler: handler,
 		logger:  logger,
+		ca:      ca,
+		crt:     crt,
+		key:     key,
 	}
 }
 
@@ -111,7 +114,7 @@ func (p Proxy) ListenTLS() error {
 
 	l, err := tls.Listen("tcp", p.address, &config)
 	if err != nil {
-		return err
+		return errors.Wrap(errors.New("failed creating TLS listener"), err)
 	}
 	defer l.Close()
 
