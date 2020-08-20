@@ -34,14 +34,16 @@ const (
 	// MQTT
 	defMQTTHost       = "0.0.0.0"
 	defMQTTPort       = "1883"
+	defMQTTSPort      = "8883"
 	defMQTTTargetHost = "0.0.0.0"
 	defMQTTTargetPort = "1884"
-	defCAPath         = "/home/ivke/work/src/github.com/mainflux/mproxy/build/ca.crt"
-	defCrtPath        = "/home/ivke/work/src/github.com/mainflux/mproxy/build/mainflux-server.crt"
-	defKeyPath        = "/home/ivke/work/src/github.com/mainflux/mproxy/build/mainflux-server.key"
+	defCAPath         = "ca.crt"
+	defCrtPath        = "mainflux-server.crt"
+	defKeyPath        = "mainflux-server.key"
 
 	envMQTTHost       = "MPROXY_MQTT_HOST"
 	envMQTTPort       = "MPROXY_MQTT_PORT"
+	envMQTTSPort      = "MPROXY_MQTTS_PORT"
 	envMQTTTargetHost = "MPROXY_MQTT_TARGET_HOST"
 	envMQTTTargetPort = "MPROXY_MQTT_TARGET_PORT"
 
@@ -59,6 +61,7 @@ type config struct {
 
 	mqttHost       string
 	mqttPort       string
+	mqttsPort      string
 	mqttTargetHost string
 	mqttTargetPort string
 	caPath         string
@@ -87,6 +90,10 @@ func main() {
 	// MQTT
 	logger.Info(fmt.Sprintf("Starting MQTT proxy on port %s ", cfg.mqttPort))
 	go proxyMQTT(cfg, logger, h, errs)
+
+	// MQTTS
+	logger.Info(fmt.Sprintf("Starting MQTTS proxy on port %s ", cfg.mqttsPort))
+	go proxyMQTTS(cfg, logger, h, errs)
 
 	go func() {
 		c := make(chan os.Signal, 2)
@@ -119,6 +126,7 @@ func loadConfig() config {
 		// MQTT
 		mqttHost:       env(envMQTTHost, defMQTTHost),
 		mqttPort:       env(envMQTTPort, defMQTTPort),
+		mqttsPort:      env(envMQTTSPort, defMQTTSPort),
 		mqttTargetHost: env(envMQTTTargetHost, defMQTTTargetHost),
 		mqttTargetPort: env(envMQTTTargetPort, defMQTTTargetPort),
 		caPath:         env(envCAPath, defCAPath),
@@ -141,6 +149,14 @@ func proxyWS(cfg config, logger mflog.Logger, handler session.Handler, errs chan
 
 func proxyMQTT(cfg config, logger mflog.Logger, handler session.Handler, errs chan error) {
 	address := fmt.Sprintf("%s:%s", cfg.mqttHost, cfg.mqttPort)
+	target := fmt.Sprintf("%s:%s", cfg.mqttTargetHost, cfg.mqttTargetPort)
+	mp := mqtt.New(address, target, handler, logger, cfg.caPath, cfg.crtPath, cfg.keyPath)
+
+	errs <- mp.Listen()
+}
+
+func proxyMQTTS(cfg config, logger mflog.Logger, handler session.Handler, errs chan error) {
+	address := fmt.Sprintf("%s:%s", cfg.mqttHost, cfg.mqttsPort)
 	target := fmt.Sprintf("%s:%s", cfg.mqttTargetHost, cfg.mqttTargetPort)
 	mp := mqtt.New(address, target, handler, logger, cfg.caPath, cfg.crtPath, cfg.keyPath)
 
