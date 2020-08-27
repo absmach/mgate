@@ -66,6 +66,9 @@ func (p Proxy) handle(inbound net.Conn) {
 
 	s := session.New(inbound, outbound, p.handler, p.logger)
 
+	log.Printf("Inbound from handle: %s", inbound.RemoteAddr())
+	printConnState(inbound.(*tls.Conn))
+
 	if err = s.Stream(); !errors.Contains(err, io.EOF) {
 		p.logger.Warn("Broken connection for client: " + s.Client.ID + " with error: " + err.Error())
 	}

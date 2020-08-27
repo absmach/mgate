@@ -1,6 +1,8 @@
 package session
 
 import (
+	"crypto/tls"
+	"log"
 	"net"
 
 	"github.com/eclipse/paho.mqtt.golang/packets"
@@ -47,6 +49,9 @@ func (s *Session) Stream() error {
 
 	go s.stream(up, s.inbound, s.outbound, errs)
 	go s.stream(down, s.outbound, s.inbound, errs)
+
+	log.Printf("Inbound from Stream: %s", s.inbound.RemoteAddr())
+	printConnState(s.inbound.(*tls.Conn))
 
 	// Handle whichever error happens first.
 	// The other routine won't be blocked when writing
@@ -135,4 +140,26 @@ func wrap(err error, dir direction) error {
 	default:
 		return err
 	}
+}
+
+func printConnState(conn *tls.Conn) {
+
+	log.Print(">>>>>>>>>>>>>>>> State <<<<<<<<<<<<<<<<")
+	state := conn.ConnectionState()
+	log.Printf("DEBUG server name: %s", state.ServerName)
+	log.Printf("Version: %x", state.Version)
+	log.Printf("HandshakeComplete: %t", state.HandshakeComplete)
+	log.Printf("DidResume: %t", state.DidResume)
+	log.Printf("CipherSuite: %x", state.CipherSuite)
+	log.Printf("NegotiatedProtocol: %s", state.NegotiatedProtocol)
+	log.Printf("NegotiatedProtocolIsMutual: %t", state.NegotiatedProtocolIsMutual)
+
+	log.Print("Certificate chain:")
+	for i, cert := range state.PeerCertificates {
+		subject := cert.Subject
+		issuer := cert.Issuer
+		log.Printf(" %d s:/C=%v/ST=%v/L=%v/O=%v/OU=%v/CN=%s", i, subject.Country, subject.Province, subject.Locality, subject.Organization, subject.OrganizationalUnit, subject.CommonName)
+		log.Printf("   i:/C=%v/ST=%v/L=%v/O=%v/OU=%v/CN=%s", issuer.Country, issuer.Province, issuer.Locality, issuer.Organization, issuer.OrganizationalUnit, issuer.CommonName)
+	}
+	log.Print(">>>>>>>>>>>>>>>> State End <<<<<<<<<<<<<<<<")
 }
