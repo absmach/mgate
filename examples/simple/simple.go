@@ -25,7 +25,7 @@ func New(logger logger.Logger) *Handler {
 // AuthConnect is called on device connection,
 // prior forwarding to the MQTT broker
 func (h *Handler) AuthConnect(c *session.Client) error {
-	h.logger.Info(fmt.Sprintf("AuthRegister() - clientID: %s, username: %s, password: %s", c.ID, c.Username, string(c.Password)))
+	h.logger.Info(fmt.Sprintf("AuthConnect() - clientID: %s, username: %s, password: %s", c.ID, c.Username, string(c.Password)))
 	return nil
 }
 
@@ -45,7 +45,7 @@ func (h *Handler) AuthSubscribe(c *session.Client, topics *[]string) error {
 
 // Connect - after client successfully connected
 func (h *Handler) Connect(c *session.Client) {
-	h.logger.Info(fmt.Sprintf("Register() - username: %s, clientID: %s", c.Username, c.ID))
+	h.logger.Info(fmt.Sprintf("Connect() - username: %s, clientID: %s", c.Username, c.ID))
 }
 
 // Publish - after client successfully published
