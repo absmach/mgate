@@ -37,9 +37,9 @@ const (
 	defMQTTSPort      = "8883"
 	defMQTTTargetHost = "0.0.0.0"
 	defMQTTTargetPort = "1884"
-	defCAPath         = "ca.crt"
-	defCrtPath        = "mainflux-server.crt"
-	defKeyPath        = "mainflux-server.key"
+	defCAPath         = "/home/ivke/work/src/github.com/mainflux/mproxy/build/ca.crt"
+	defCrtPath        = "/home/ivke/work/src/github.com/mainflux/mproxy/build/mainflux-server.crt"
+	defKeyPath        = "/home/ivke/work/src/github.com/mainflux/mproxy/build/mainflux-server.key"
 
 	envMQTTHost       = "MPROXY_MQTT_HOST"
 	envMQTTPort       = "MPROXY_MQTT_PORT"
