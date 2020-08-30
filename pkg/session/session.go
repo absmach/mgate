@@ -1,6 +1,8 @@
 package session
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"net"
 
 	"github.com/eclipse/paho.mqtt.golang/packets"
@@ -88,10 +90,15 @@ func (s *Session) stream(dir direction, r, w net.Conn, errs chan error) {
 func (s *Session) authorize(pkt packets.ControlPacket) error {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
+		cert, err := clientCert(s.inbound.(*tls.Conn))
+		if err != nil {
+			return err
+		}
 		s.Client = Client{
 			ID:       p.ClientIdentifier,
 			Username: p.Username,
 			Password: p.Password,
+			Cert:     cert,
 		}
 		if err := s.handler.AuthConnect(&s.Client); err != nil {
 			return err
@@ -135,4 +142,19 @@ func wrap(err error, dir direction) error {
 	default:
 		return err
 	}
+}
+
+func clientCert(conn *tls.Conn) (x509.Certificate, error) {
+	if err := conn.Handshake(); err != nil {
+		return x509.Certificate{}, err
+	}
+	// conn.Handshake()
+	state := conn.ConnectionState()
+	if state.Version == 0 {
+		return x509.Certificate{}, errors.New("No state")
+	}
+	cert := *state.PeerCertificates[0]
+	return cert, nil
+	// subject := cert.Subject
+	// return subject.CommonName, nil
 }

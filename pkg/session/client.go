@@ -7,5 +7,5 @@ type Client struct {
 	ID       string
 	Username string
 	Password []byte
-	Cert     *x509.Certificate
+	Cert     x509.Certificate
 }

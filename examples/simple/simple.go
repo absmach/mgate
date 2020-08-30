@@ -25,7 +25,6 @@ func New(logger logger.Logger) *Handler {
 // AuthConnect is called on device connection,
 // prior forwarding to the MQTT broker
 func (h *Handler) AuthConnect(c *session.Client) error {
-	h.logger.Info(fmt.Sprintf("AuthConnect() - clientID: %s, username: %s, password: %s", c.ID, c.Username, string(c.Password)))
 	h.logger.Info(fmt.Sprintf("AuthConnect() - clientID: %s, username: %s, password: %s, client_CN: %s", c.ID, c.Username, string(c.Password), c.Cert.Subject.CommonName))
 	return nil
 }

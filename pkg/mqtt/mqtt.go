@@ -63,7 +63,6 @@ func (p Proxy) handle(inbound net.Conn) {
 
 	s := session.New(inbound, outbound, p.handler, p.logger)
 
-	s.Client.Cert, err = clientCert(inbound.(*tls.Conn))
 	printConnState(inbound.(*tls.Conn))
 	if err != nil {
 		p.logger.Error("Cannot get client certificate due to: " + err.Error())
@@ -138,18 +137,6 @@ func (p Proxy) close(conn net.Conn) {
 	if err := conn.Close(); err != nil {
 		p.logger.Warn(fmt.Sprintf("Error closing connection %s", err.Error()))
 	}
-}
-
-func clientCert(conn *tls.Conn) (*x509.Certificate, error) {
-	if err := conn.Handshake(); err != nil {
-		return nil, err
-	}
-	// conn.Handshake()
-	state := conn.ConnectionState()
-	cert := state.PeerCertificates[0]
-	return cert, nil
-	// subject := cert.Subject
-	// return subject.CommonName, nil
 }
 
 func printConnState(conn *tls.Conn) {
