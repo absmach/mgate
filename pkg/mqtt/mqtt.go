@@ -13,6 +13,10 @@ import (
 	"github.com/mainflux/mproxy/pkg/session"
 )
 
+var (
+	errCreateListener = errors.New("failed creating TLS listener")
+)
+
 // Proxy is main MQTT proxy struct
 type Proxy struct {
 	address string
@@ -115,7 +119,7 @@ func (p Proxy) ListenTLS() error {
 
 	l, err := tls.Listen("tcp", p.address, &config)
 	if err != nil {
-		return errors.Wrap(errors.New("failed creating TLS listener"), err)
+		return errors.Wrap(errCreateListener, err)
 	}
 	defer l.Close()
 

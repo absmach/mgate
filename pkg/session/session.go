@@ -16,8 +16,9 @@ const (
 )
 
 var (
-	errBroker = errors.New("error between mProxy and MQTT broker")
-	errClient = errors.New("error between mProxy and MQTT client")
+	errBroker     = errors.New("error between mProxy and MQTT broker")
+	errClient     = errors.New("error between mProxy and MQTT client")
+	errTLSdetails = errors.New("failed to get TLS details of connection")
 )
 
 type direction int
@@ -152,7 +153,7 @@ func clientCert(conn net.Conn) (x509.Certificate, error) {
 		}
 		state := connVal.ConnectionState()
 		if state.Version == 0 {
-			return x509.Certificate{}, errors.New("No TLS details of connection")
+			return x509.Certificate{}, errTLSdetails
 		}
 		cert := *state.PeerCertificates[0]
 		return cert, nil
