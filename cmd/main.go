@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	mflog "github.com/mainflux/mainflux/logger"
@@ -37,15 +38,20 @@ const (
 	defMQTTSPort      = "8883"
 	defMQTTTargetHost = "0.0.0.0"
 	defMQTTTargetPort = "1884"
-	defCAPath         = "ca.crt"
-	defCrtPath        = "mainflux-server.crt"
-	defKeyPath        = "mainflux-server.key"
+	defClientTLS      = "false"
+	defCACerts        = ""
+	defServerCert     = ""
+	defServerKey      = ""
 
 	envMQTTHost       = "MPROXY_MQTT_HOST"
 	envMQTTPort       = "MPROXY_MQTT_PORT"
 	envMQTTSPort      = "MPROXY_MQTTS_PORT"
 	envMQTTTargetHost = "MPROXY_MQTT_TARGET_HOST"
 	envMQTTTargetPort = "MPROXY_MQTT_TARGET_PORT"
+	envClientTLS      = "MPROXY_CLIENT_TLS"
+	envCACerts        = "MPROXY_CA_CERTS"
+	envServerCert     = "MPROXY_SERVER_CERT"
+	envServerKey      = "MPROXY_SERVER_KEY"
 
 	defLogLevel = "debug"
 	envLogLevel = "MPROXY_LOG_LEVEL"
@@ -64,9 +70,10 @@ type config struct {
 	mqttsPort      string
 	mqttTargetHost string
 	mqttTargetPort string
-	caPath         string
-	crtPath        string
-	keyPath        string
+	clientTLS      bool
+	caCerts        string
+	serverCert     string
+	serverKey      string
 
 	logLevel string
 }
@@ -88,12 +95,14 @@ func main() {
 	go proxyWS(cfg, logger, h, errs)
 
 	// MQTT
-	// logger.Info(fmt.Sprintf("Starting MQTT proxy on port %s ", cfg.mqttPort))
-	// go proxyMQTT(cfg, logger, h, errs)
+	logger.Info(fmt.Sprintf("Starting MQTT proxy on port %s ", cfg.mqttPort))
+	go proxyMQTT(cfg, logger, h, errs)
 
 	// MQTTS
-	logger.Info(fmt.Sprintf("Starting MQTTS proxy on port %s ", cfg.mqttsPort))
-	go proxyMQTTS(cfg, logger, h, errs)
+	if cfg.clientTLS {
+		logger.Info(fmt.Sprintf("Starting MQTTS proxy on port %s ", cfg.mqttsPort))
+		go proxyMQTTS(cfg, logger, h, errs)
+	}
 
 	go func() {
 		c := make(chan os.Signal, 2)
@@ -114,6 +123,11 @@ func env(key, fallback string) string {
 }
 
 func loadConfig() config {
+	tls, err := strconv.ParseBool(env(envClientTLS, defClientTLS))
+	if err != nil {
+		log.Fatalf("Invalid value passed for %s\n", envClientTLS)
+	}
+
 	return config{
 		// WS
 		wsHost:       env(envWSHost, defWSHost),
@@ -129,9 +143,10 @@ func loadConfig() config {
 		mqttsPort:      env(envMQTTSPort, defMQTTSPort),
 		mqttTargetHost: env(envMQTTTargetHost, defMQTTTargetHost),
 		mqttTargetPort: env(envMQTTTargetPort, defMQTTTargetPort),
-		caPath:         env(envCAPath, defCAPath),
-		crtPath:        env(envCrtPath, defCrtPath),
-		keyPath:        env(envKeyPath, defKeyPath),
+		clientTLS:      tls,
+		caCerts:        env(envCACerts, defCACerts),
+		serverCert:     env(envServerCert, defServerCert),
+		serverKey:      env(envServerKey, defServerKey),
 
 		// Log
 		logLevel: env(envLogLevel, defLogLevel),
@@ -150,7 +165,7 @@ func proxyWS(cfg config, logger mflog.Logger, handler session.Handler, errs chan
 func proxyMQTT(cfg config, logger mflog.Logger, handler session.Handler, errs chan error) {
 	address := fmt.Sprintf("%s:%s", cfg.mqttHost, cfg.mqttPort)
 	target := fmt.Sprintf("%s:%s", cfg.mqttTargetHost, cfg.mqttTargetPort)
-	mp := mqtt.New(address, target, handler, logger, cfg.caPath, cfg.crtPath, cfg.keyPath)
+	mp := mqtt.New(address, target, handler, logger, cfg.caCerts, cfg.serverCert, cfg.serverKey)
 
 	errs <- mp.Listen()
 }
@@ -158,7 +173,7 @@ func proxyMQTT(cfg config, logger mflog.Logger, handler session.Handler, errs ch
 func proxyMQTTS(cfg config, logger mflog.Logger, handler session.Handler, errs chan error) {
 	address := fmt.Sprintf("%s:%s", cfg.mqttHost, cfg.mqttsPort)
 	target := fmt.Sprintf("%s:%s", cfg.mqttTargetHost, cfg.mqttTargetPort)
-	mp := mqtt.New(address, target, handler, logger, cfg.caPath, cfg.crtPath, cfg.keyPath)
+	mp := mqtt.New(address, target, handler, logger, cfg.caCerts, cfg.serverCert, cfg.serverKey)
 
 	errs <- mp.ListenTLS()
 }

@@ -90,7 +90,7 @@ func (s *Session) stream(dir direction, r, w net.Conn, errs chan error) {
 func (s *Session) authorize(pkt packets.ControlPacket) error {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
-		cert, err := clientCert(s.inbound.(*tls.Conn))
+		cert, err := clientCert(s.inbound)
 		if err != nil {
 			return err
 		}
@@ -144,14 +144,19 @@ func wrap(err error, dir direction) error {
 	}
 }
 
-func clientCert(conn *tls.Conn) (x509.Certificate, error) {
-	if err := conn.Handshake(); err != nil {
-		return x509.Certificate{}, err
+func clientCert(conn net.Conn) (x509.Certificate, error) {
+	switch connVal := conn.(type) {
+	case *tls.Conn:
+		if err := connVal.Handshake(); err != nil {
+			return x509.Certificate{}, err
+		}
+		state := connVal.ConnectionState()
+		if state.Version == 0 {
+			return x509.Certificate{}, errors.New("No TLS details of connection")
+		}
+		cert := *state.PeerCertificates[0]
+		return cert, nil
+	default:
+		return x509.Certificate{}, nil
 	}
-	state := conn.ConnectionState()
-	if state.Version == 0 {
-		return x509.Certificate{}, errors.New("No TLS details of connection")
-	}
-	cert := *state.PeerCertificates[0]
-	return cert, nil
 }

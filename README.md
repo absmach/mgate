@@ -75,5 +75,27 @@ Usually this is done by deploying mProxy as a side-car in the same Kubernetes po
 
 TLS termination and LB tasks can be offloaded to a standard ingress proxy - for example NginX.
 
+## Configuration
+
+The service is configured using the environment variables presented in the following table. Note that any unset variables will be replaced with their default values.
+
+| Variable                  | Description                                    | Default   |
+|---------------------------|------------------------------------------------|-----------|
+| MPROXY_HTTP_HOST          | HTTP inbound (IN) connection host              | 0.0.0.0   |
+| MPROXY_HTTP_PORT          | HTTP inbound (IN) connection port              | 8080      |
+| MPROXY_HTTP_TARGET_SCHEMA | HTTP Target schema                             | ws        |
+| MPROXY_HTTP_TARGET_HOST   | HTTP Target host                               | localhost |
+| MPROXY_HTTP_TARGET_PORT   | HTTP Target port                               | 8888      |
+| MPROXY_HTTP_TARGET_PATH   | HTTP Target path                               | /mqtt     |
+| MPROXY_MQTT_HOST          | MQTT inbound (IN) connection host)             | 0.0.0.0   |
+| MPROXY_MQTT_PORT          | MQTT inbound (IN) connection port              | 1883      |
+| MPROXY_MQTTS_PORT         | MQTTS inbound (IN) connection port             | 8883      |
+| MPROXY_MQTT_TARGET_HOST   | MQTT broker host                               | 0.0.0.0   |
+| MPROXY_MQTT_TARGET_PORT   | MQTT broker port                               | 1884      |
+| MPROXY_CLIENT_TLS         | Flag that indicates if TLS should be turned on | false     |
+| MPROXY_CA_CERTS           | Path to trusted CAs in PEM format              |           |
+| MPROXY_SERVER_CERT        | Path to server certificate in pem format       |           |
+| MPROXY_SERVER_KEY         | Path to server key in pem format               |           |
+
 ## License
 [Apache-2.0](LICENSE)

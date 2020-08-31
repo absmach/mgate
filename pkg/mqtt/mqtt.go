@@ -62,11 +62,6 @@ func (p Proxy) handle(inbound net.Conn) {
 
 	s := session.New(inbound, outbound, p.handler, p.logger)
 
-	if err != nil {
-		p.logger.Error("Cannot get client certificate due to: " + err.Error())
-		return
-	}
-
 	if err = s.Stream(); !errors.Contains(err, io.EOF) {
 		p.logger.Warn("Broken connection for client: " + s.Client.ID + " with error: " + err.Error())
 	}
