@@ -148,13 +148,10 @@ func clientCert(conn *tls.Conn) (x509.Certificate, error) {
 	if err := conn.Handshake(); err != nil {
 		return x509.Certificate{}, err
 	}
-	// conn.Handshake()
 	state := conn.ConnectionState()
 	if state.Version == 0 {
-		return x509.Certificate{}, errors.New("No state")
+		return x509.Certificate{}, errors.New("No TLS details of connection")
 	}
 	cert := *state.PeerCertificates[0]
 	return cert, nil
-	// subject := cert.Subject
-	// return subject.CommonName, nil
 }

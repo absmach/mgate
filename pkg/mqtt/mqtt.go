@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 
 	"github.com/mainflux/mainflux/logger"
@@ -63,7 +62,6 @@ func (p Proxy) handle(inbound net.Conn) {
 
 	s := session.New(inbound, outbound, p.handler, p.logger)
 
-	printConnState(inbound.(*tls.Conn))
 	if err != nil {
 		p.logger.Error("Cannot get client certificate due to: " + err.Error())
 		return
@@ -79,27 +77,6 @@ func (p Proxy) Listen() error {
 	l, err := net.Listen("tcp", p.address)
 	if err != nil {
 		return err
-	}
-	defer l.Close()
-
-	// Acceptor loop
-	p.accept(l)
-
-	p.logger.Info("Server Exiting...")
-	return nil
-}
-
-// ListenTLS - version of Listen with TLS encryption
-func (p Proxy) ListenTLS() error {
-	config, err := p.certConfig()
-
-	if err != nil {
-		return err
-	}
-
-	l, err := tls.Listen("tcp", p.address, &config)
-	if err != nil {
-		return errors.Wrap(errors.New("failed creating TLS listener"), err)
 	}
 	defer l.Close()
 
@@ -133,31 +110,29 @@ func (p Proxy) certConfig() (tls.Config, error) {
 	}, nil
 }
 
+// ListenTLS - version of Listen with TLS encryption
+func (p Proxy) ListenTLS() error {
+	config, err := p.certConfig()
+
+	if err != nil {
+		return err
+	}
+
+	l, err := tls.Listen("tcp", p.address, &config)
+	if err != nil {
+		return errors.Wrap(errors.New("failed creating TLS listener"), err)
+	}
+	defer l.Close()
+
+	// Acceptor loop
+	p.accept(l)
+
+	p.logger.Info("Server Exiting...")
+	return nil
+}
+
 func (p Proxy) close(conn net.Conn) {
 	if err := conn.Close(); err != nil {
 		p.logger.Warn(fmt.Sprintf("Error closing connection %s", err.Error()))
 	}
-}
-
-func printConnState(conn *tls.Conn) {
-
-	log.Print(">>>>>>>>>>>>>>>> State <<<<<<<<<<<<<<<<")
-	conn.Handshake()
-	state := conn.ConnectionState()
-	log.Printf("DEBUG server name: %s", state.ServerName)
-	log.Printf("Version: %x", state.Version)
-	log.Printf("HandshakeComplete: %t", state.HandshakeComplete)
-	log.Printf("DidResume: %t", state.DidResume)
-	log.Printf("CipherSuite: %x", state.CipherSuite)
-	log.Printf("NegotiatedProtocol: %s", state.NegotiatedProtocol)
-	log.Printf("NegotiatedProtocolIsMutual: %t", state.NegotiatedProtocolIsMutual)
-
-	log.Print("Certificate chain:")
-	for i, cert := range state.PeerCertificates {
-		subject := cert.Subject
-		issuer := cert.Issuer
-		log.Printf(" %d s:/C=%v/ST=%v/L=%v/O=%v/OU=%v/CN=%s", i, subject.Country, subject.Province, subject.Locality, subject.Organization, subject.OrganizationalUnit, subject.CommonName)
-		log.Printf("   i:/C=%v/ST=%v/L=%v/O=%v/OU=%v/CN=%s", issuer.Country, issuer.Province, issuer.Locality, issuer.Organization, issuer.OrganizationalUnit, issuer.CommonName)
-	}
-	log.Print(">>>>>>>>>>>>>>>> State End <<<<<<<<<<<<<<<<")
 }
