@@ -38,7 +38,6 @@ const (
 	defMQTTSPort      = "8883"
 	defMQTTTargetHost = "0.0.0.0"
 	defMQTTTargetPort = "1884"
-	defClientTLS      = "false"
 	defCACerts        = ""
 	defServerCert     = ""
 	defServerKey      = ""
@@ -48,13 +47,14 @@ const (
 	envMQTTSPort      = "MPROXY_MQTTS_PORT"
 	envMQTTTargetHost = "MPROXY_MQTT_TARGET_HOST"
 	envMQTTTargetPort = "MPROXY_MQTT_TARGET_PORT"
-	envClientTLS      = "MPROXY_CLIENT_TLS"
 	envCACerts        = "MPROXY_CA_CERTS"
 	envServerCert     = "MPROXY_SERVER_CERT"
 	envServerKey      = "MPROXY_SERVER_KEY"
 
-	defLogLevel = "debug"
-	envLogLevel = "MPROXY_LOG_LEVEL"
+	defClientTLS = "false"
+	envClientTLS = "MPROXY_CLIENT_TLS"
+	defLogLevel  = "debug"
+	envLogLevel  = "MPROXY_LOG_LEVEL"
 )
 
 type config struct {
@@ -94,14 +94,14 @@ func main() {
 	logger.Info(fmt.Sprintf("Starting WebSocket proxy on port %s ", cfg.wsPort))
 	go proxyWS(cfg, logger, h, errs)
 
-	// MQTT
-	logger.Info(fmt.Sprintf("Starting MQTT proxy on port %s ", cfg.mqttPort))
-	go proxyMQTT(cfg, logger, h, errs)
-
-	// MQTTS
 	if cfg.clientTLS {
+		// MQTTS
 		logger.Info(fmt.Sprintf("Starting MQTTS proxy on port %s ", cfg.mqttsPort))
 		go proxyMQTTS(cfg, logger, h, errs)
+	} else {
+		// MQTT
+		logger.Info(fmt.Sprintf("Starting MQTT proxy on port %s ", cfg.mqttPort))
+		go proxyMQTT(cfg, logger, h, errs)
 	}
 
 	go func() {
