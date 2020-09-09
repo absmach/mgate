@@ -34,7 +34,7 @@ var upgrader = websocket.Upgrader{
 	// Timeout for WS upgrade request handshake
 	HandshakeTimeout: 10 * time.Second,
 	// Paho JS client expecting header Sec-WebSocket-Protocol:mqtt in Upgrade response during handshake.
-	Subprotocols: []string{"mqttv3.1"},
+	Subprotocols: []string{"mqttv3.1", "mqtt"},
 	// Allow CORS
 	CheckOrigin: func(r *http.Request) bool {
 		return true
@@ -69,7 +69,7 @@ func (p Proxy) pass(in *websocket.Conn) {
 	}
 
 	dialer := &websocket.Dialer{
-		Subprotocols: []string{"mqttv3.1"},
+		Subprotocols: []string{"mqtt"},
 	}
 	srv, _, err := dialer.Dial(url.String(), nil)
 
