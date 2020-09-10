@@ -19,7 +19,7 @@ type Proxy struct {
 	logger logger.Logger
 }
 
-// New - creates new HTTP proxy
+// New - creates new WS proxy
 func New(target, path, scheme string, event session.Handler, logger logger.Logger) *Proxy {
 	return &Proxy{
 		target: target,
@@ -41,7 +41,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// Handler - proxies HTTP traffic
+// Handler - proxies WS traffic
 func (p Proxy) Handler() http.Handler {
 	return p.handle()
 }
