@@ -90,18 +90,14 @@ func main() {
 
 	errs := make(chan error, 3)
 
-	// WS
-	logger.Info(fmt.Sprintf("Starting WebSocket proxy on port %s ", cfg.wsPort))
-	go proxyWS(cfg, logger, h, errs)
-
 	if cfg.clientTLS {
 		// MQTTS
 		logger.Info(fmt.Sprintf("Starting MQTTS proxy on port %s ", cfg.mqttsPort))
 		go proxyMQTTS(cfg, logger, h, errs)
 	} else {
-		// HTTP
-		logger.Info(fmt.Sprintf("Starting HTTP proxy on port %s ", cfg.httpPort))
-		go proxyHTTP(cfg, logger, h, errs)
+		// WS
+		logger.Info(fmt.Sprintf("Starting WebSocket proxy on port %s ", cfg.wsPort))
+		go proxyWS(cfg, logger, h, errs)
 
 		// MQTT
 		logger.Info(fmt.Sprintf("Starting MQTT proxy on port %s ", cfg.mqttPort))
