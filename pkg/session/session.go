@@ -1,6 +1,8 @@
 package session
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"net"
 
 	"github.com/eclipse/paho.mqtt.golang/packets"
@@ -14,8 +16,9 @@ const (
 )
 
 var (
-	errBroker = errors.New("error between mProxy and MQTT broker")
-	errClient = errors.New("error between mProxy and MQTT client")
+	errBroker     = errors.New("error between mProxy and MQTT broker")
+	errClient     = errors.New("error between mProxy and MQTT client")
+	errTLSdetails = errors.New("failed to get TLS details of connection")
 )
 
 type direction int
@@ -88,10 +91,15 @@ func (s *Session) stream(dir direction, r, w net.Conn, errs chan error) {
 func (s *Session) authorize(pkt packets.ControlPacket) error {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
+		cert, err := clientCert(s.inbound)
+		if err != nil {
+			return err
+		}
 		s.Client = Client{
 			ID:       p.ClientIdentifier,
 			Username: p.Username,
 			Password: p.Password,
+			Cert:     cert,
 		}
 		if err := s.handler.AuthConnect(&s.Client); err != nil {
 			return err
@@ -134,5 +142,22 @@ func wrap(err error, dir direction) error {
 		return errors.Wrap(errBroker, err)
 	default:
 		return err
+	}
+}
+
+func clientCert(conn net.Conn) (x509.Certificate, error) {
+	switch connVal := conn.(type) {
+	case *tls.Conn:
+		if err := connVal.Handshake(); err != nil {
+			return x509.Certificate{}, err
+		}
+		state := connVal.ConnectionState()
+		if state.Version == 0 {
+			return x509.Certificate{}, errTLSdetails
+		}
+		cert := *state.PeerCertificates[0]
+		return cert, nil
+	default:
+		return x509.Certificate{}, nil
 	}
 }
