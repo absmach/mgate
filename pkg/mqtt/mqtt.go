@@ -15,6 +15,7 @@ import (
 
 var (
 	errCreateListener = errors.New("failed creating TLS listener")
+	errParseRoot      = errors.New("failed to parse root certificate")
 )
 
 // Proxy is main MQTT proxy struct
@@ -95,7 +96,7 @@ func (p Proxy) certConfig() (tls.Config, error) {
 	roots := x509.NewCertPool()
 	ok := roots.AppendCertsFromPEM(caCertPEM)
 	if !ok {
-		panic("failed to parse root certificate")
+		return tls.Config{}, errParseRoot
 	}
 
 	cert, err := tls.LoadX509KeyPair(p.crt, p.key)

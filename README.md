@@ -87,9 +87,9 @@ The service is configured using the environment variables presented in the follo
 | MPROXY_HTTP_TARGET_HOST   | HTTP Target host                               | localhost |
 | MPROXY_HTTP_TARGET_PORT   | HTTP Target port                               | 8888      |
 | MPROXY_HTTP_TARGET_PATH   | HTTP Target path                               | /mqtt     |
-| MPROXY_MQTT_HOST          | MQTT inbound (IN) connection host)             | 0.0.0.0   |
-| MPROXY_MQTT_PORT          | MQTT inbound (IN) connection port              | 1883      |
-| MPROXY_MQTTS_PORT         | MQTTS inbound (IN) connection port             | 8883      |
+| MPROXY_MQTT_HOST          | MQTT inbound connection host                   | 0.0.0.0   |
+| MPROXY_MQTT_PORT          | MQTT inbound connection port                   | 1883      |
+| MPROXY_MQTTS_PORT         | MQTTS inbound connection port                  | 8883      |
 | MPROXY_MQTT_TARGET_HOST   | MQTT broker host                               | 0.0.0.0   |
 | MPROXY_MQTT_TARGET_PORT   | MQTT broker port                               | 1884      |
 | MPROXY_CLIENT_TLS         | Flag that indicates if TLS should be turned on | false     |
