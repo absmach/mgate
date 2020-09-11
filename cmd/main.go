@@ -18,19 +18,21 @@ import (
 
 const (
 	// WS
-	defWSHost       = "0.0.0.0"
-	defWSPort       = "8080"
-	defWSScheme     = "ws"
-	defWSTargetHost = "localhost"
-	defWSTargetPort = "8888"
-	defWSTargetPath = "/mqtt"
+	defWSHost         = "0.0.0.0"
+	defWSPort         = "8080"
+	defWSSPort        = "8081"
+	defWSTargetScheme = "ws"
+	defWSTargetHost   = "localhost"
+	defWSTargetPort   = "8888"
+	defWSTargetPath   = "/mqtt"
 
-	envWSHost       = "MPROXY_WS_HOST"
-	envWSPort       = "MPROXY_WS_PORT"
-	envWSScheme     = "MPROXY_WS_SCHEMA"
-	envWSTargetHost = "MPROXY_WS_TARGET_HOST"
-	envWSTargetPort = "MPROXY_WS_TARGET_PORT"
-	envWSTargetPath = "MPROXY_WS_TARGET_PATH"
+	envWSHost         = "MPROXY_WS_HOST"
+	envWSPort         = "MPROXY_WS_PORT"
+	envWSSPort        = "MPROXY_WSS_PORT"
+	envWSTargetScheme = "MPROXY_WS_TARGET_SCHEME"
+	envWSTargetHost   = "MPROXY_WS_TARGET_HOST"
+	envWSTargetPort   = "MPROXY_WS_TARGET_PORT"
+	envWSTargetPath   = "MPROXY_WS_TARGET_PATH"
 
 	// MQTT
 	defMQTTHost       = "0.0.0.0"
@@ -58,12 +60,13 @@ const (
 )
 
 type config struct {
-	wsHost       string
-	wsPort       string
-	wsScheme     string
-	wsTargetHost string
-	wsTargetPort string
-	wsTargetPath string
+	wsHost         string
+	wsPort         string
+	wssPort        string
+	wsTargetScheme string
+	wsTargetHost   string
+	wsTargetPort   string
+	wsTargetPath   string
 
 	mqttHost       string
 	mqttPort       string
@@ -91,13 +94,16 @@ func main() {
 	errs := make(chan error, 3)
 
 	if cfg.clientTLS {
+		// WSS
+		logger.Info(fmt.Sprintf("Starting encrypted WebSocket proxy on port %s ", cfg.wssPort))
+		go proxyWSS(cfg, logger, h, errs)
 		// MQTTS
 		logger.Info(fmt.Sprintf("Starting MQTTS proxy on port %s ", cfg.mqttsPort))
 		go proxyMQTTS(cfg, logger, h, errs)
-	} else {
+		//	} else {
 		// WS
-		logger.Info(fmt.Sprintf("Starting WebSocket proxy on port %s ", cfg.wsPort))
-		go proxyWS(cfg, logger, h, errs)
+		// logger.Info(fmt.Sprintf("Starting WebSocket proxy on port %s ", cfg.wsPort))
+		// go proxyWS(cfg, logger, h, errs)
 
 		// MQTT
 		logger.Info(fmt.Sprintf("Starting MQTT proxy on port %s ", cfg.mqttPort))
@@ -130,12 +136,13 @@ func loadConfig() config {
 
 	return config{
 		// WS
-		wsHost:       env(envWSHost, defWSHost),
-		wsPort:       env(envWSPort, defWSPort),
-		wsScheme:     env(envWSScheme, defWSScheme),
-		wsTargetHost: env(envWSTargetHost, defWSTargetHost),
-		wsTargetPort: env(envWSTargetPort, defWSTargetPort),
-		wsTargetPath: env(envWSTargetPath, defWSTargetPath),
+		wsHost:         env(envWSHost, defWSHost),
+		wsPort:         env(envWSPort, defWSPort),
+		wssPort:        env(envWSSPort, defWSSPort),
+		wsTargetScheme: env(envWSTargetScheme, defWSTargetScheme),
+		wsTargetHost:   env(envWSTargetHost, defWSTargetHost),
+		wsTargetPort:   env(envWSTargetPort, defWSTargetPort),
+		wsTargetPath:   env(envWSTargetPath, defWSTargetPath),
 
 		// MQTT
 		mqttHost:       env(envMQTTHost, defMQTTHost),
@@ -155,11 +162,20 @@ func loadConfig() config {
 
 func proxyWS(cfg config, logger mflog.Logger, handler session.Handler, errs chan error) {
 	target := fmt.Sprintf("%s:%s", cfg.wsTargetHost, cfg.wsTargetPort)
-	wp := websocket.New(target, cfg.wsTargetPath, cfg.wsScheme, handler, logger)
+	wp := websocket.New(target, cfg.wsTargetPath, cfg.wsTargetScheme, handler, logger)
 	http.Handle("/mqtt", wp.Handler())
 
 	p := fmt.Sprintf(":%s", cfg.wsPort)
 	errs <- http.ListenAndServe(p, nil)
+}
+
+func proxyWSS(cfg config, logger mflog.Logger, handler session.Handler, errs chan error) {
+	target := fmt.Sprintf("%s:%s", cfg.wsTargetHost, cfg.wsTargetPort)
+	wp := websocket.New(target, cfg.wsTargetPath, cfg.wsTargetScheme, handler, logger)
+	http.Handle("/mqtt", wp.Handler())
+
+	p := fmt.Sprintf(":%s", cfg.wssPort)
+	errs <- http.ListenAndServeTLS(p, cfg.serverCert, cfg.serverKey, nil)
 }
 
 func proxyMQTT(cfg config, logger mflog.Logger, handler session.Handler, errs chan error) {
