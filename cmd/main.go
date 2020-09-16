@@ -100,10 +100,10 @@ func main() {
 		// MQTTS
 		logger.Info(fmt.Sprintf("Starting MQTTS proxy on port %s ", cfg.mqttsPort))
 		go proxyMQTTS(cfg, logger, h, errs)
-		//	} else {
+	} else {
 		// WS
-		// logger.Info(fmt.Sprintf("Starting WebSocket proxy on port %s ", cfg.wsPort))
-		// go proxyWS(cfg, logger, h, errs)
+		logger.Info(fmt.Sprintf("Starting WebSocket proxy on port %s ", cfg.wsPort))
+		go proxyWS(cfg, logger, h, errs)
 
 		// MQTT
 		logger.Info(fmt.Sprintf("Starting MQTT proxy on port %s ", cfg.mqttPort))
