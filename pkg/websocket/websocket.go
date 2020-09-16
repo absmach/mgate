@@ -1,13 +1,22 @@
 package websocket
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/mainflux/mainflux/logger"
+	"github.com/mainflux/mainflux/pkg/errors"
 	"github.com/mainflux/mproxy/pkg/session"
+)
+
+var (
+	errCreateListener = errors.New("failed creating TLS listener")
+	errParseRoot      = errors.New("failed to parse root certificate")
 )
 
 // Proxy represents WS Proxy.
@@ -17,16 +26,22 @@ type Proxy struct {
 	scheme string
 	event  session.Handler
 	logger logger.Logger
+	ca     string
+	crt    string
+	key    string
 }
 
 // New - creates new WS proxy
-func New(target, path, scheme string, event session.Handler, logger logger.Logger) *Proxy {
+func New(target, path, scheme string, event session.Handler, logger logger.Logger, ca, crt, key string) *Proxy {
 	return &Proxy{
 		target: target,
 		path:   path,
 		scheme: scheme,
 		event:  event,
 		logger: logger,
+		ca:     ca,
+		crt:    crt,
+		key:    key,
 	}
 }
 
@@ -89,4 +104,28 @@ func (p Proxy) pass(in *websocket.Conn) {
 	err = session.Stream()
 	errc <- err
 	p.logger.Warn("Broken connection for client: " + session.Client.ID + " with error: " + err.Error())
+}
+
+// CertConfig returns configuration
+func (p Proxy) CertConfig() (*tls.Config, error) {
+	caCertPEM, err := ioutil.ReadFile(p.ca)
+	if err != nil {
+		return nil, err
+	}
+
+	roots := x509.NewCertPool()
+	ok := roots.AppendCertsFromPEM(caCertPEM)
+	if !ok {
+		return nil, errParseRoot
+	}
+
+	// Create the TLS Config with the CA pool and enable Client certificate validation
+	tlsConfig := &tls.Config{
+		ClientCAs:  roots,
+		ClientAuth: tls.RequireAndVerifyClientCert,
+	}
+	tlsConfig.BuildNameToCertificate()
+
+	return tlsConfig, nil
+
 }
