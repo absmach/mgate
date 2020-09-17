@@ -3,6 +3,7 @@ package session
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"net"
 
 	"github.com/eclipse/paho.mqtt.golang/packets"
@@ -158,6 +159,7 @@ func clientCert(conn net.Conn) (x509.Certificate, error) {
 		cert := *state.PeerCertificates[0]
 		return cert, nil
 	default:
+		fmt.Printf("I don't know about type %T!\n", connVal)
 		return x509.Certificate{}, nil
 	}
 }

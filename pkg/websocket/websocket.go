@@ -3,6 +3,7 @@ package websocket
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -106,26 +107,45 @@ func (p Proxy) pass(in *websocket.Conn) {
 	p.logger.Warn("Broken connection for client: " + session.Client.ID + " with error: " + err.Error())
 }
 
-// CertConfig returns configuration
-func (p Proxy) CertConfig() (*tls.Config, error) {
+func (p Proxy) certConfig() (tls.Config, error) {
 	caCertPEM, err := ioutil.ReadFile(p.ca)
 	if err != nil {
-		return nil, err
+		return tls.Config{}, err
 	}
 
 	roots := x509.NewCertPool()
 	ok := roots.AppendCertsFromPEM(caCertPEM)
 	if !ok {
-		return nil, errParseRoot
+		return tls.Config{}, errParseRoot
 	}
 
-	// Create the TLS Config with the CA pool and enable Client certificate validation
-	tlsConfig := &tls.Config{
-		ClientCAs:  roots,
-		ClientAuth: tls.RequireAndVerifyClientCert,
+	cert, err := tls.LoadX509KeyPair(p.crt, p.key)
+	if err != nil {
+		return tls.Config{}, err
 	}
-	tlsConfig.BuildNameToCertificate()
+	return tls.Config{
+		Certificates: []tls.Certificate{cert},
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		ClientCAs:    roots,
+	}, nil
+}
 
-	return tlsConfig, nil
+// Listen of the server
+func (p Proxy) Listen(wsPort string) error {
+	port := fmt.Sprintf(":%s", wsPort)
+	return http.ListenAndServe(port, nil)
+}
 
+// ListenTLS - version of Listen with TLS encryption
+func (p Proxy) ListenTLS(wssPort string) error {
+	port := fmt.Sprintf(":%s", wssPort)
+	config, err := p.certConfig()
+	if err != nil {
+		return err
+	}
+	server := &http.Server{
+		Addr:      port,
+		TLSConfig: &config,
+	}
+	return server.ListenAndServeTLS(p.crt, p.key)
 }

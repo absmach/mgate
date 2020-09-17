@@ -165,8 +165,7 @@ func proxyWS(cfg config, logger mflog.Logger, handler session.Handler, errs chan
 	wp := websocket.New(target, cfg.wsTargetPath, cfg.wsTargetScheme, handler, logger, cfg.caCerts, cfg.serverCert, cfg.serverKey)
 	http.Handle("/mqtt", wp.Handler())
 
-	p := fmt.Sprintf(":%s", cfg.wsPort)
-	errs <- http.ListenAndServe(p, nil)
+	errs <- wp.Listen(cfg.wsPort)
 }
 
 func proxyWSS(cfg config, logger mflog.Logger, handler session.Handler, errs chan error) {
@@ -174,17 +173,7 @@ func proxyWSS(cfg config, logger mflog.Logger, handler session.Handler, errs cha
 	wp := websocket.New(target, cfg.wsTargetPath, cfg.wsTargetScheme, handler, logger, cfg.caCerts, cfg.serverCert, cfg.serverKey)
 	http.Handle("/mqtt", wp.Handler())
 
-	p := fmt.Sprintf(":%s", cfg.wssPort)
-	config, err := wp.CertConfig()
-	if err != nil {
-		panic(err)
-	}
-
-	server := &http.Server{
-		Addr:      p,
-		TLSConfig: config,
-	}
-	errs <- server.ListenAndServeTLS(cfg.serverCert, cfg.serverKey)
+	errs <- wp.ListenTLS(cfg.wssPort)
 }
 
 func proxyMQTT(cfg config, logger mflog.Logger, handler session.Handler, errs chan error) {
