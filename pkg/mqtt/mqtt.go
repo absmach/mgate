@@ -9,6 +9,7 @@ import (
 	"github.com/mainflux/mainflux/logger"
 	"github.com/mainflux/mainflux/pkg/errors"
 	"github.com/mainflux/mproxy/pkg/session"
+	mptls "github.com/mainflux/mproxy/pkg/tls"
 )
 
 var (
@@ -57,7 +58,7 @@ func (p Proxy) handle(inbound net.Conn) {
 	}
 	defer p.close(outbound)
 
-	clientCert, err := session.ClientCert(inbound)
+	clientCert, err := mptls.ClientCert(inbound)
 	if err != nil {
 		p.logger.Error("Failed to get client certificate, reason: " + err.Error())
 		return
