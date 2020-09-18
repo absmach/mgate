@@ -9,14 +9,8 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/mainflux/mainflux/logger"
-	"github.com/mainflux/mainflux/pkg/errors"
 	"github.com/mainflux/mproxy/pkg/session"
 	mptls "github.com/mainflux/mproxy/pkg/tls"
-)
-
-var (
-	errCreateListener = errors.New("failed creating TLS listener")
-	errParseRoot      = errors.New("failed to parse root certificate")
 )
 
 // Proxy represents WS Proxy.

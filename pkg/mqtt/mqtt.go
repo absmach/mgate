@@ -14,7 +14,6 @@ import (
 
 var (
 	errCreateListener = errors.New("failed creating TLS listener")
-	errParseRoot      = errors.New("failed to parse root certificate")
 )
 
 // Proxy is main MQTT proxy struct
