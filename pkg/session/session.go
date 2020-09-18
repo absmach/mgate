@@ -1,7 +1,6 @@
 package session
 
 import (
-	"crypto/tls"
 	"crypto/x509"
 	"net"
 
@@ -16,9 +15,8 @@ const (
 )
 
 var (
-	errBroker     = errors.New("error between mProxy and MQTT broker")
-	errClient     = errors.New("error between mProxy and MQTT client")
-	errTLSdetails = errors.New("failed to get TLS details of connection")
+	errBroker = errors.New("error between mProxy and MQTT broker")
+	errClient = errors.New("error between mProxy and MQTT client")
 )
 
 type direction int
@@ -138,23 +136,5 @@ func wrap(err error, dir direction) error {
 		return errors.Wrap(errBroker, err)
 	default:
 		return err
-	}
-}
-
-// ClientCert returns client certificate
-func ClientCert(conn net.Conn) (x509.Certificate, error) {
-	switch connVal := conn.(type) {
-	case *tls.Conn:
-		if err := connVal.Handshake(); err != nil {
-			return x509.Certificate{}, err
-		}
-		state := connVal.ConnectionState()
-		if state.Version == 0 {
-			return x509.Certificate{}, errTLSdetails
-		}
-		cert := *state.PeerCertificates[0]
-		return cert, nil
-	default:
-		return x509.Certificate{}, nil
 	}
 }
