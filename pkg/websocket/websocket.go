@@ -101,7 +101,13 @@ func (p Proxy) pass(in *websocket.Conn) {
 	defer s.Close()
 	defer c.Close()
 
-	session := session.New(c, s, p.event, p.logger)
+	clientCert, err := session.ClientCert(in.UnderlyingConn())
+	if err != nil {
+		p.logger.Error("Failed to get client certificate, reason: " + err.Error())
+		return
+	}
+
+	session := session.New(c, s, p.event, p.logger, clientCert)
 	err = session.Stream()
 	errc <- err
 	p.logger.Warn("Broken connection for client: " + session.Client.ID + " with error: " + err.Error())

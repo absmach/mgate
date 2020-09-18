@@ -33,12 +33,15 @@ type Session struct {
 }
 
 // New creates a new Session.
-func New(inbound, outbound net.Conn, handler Handler, logger logger.Logger) *Session {
+func New(inbound, outbound net.Conn, handler Handler, logger logger.Logger, cert x509.Certificate) *Session {
 	return &Session{
 		logger:   logger,
 		inbound:  inbound,
 		outbound: outbound,
 		handler:  handler,
+		Client: Client{
+			Cert: cert,
+		},
 	}
 }
 
@@ -91,16 +94,9 @@ func (s *Session) stream(dir direction, r, w net.Conn, errs chan error) {
 func (s *Session) authorize(pkt packets.ControlPacket) error {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
-		cert, err := clientCert(s.inbound)
-		if err != nil {
-			return err
-		}
-		s.Client = Client{
-			ID:       p.ClientIdentifier,
-			Username: p.Username,
-			Password: p.Password,
-			Cert:     cert,
-		}
+		s.Client.ID = p.ClientIdentifier
+		s.Client.Username = p.Username
+		s.Client.Password = p.Password
 		if err := s.handler.AuthConnect(&s.Client); err != nil {
 			return err
 		}
@@ -145,7 +141,8 @@ func wrap(err error, dir direction) error {
 	}
 }
 
-func clientCert(conn net.Conn) (x509.Certificate, error) {
+// ClientCert returns client certificate
+func ClientCert(conn net.Conn) (x509.Certificate, error) {
 	switch connVal := conn.(type) {
 	case *tls.Conn:
 		if err := connVal.Handshake(); err != nil {
