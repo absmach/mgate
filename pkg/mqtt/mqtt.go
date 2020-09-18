@@ -66,7 +66,6 @@ func (p Proxy) handle(inbound net.Conn) {
 	defer p.close(outbound)
 
 	clientCert, err := session.ClientCert(inbound)
-
 	if err != nil {
 		p.logger.Error("Failed to get client certificate, reason: " + err.Error())
 		return
