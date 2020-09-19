@@ -178,7 +178,7 @@ func loadConfig() config {
 func proxyWS(cfg config, logger mflog.Logger, handler session.Handler, errs chan error) {
 	target := fmt.Sprintf("%s:%s", cfg.wsTargetHost, cfg.wsTargetPort)
 	wp := websocket.New(target, cfg.wsTargetPath, cfg.wsTargetScheme, handler, logger)
-	http.Handle("/mqtt", wp.Handler())
+	http.Handle(cfg.wsPath, wp.Handler())
 
 	errs <- wp.Listen(cfg.wsPort)
 }
@@ -186,7 +186,7 @@ func proxyWS(cfg config, logger mflog.Logger, handler session.Handler, errs chan
 func proxyWSS(cfg config, tlsCfg *tls.Config, logger mflog.Logger, handler session.Handler, errs chan error) {
 	target := fmt.Sprintf("%s:%s", cfg.wsTargetHost, cfg.wsTargetPort)
 	wp := websocket.New(target, cfg.wsTargetPath, cfg.wsTargetScheme, handler, logger)
-	http.Handle("/mqtt", wp.Handler())
+	http.Handle(cfg.wssPath, wp.Handler())
 	errs <- wp.ListenTLS(tlsCfg, cfg.serverCert, cfg.serverKey, cfg.wssPort)
 }
 
