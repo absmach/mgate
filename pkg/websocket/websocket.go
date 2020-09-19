@@ -77,7 +77,7 @@ func (p Proxy) pass(in *websocket.Conn) {
 	srv, _, err := dialer.Dial(url.String(), nil)
 
 	if err != nil {
-		p.logger.Error("Unable to connect to broker, reason: " + err.Error())
+		p.logger.Error("Unable to connect to broker: " + err.Error())
 		return
 	}
 
@@ -90,7 +90,7 @@ func (p Proxy) pass(in *websocket.Conn) {
 
 	clientCert, err := mptls.ClientCert(in.UnderlyingConn())
 	if err != nil {
-		p.logger.Error("Failed to get client certificate, reason: " + err.Error())
+		p.logger.Error("Failed to get client certificate: " + err.Error())
 		return
 	}
 

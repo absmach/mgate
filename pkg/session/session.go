@@ -15,8 +15,8 @@ const (
 )
 
 var (
-	errBroker = errors.New("error between mProxy and MQTT broker")
-	errClient = errors.New("error between mProxy and MQTT client")
+	errBroker = errors.New("failed proxying from MQTT client to MQTT broker")
+	errClient = errors.New("failed proxying from MQTT broker to MQTT client")
 )
 
 type direction int

@@ -59,7 +59,7 @@ func (p Proxy) handle(inbound net.Conn) {
 
 	clientCert, err := mptls.ClientCert(inbound)
 	if err != nil {
-		p.logger.Error("Failed to get client certificate, reason: " + err.Error())
+		p.logger.Error("Failed to get client certificate: " + err.Error())
 		return
 	}
 

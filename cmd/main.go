@@ -21,7 +21,9 @@ import (
 const (
 	// WS
 	defWSHost         = "0.0.0.0"
+	defWSPath         = "/mqtt"
 	defWSPort         = "8080"
+	defWSSPath        = "/mqtt"
 	defWSSPort        = "8081"
 	defWSTargetScheme = "ws"
 	defWSTargetHost   = "localhost"
@@ -30,7 +32,9 @@ const (
 
 	envWSHost         = "MPROXY_WS_HOST"
 	envWSPort         = "MPROXY_WS_PORT"
+	envWSPath         = "MPROXY_WS_PATH"
 	envWSSPort        = "MPROXY_WSS_PORT"
+	envWSSPath        = "MPROXY_WSS_PATH"
 	envWSTargetScheme = "MPROXY_WS_TARGET_SCHEME"
 	envWSTargetHost   = "MPROXY_WS_TARGET_HOST"
 	envWSTargetPort   = "MPROXY_WS_TARGET_PORT"
@@ -64,7 +68,9 @@ const (
 type config struct {
 	wsHost         string
 	wsPort         string
+	wsPath         string
 	wssPort        string
+	wssPath        string
 	wsTargetScheme string
 	wsTargetHost   string
 	wsTargetPort   string
@@ -145,7 +151,9 @@ func loadConfig() config {
 		// WS
 		wsHost:         env(envWSHost, defWSHost),
 		wsPort:         env(envWSPort, defWSPort),
+		wsPath:         env(envWSPath, defWSPath),
 		wssPort:        env(envWSSPort, defWSSPort),
+		wssPath:        env(envWSSPath, defWSSPath),
 		wsTargetScheme: env(envWSTargetScheme, defWSTargetScheme),
 		wsTargetHost:   env(envWSTargetHost, defWSTargetHost),
 		wsTargetPort:   env(envWSTargetPort, defWSTargetPort),

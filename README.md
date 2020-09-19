@@ -79,23 +79,27 @@ TLS termination and LB tasks can be offloaded to a standard ingress proxy - for 
 
 The service is configured using the environment variables presented in the following table. Note that any unset variables will be replaced with their default values.
 
-| Variable                  | Description                                    | Default   |
-|---------------------------|------------------------------------------------|-----------|
-| MPROXY_HTTP_HOST          | HTTP inbound (IN) connection host              | 0.0.0.0   |
-| MPROXY_HTTP_PORT          | HTTP inbound (IN) connection port              | 8080      |
-| MPROXY_HTTP_TARGET_SCHEMA | HTTP Target schema                             | ws        |
-| MPROXY_HTTP_TARGET_HOST   | HTTP Target host                               | localhost |
-| MPROXY_HTTP_TARGET_PORT   | HTTP Target port                               | 8888      |
-| MPROXY_HTTP_TARGET_PATH   | HTTP Target path                               | /mqtt     |
-| MPROXY_MQTT_HOST          | MQTT inbound connection host                   | 0.0.0.0   |
-| MPROXY_MQTT_PORT          | MQTT inbound connection port                   | 1883      |
-| MPROXY_MQTTS_PORT         | MQTTS inbound connection port                  | 8883      |
-| MPROXY_MQTT_TARGET_HOST   | MQTT broker host                               | 0.0.0.0   |
-| MPROXY_MQTT_TARGET_PORT   | MQTT broker port                               | 1884      |
-| MPROXY_CLIENT_TLS         | Flag that indicates if TLS should be turned on | false     |
-| MPROXY_CA_CERTS           | Path to trusted CAs in PEM format              |           |
-| MPROXY_SERVER_CERT        | Path to server certificate in pem format       |           |
-| MPROXY_SERVER_KEY         | Path to server key in pem format               |           |
+| Variable                | Description                                    | Default   |
+|-------------------------|------------------------------------------------|-----------|
+| MPROXY_WS_HOST          | WebSocket inbound (IN) connection host         | 0.0.0.0   |
+| MPROXY_WS_PORT          | WebSocket inbound (IN) connection port         | 8080      |
+| MPROXY_WS_PATH          | WebSocket inbound (IN) connection path         | /mqtt     |
+| MPROXY_WSS_PORT         | WebSocket Secure inbound (IN) connection port  | 8080      |
+| MPROXY_WSS_PATH         | WebSocket Secure inbound (IN) connection path  | /mqtt     |
+| MPROXY_WS_TARGET_SCHEME | WebSocket Target schema                        | ws        |
+| MPROXY_WS_TARGET_HOST   | WebSocket Target host                          | localhost |
+| MPROXY_WS_TARGET_PORT   | WebSocket Target port                          | 8888      |
+| MPROXY_WS_TARGET_PATH   | WebSocket Target path                          | /mqtt     |
+| MPROXY_MQTT_HOST        | MQTT inbound connection host                   | 0.0.0.0   |
+| MPROXY_MQTT_PORT        | MQTT inbound connection port                   | 1883      |
+| MPROXY_MQTTS_PORT       | MQTTS inbound connection port                  | 8883      |
+| MPROXY_MQTT_TARGET_HOST | MQTT broker host                               | 0.0.0.0   |
+| MPROXY_MQTT_TARGET_PORT | MQTT broker port                               | 1884      |
+| MPROXY_CLIENT_TLS       | Flag that indicates if TLS should be turned on | false     |
+| MPROXY_CA_CERTS         | Path to trusted CAs in PEM format              |           |
+| MPROXY_SERVER_CERT      | Path to server certificate in pem format       |           |
+| MPROXY_SERVER_KEY       | Path to server key in pem format               |           |
+| MPROXY_LOG_LEVEL        | Log level                                      | debug     |
 
 ## License
 [Apache-2.0](LICENSE)
