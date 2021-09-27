@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	up direction = iota
-	down
+	Upstream Direction = iota
+	Downstream
 )
 
 var (
@@ -19,24 +19,26 @@ var (
 	errClient = errors.New("failed proxying from MQTT broker to MQTT client")
 )
 
-type direction int
+type Direction int
 
 // Session represents MQTT Proxy session between client and broker.
 type Session struct {
-	logger   logger.Logger
-	inbound  net.Conn
-	outbound net.Conn
-	handler  Handler
-	Client   Client
+	logger      logger.Logger
+	inbound     net.Conn
+	outbound    net.Conn
+	handler     Handler
+	interceptor Interceptor
+	Client      Client
 }
 
 // New creates a new Session.
-func New(inbound, outbound net.Conn, handler Handler, logger logger.Logger, cert x509.Certificate) *Session {
+func New(inbound, outbound net.Conn, handler Handler, interceptor Interceptor, logger logger.Logger, cert x509.Certificate) *Session {
 	return &Session{
-		logger:   logger,
-		inbound:  inbound,
-		outbound: outbound,
-		handler:  handler,
+		logger:      logger,
+		inbound:     inbound,
+		outbound:    outbound,
+		handler:     handler,
+		interceptor: interceptor,
 		Client: Client{
 			Cert: cert,
 		},
@@ -49,8 +51,8 @@ func (s *Session) Stream() error {
 	// and read from broker, send to client.
 	errs := make(chan error, 2)
 
-	go s.stream(up, s.inbound, s.outbound, errs)
-	go s.stream(down, s.outbound, s.inbound, errs)
+	go s.stream(Upstream, s.inbound, s.outbound, errs)
+	go s.stream(Downstream, s.outbound, s.inbound, errs)
 
 	// Handle whichever error happens first.
 	// The other routine won't be blocked when writing
@@ -61,7 +63,7 @@ func (s *Session) Stream() error {
 	return err
 }
 
-func (s *Session) stream(dir direction, r, w net.Conn, errs chan error) {
+func (s *Session) stream(dir Direction, r, w net.Conn, errs chan error) {
 	for {
 		// Read from one connection
 		pkt, err := packets.ReadPacket(r)
@@ -70,12 +72,14 @@ func (s *Session) stream(dir direction, r, w net.Conn, errs chan error) {
 			return
 		}
 
-		if dir == up {
+		if dir == Upstream {
 			if err := s.authorize(pkt); err != nil {
 				errs <- wrap(err, dir)
 				return
 			}
 		}
+
+		pkt = s.intercept(pkt, dir)
 
 		// Send to another
 		if err := pkt.Write(w); err != nil {
@@ -83,7 +87,7 @@ func (s *Session) stream(dir direction, r, w net.Conn, errs chan error) {
 			return
 		}
 
-		if dir == up {
+		if dir == Upstream {
 			s.notify(pkt)
 		}
 	}
@@ -113,6 +117,20 @@ func (s *Session) authorize(pkt packets.ControlPacket) error {
 	}
 }
 
+func (s *Session) intercept(pkt packets.ControlPacket, dir Direction) packets.ControlPacket {
+	if s.interceptor == nil {
+		return pkt
+	}
+	npkt, err := s.interceptor.Intercept(pkt, &s.Client, dir)
+	if err != nil {
+		return pkt
+	}
+	if npkt == nil {
+		return pkt
+	}
+	return npkt
+}
+
 func (s *Session) notify(pkt packets.ControlPacket) {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
@@ -128,11 +146,11 @@ func (s *Session) notify(pkt packets.ControlPacket) {
 	}
 }
 
-func wrap(err error, dir direction) error {
+func wrap(err error, dir Direction) error {
 	switch dir {
-	case up:
+	case Upstream:
 		return errors.Wrap(errClient, err)
-	case down:
+	case Downstream:
 		return errors.Wrap(errBroker, err)
 	default:
 		return err

@@ -18,11 +18,12 @@ var (
 
 // Proxy is main MQTT proxy struct
 type Proxy struct {
-	address string
-	target  string
-	handler session.Handler
-	logger  logger.Logger
-	dialer  net.Dialer
+	address     string
+	target      string
+	handler     session.Handler
+	interceptor session.Interceptor
+	logger      logger.Logger
+	dialer      net.Dialer
 }
 
 // New returns a new mqtt Proxy instance.
@@ -33,6 +34,11 @@ func New(address, target string, handler session.Handler, logger logger.Logger) 
 		handler: handler,
 		logger:  logger,
 	}
+}
+
+func (p *Proxy) WithInterceptor(interceptor session.Interceptor) *Proxy {
+	p.interceptor = interceptor
+	return p
 }
 
 func (p Proxy) accept(l net.Listener) {
@@ -63,7 +69,7 @@ func (p Proxy) handle(inbound net.Conn) {
 		return
 	}
 
-	s := session.New(inbound, outbound, p.handler, p.logger, clientCert)
+	s := session.New(inbound, outbound, p.handler, p.interceptor, p.logger, clientCert)
 
 	if err = s.Stream(); !errors.Contains(err, io.EOF) {
 		p.logger.Warn("Broken connection for client: " + s.Client.ID + " with error: " + err.Error())
@@ -87,7 +93,6 @@ func (p Proxy) Listen() error {
 
 // ListenTLS - version of Listen with TLS encryption
 func (p Proxy) ListenTLS(tlsCfg *tls.Config) error {
-
 	l, err := tls.Listen("tcp", p.address, tlsCfg)
 	if err != nil {
 		return errors.Wrap(errCreateListener, err)

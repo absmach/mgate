@@ -15,11 +15,12 @@ import (
 
 // Proxy represents WS Proxy.
 type Proxy struct {
-	target string
-	path   string
-	scheme string
-	event  session.Handler
-	logger logger.Logger
+	target      string
+	path        string
+	scheme      string
+	event       session.Handler
+	interceptor session.Interceptor
+	logger      logger.Logger
 }
 
 // New - creates new WS proxy
@@ -31,6 +32,11 @@ func New(target, path, scheme string, event session.Handler, logger logger.Logge
 		event:  event,
 		logger: logger,
 	}
+}
+
+func (p *Proxy) WithInterceptor(interceptor session.Interceptor) *Proxy {
+	p.interceptor = interceptor
+	return p
 }
 
 var upgrader = websocket.Upgrader{
@@ -94,7 +100,7 @@ func (p Proxy) pass(in *websocket.Conn) {
 		return
 	}
 
-	session := session.New(c, s, p.event, p.logger, clientCert)
+	session := session.New(c, s, p.event, p.interceptor, p.logger, clientCert)
 	err = session.Stream()
 	errc <- err
 	p.logger.Warn("Broken connection for client: " + session.Client.ID + " with error: " + err.Error())
