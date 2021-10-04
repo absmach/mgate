@@ -48,6 +48,9 @@ func ClientCert(conn net.Conn) (x509.Certificate, error) {
 		if state.Version == 0 {
 			return x509.Certificate{}, errTLSdetails
 		}
+		if len(state.PeerCertificates) == 0 {
+			return x509.Certificate{}, nil
+		}
 		cert := *state.PeerCertificates[0]
 		return cert, nil
 	default:
