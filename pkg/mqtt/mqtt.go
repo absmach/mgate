@@ -2,12 +2,12 @@ package mqtt
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 
-	"github.com/mainflux/mainflux/logger"
-	"github.com/mainflux/mainflux/pkg/errors"
+	"github.com/mainflux/mproxy/pkg/logger"
 	"github.com/mainflux/mproxy/pkg/session"
 	mptls "github.com/mainflux/mproxy/pkg/tls"
 )
@@ -65,7 +65,7 @@ func (p Proxy) handle(inbound net.Conn) {
 
 	s := session.New(inbound, outbound, p.handler, p.logger, clientCert)
 
-	if err = s.Stream(); !errors.Contains(err, io.EOF) {
+	if err = s.Stream(); err != io.EOF {
 		p.logger.Warn("Broken connection for client: " + s.Client.ID + " with error: " + err.Error())
 	}
 }
@@ -90,7 +90,7 @@ func (p Proxy) ListenTLS(tlsCfg *tls.Config) error {
 
 	l, err := tls.Listen("tcp", p.address, tlsCfg)
 	if err != nil {
-		return errors.Wrap(errCreateListener, err)
+		return errors.New(errCreateListener.Error() + ":" + err.Error())
 	}
 	defer l.Close()
 

@@ -2,11 +2,12 @@ package session
 
 import (
 	"crypto/x509"
+	"errors"
+	"io"
 	"net"
 
 	"github.com/eclipse/paho.mqtt.golang/packets"
-	"github.com/mainflux/mainflux/logger"
-	"github.com/mainflux/mainflux/pkg/errors"
+	"github.com/mainflux/mproxy/pkg/logger"
 )
 
 const (
@@ -129,11 +130,14 @@ func (s *Session) notify(pkt packets.ControlPacket) {
 }
 
 func wrap(err error, dir direction) error {
+	if err == io.EOF {
+		return err
+	}
 	switch dir {
 	case up:
-		return errors.Wrap(errClient, err)
+		return errors.New(errClient.Error() + ":" + err.Error())
 	case down:
-		return errors.Wrap(errBroker, err)
+		return errors.New(errBroker.Error() + ":" + err.Error())
 	default:
 		return err
 	}
