@@ -2,7 +2,6 @@ package mqtt
 
 import (
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -10,10 +9,6 @@ import (
 	"github.com/mainflux/mproxy/pkg/logger"
 	"github.com/mainflux/mproxy/pkg/session"
 	mptls "github.com/mainflux/mproxy/pkg/tls"
-)
-
-var (
-	errCreateListener = errors.New("failed creating TLS listener")
 )
 
 // Proxy is main MQTT proxy struct
@@ -90,7 +85,7 @@ func (p Proxy) ListenTLS(tlsCfg *tls.Config) error {
 
 	l, err := tls.Listen("tcp", p.address, tlsCfg)
 	if err != nil {
-		return errors.New(errCreateListener.Error() + ":" + err.Error())
+		return err
 	}
 	defer l.Close()
 

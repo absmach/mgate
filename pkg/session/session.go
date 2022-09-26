@@ -16,8 +16,8 @@ const (
 )
 
 var (
-	errBroker = errors.New("failed proxying from MQTT client to MQTT broker")
-	errClient = errors.New("failed proxying from MQTT broker to MQTT client")
+	errBroker = "failed proxying from MQTT client to MQTT broker"
+	errClient = "failed proxying from MQTT broker to MQTT client"
 )
 
 type direction int
@@ -135,9 +135,9 @@ func wrap(err error, dir direction) error {
 	}
 	switch dir {
 	case up:
-		return errors.New(errClient.Error() + ":" + err.Error())
+		return errors.New(errClient + err.Error())
 	case down:
-		return errors.New(errBroker.Error() + ":" + err.Error())
+		return errors.New(errBroker + err.Error())
 	default:
 		return err
 	}
