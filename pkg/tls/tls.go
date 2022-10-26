@@ -3,10 +3,9 @@ package tls
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"io/ioutil"
 	"net"
-
-	"github.com/mainflux/mainflux/pkg/errors"
 )
 
 var (
