@@ -30,5 +30,6 @@ func FromContext(ctx context.Context) (*Session, bool) {
 	if s, ok := ctx.Value(sessionKey{}).(*Session); ok && s != nil {
 		return s, true
 	}
+
 	return nil, false
 }

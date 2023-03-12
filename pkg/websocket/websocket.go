@@ -16,11 +16,12 @@ import (
 
 // Proxy represents WS Proxy.
 type Proxy struct {
-	target string
-	path   string
-	scheme string
-	event  session.Handler
-	logger logger.Logger
+	target      string
+	path        string
+	scheme      string
+	event       session.Handler
+	interceptor session.Interceptor
+	logger      logger.Logger
 }
 
 // New - creates new WS proxy
@@ -32,6 +33,11 @@ func New(target, path, scheme string, event session.Handler, logger logger.Logge
 		event:  event,
 		logger: logger,
 	}
+}
+
+func (p *Proxy) WithInterceptor(interceptor session.Interceptor) *Proxy {
+	p.interceptor = interceptor
+	return p
 }
 
 var upgrader = websocket.Upgrader{
