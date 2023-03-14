@@ -37,6 +37,36 @@ func (p *Proxy) WithInterceptor(interceptor session.Interceptor) *Proxy {
 	return p
 }
 
+// Listen of the server, this will block.
+func (p Proxy) Listen(ctx context.Context) error {
+	l, err := net.Listen("tcp", p.address)
+	if err != nil {
+		return err
+	}
+	defer l.Close()
+
+	// Acceptor loop
+	p.accept(ctx, l)
+
+	p.logger.Info("Server Exiting...")
+	return nil
+}
+
+// ListenTLS - version of Listen with TLS encryption
+func (p Proxy) ListenTLS(ctx context.Context, tlsCfg *tls.Config) error {
+	l, err := tls.Listen("tcp", p.address, tlsCfg)
+	if err != nil {
+		return err
+	}
+	defer l.Close()
+
+	// Acceptor loop
+	p.accept(ctx, l)
+
+	p.logger.Info("Server Exiting...")
+	return nil
+}
+
 func (p Proxy) accept(ctx context.Context, l net.Listener) {
 	for {
 		conn, err := l.Accept()
@@ -68,36 +98,6 @@ func (p Proxy) handle(ctx context.Context, inbound net.Conn) {
 	if err = session.Stream(ctx, inbound, outbound, p.handler, clientCert); err != io.EOF {
 		p.logger.Warn(err.Error())
 	}
-}
-
-// Listen of the server, this will block.
-func (p Proxy) Listen(ctx context.Context) error {
-	l, err := net.Listen("tcp", p.address)
-	if err != nil {
-		return err
-	}
-	defer l.Close()
-
-	// Acceptor loop
-	p.accept(ctx, l)
-
-	p.logger.Info("Server Exiting...")
-	return nil
-}
-
-// ListenTLS - version of Listen with TLS encryption
-func (p Proxy) ListenTLS(ctx context.Context, tlsCfg *tls.Config) error {
-	l, err := tls.Listen("tcp", p.address, tlsCfg)
-	if err != nil {
-		return err
-	}
-	defer l.Close()
-
-	// Acceptor loop
-	p.accept(ctx, l)
-
-	p.logger.Info("Server Exiting...")
-	return nil
 }
 
 func (p Proxy) close(conn net.Conn) {
