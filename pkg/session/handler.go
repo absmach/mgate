@@ -1,5 +1,7 @@
 package session
 
+import "context"
+
 // Handler is an interface for mProxy hooks
 type Handler interface {
 	// Authorization on client `CONNECT`
@@ -18,13 +20,13 @@ type Handler interface {
 	Connect(client *Client)
 
 	// After client successfully published
-	Publish(client *Client, topic *string, payload *[]byte)
+	Publish(ctx context.Context, client *Client, topic *string, payload *[]byte)
 
 	// After client successfully subscribed
-	Subscribe(client *Client, topics *[]string)
+	Subscribe(ctx context.Context, client *Client, topics *[]string)
 
 	// After client unsubscribed
-	Unsubscribe(client *Client, topics *[]string)
+	Unsubscribe(ctx context.Context, client *Client, topics *[]string)
 
 	// Disconnect on connection with client lost
 	Disconnect(client *Client)

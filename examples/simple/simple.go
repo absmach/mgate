@@ -1,6 +1,7 @@
 package simple
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -49,17 +50,17 @@ func (h *Handler) Connect(c *session.Client) {
 }
 
 // Publish - after client successfully published
-func (h *Handler) Publish(c *session.Client, topic *string, payload *[]byte) {
+func (h *Handler) Publish(ctx context.Context, c *session.Client, topic *string, payload *[]byte) {
 	h.logger.Info(fmt.Sprintf("Publish() - username: %s, clientID: %s, topic: %s, payload: %s", c.Username, c.ID, *topic, string(*payload)))
 }
 
 // Subscribe - after client successfully subscribed
-func (h *Handler) Subscribe(c *session.Client, topics *[]string) {
+func (h *Handler) Subscribe(ctx context.Context, c *session.Client, topics *[]string) {
 	h.logger.Info(fmt.Sprintf("Subscribe() - username: %s, clientID: %s, topics: %s", c.Username, c.ID, strings.Join(*topics, ",")))
 }
 
 // Unsubscribe - after client unsubscribed
-func (h *Handler) Unsubscribe(c *session.Client, topics *[]string) {
+func (h *Handler) Unsubscribe(ctx context.Context, c *session.Client, topics *[]string) {
 	h.logger.Info(fmt.Sprintf("Unsubscribe() - username: %s, clientID: %s, topics: %s", c.Username, c.ID, strings.Join(*topics, ",")))
 }
 

@@ -1,6 +1,7 @@
 package session
 
 import (
+	"context"
 	"crypto/x509"
 	"errors"
 	"io"
@@ -45,13 +46,13 @@ func New(inbound, outbound net.Conn, handler Handler, logger logger.Logger, cert
 }
 
 // Stream starts proxying traffic between client and broker.
-func (s *Session) Stream() error {
+func (s *Session) Stream(ctx context.Context) error {
 	// In parallel read from client, send to broker
 	// and read from broker, send to client.
 	errs := make(chan error, 2)
 
-	go s.stream(up, s.inbound, s.outbound, errs)
-	go s.stream(down, s.outbound, s.inbound, errs)
+	go s.stream(ctx, up, s.inbound, s.outbound, errs)
+	go s.stream(ctx, down, s.outbound, s.inbound, errs)
 
 	// Handle whichever error happens first.
 	// The other routine won't be blocked when writing
@@ -62,7 +63,7 @@ func (s *Session) Stream() error {
 	return err
 }
 
-func (s *Session) stream(dir direction, r, w net.Conn, errs chan error) {
+func (s *Session) stream(ctx context.Context, dir direction, r, w net.Conn, errs chan error) {
 	for {
 		// Read from one connection
 		pkt, err := packets.ReadPacket(r)
@@ -85,7 +86,7 @@ func (s *Session) stream(dir direction, r, w net.Conn, errs chan error) {
 		}
 
 		if dir == up {
-			s.notify(pkt)
+			s.notify(ctx, pkt)
 		}
 	}
 }
@@ -114,16 +115,16 @@ func (s *Session) authorize(pkt packets.ControlPacket) error {
 	}
 }
 
-func (s *Session) notify(pkt packets.ControlPacket) {
+func (s *Session) notify(ctx context.Context, pkt packets.ControlPacket) {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
 		s.handler.Connect(&s.Client)
 	case *packets.PublishPacket:
-		s.handler.Publish(&s.Client, &p.TopicName, &p.Payload)
+		s.handler.Publish(ctx, &s.Client, &p.TopicName, &p.Payload)
 	case *packets.SubscribePacket:
-		s.handler.Subscribe(&s.Client, &p.Topics)
+		s.handler.Subscribe(ctx, &s.Client, &p.Topics)
 	case *packets.UnsubscribePacket:
-		s.handler.Unsubscribe(&s.Client, &p.Topics)
+		s.handler.Unsubscribe(ctx, &s.Client, &p.Topics)
 	default:
 		return
 	}
