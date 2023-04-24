@@ -59,7 +59,7 @@ func (s *Session) Stream(ctx context.Context) error {
 	// to the errors channel because it is buffered.
 	err := <-errs
 
-	s.handler.Disconnect(&s.Client)
+	s.handler.Disconnect(ctx, &s.Client)
 	return err
 }
 
@@ -73,7 +73,7 @@ func (s *Session) stream(ctx context.Context, dir direction, r, w net.Conn, errs
 		}
 
 		if dir == up {
-			if err := s.authorize(pkt); err != nil {
+			if err := s.authorize(ctx, pkt); err != nil {
 				errs <- wrap(err, dir)
 				return
 			}
@@ -91,13 +91,13 @@ func (s *Session) stream(ctx context.Context, dir direction, r, w net.Conn, errs
 	}
 }
 
-func (s *Session) authorize(pkt packets.ControlPacket) error {
+func (s *Session) authorize(ctx context.Context, pkt packets.ControlPacket) error {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
 		s.Client.ID = p.ClientIdentifier
 		s.Client.Username = p.Username
 		s.Client.Password = p.Password
-		if err := s.handler.AuthConnect(&s.Client); err != nil {
+		if err := s.handler.AuthConnect(ctx, &s.Client); err != nil {
 			return err
 		}
 		// Copy back to the packet in case values are changed by Event handler.
@@ -107,9 +107,9 @@ func (s *Session) authorize(pkt packets.ControlPacket) error {
 		p.Password = s.Client.Password
 		return nil
 	case *packets.PublishPacket:
-		return s.handler.AuthPublish(&s.Client, &p.TopicName, &p.Payload)
+		return s.handler.AuthPublish(ctx, &s.Client, &p.TopicName, &p.Payload)
 	case *packets.SubscribePacket:
-		return s.handler.AuthSubscribe(&s.Client, &p.Topics)
+		return s.handler.AuthSubscribe(ctx, &s.Client, &p.Topics)
 	default:
 		return nil
 	}
@@ -118,7 +118,7 @@ func (s *Session) authorize(pkt packets.ControlPacket) error {
 func (s *Session) notify(ctx context.Context, pkt packets.ControlPacket) {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
-		s.handler.Connect(&s.Client)
+		s.handler.Connect(ctx, &s.Client)
 	case *packets.PublishPacket:
 		s.handler.Publish(ctx, &s.Client, &p.TopicName, &p.Payload)
 	case *packets.SubscribePacket:

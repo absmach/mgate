@@ -25,27 +25,27 @@ func New(logger logger.Logger) *Handler {
 
 // AuthConnect is called on device connection,
 // prior forwarding to the MQTT broker
-func (h *Handler) AuthConnect(c *session.Client) error {
+func (h *Handler) AuthConnect(ctx context.Context, c *session.Client) error {
 	h.logger.Info(fmt.Sprintf("AuthConnect() - clientID: %s, username: %s, password: %s, client_CN: %s", c.ID, c.Username, string(c.Password), c.Cert.Subject.CommonName))
 	return nil
 }
 
 // AuthPublish is called on device publish,
 // prior forwarding to the MQTT broker
-func (h *Handler) AuthPublish(c *session.Client, topic *string, payload *[]byte) error {
+func (h *Handler) AuthPublish(ctx context.Context, c *session.Client, topic *string, payload *[]byte) error {
 	h.logger.Info(fmt.Sprintf("AuthPublish() - clientID: %s, topic: %s, payload: %s", c.ID, *topic, string(*payload)))
 	return nil
 }
 
 // AuthSubscribe is called on device publish,
 // prior forwarding to the MQTT broker
-func (h *Handler) AuthSubscribe(c *session.Client, topics *[]string) error {
+func (h *Handler) AuthSubscribe(ctx context.Context, c *session.Client, topics *[]string) error {
 	h.logger.Info(fmt.Sprintf("AuthSubscribe() - clientID: %s, topics: %s", c.ID, strings.Join(*topics, ",")))
 	return nil
 }
 
 // Connect - after client successfully connected
-func (h *Handler) Connect(c *session.Client) {
+func (h *Handler) Connect(ctx context.Context, c *session.Client) {
 	h.logger.Info(fmt.Sprintf("Connect() - username: %s, clientID: %s", c.Username, c.ID))
 }
 
@@ -65,6 +65,6 @@ func (h *Handler) Unsubscribe(ctx context.Context, c *session.Client, topics *[]
 }
 
 // Disconnect on conection lost
-func (h *Handler) Disconnect(c *session.Client) {
+func (h *Handler) Disconnect(ctx context.Context, c *session.Client) {
 	h.logger.Info(fmt.Sprintf("Disconnect() - client with username: %s and ID: %s disconenected", c.Username, c.ID))
 }
