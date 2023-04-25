@@ -95,10 +95,13 @@ func (p Proxy) pass(ctx context.Context, in *websocket.Conn) {
 		return
 	}
 
-	session := session.New(c, s, p.event, p.logger, clientCert)
-	err = session.Stream(ctx)
+	sess := session.New(ctx, c, s, p.event, p.logger, clientCert)
+	err = sess.Stream()
 	errc <- err
-	p.logger.Warn("Broken connection for client: " + session.Client.ID + " with error: " + err.Error())
+	var client session.Client
+	if err := client.FromContext(ctx); err != nil {
+		p.logger.Warn("Broken connection for client: " + client.ID + " with error: " + err.Error())
+	}
 }
 
 // Listen of the server
