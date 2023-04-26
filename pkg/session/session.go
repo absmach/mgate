@@ -100,8 +100,9 @@ func (s *Session) authorize(ctx context.Context, pkt packets.ControlPacket) erro
 		c.Password = p.Password
 		c.Cert = s.cert
 		s.Context = c.ToContext(ctx)
+		ctx = s.Context
 
-		if err := s.handler.AuthConnect(s.Context); err != nil {
+		if err := s.handler.AuthConnect(ctx); err != nil {
 			return err
 		}
 		// Copy back to the packet in case values are changed by Event handler.
