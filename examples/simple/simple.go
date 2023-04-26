@@ -28,10 +28,10 @@ func New(logger logger.Logger) *Handler {
 func (h *Handler) AuthConnect(ctx context.Context) error {
 	var c session.Client
 	if err := c.FromContext(ctx); err != nil {
-		h.logger.Info(fmt.Sprintf("AuthConnect() - clientID: %s, username: %s, password: %s, client_CN: %s", c.ID, c.Username, string(c.Password), c.Cert.Subject.CommonName))
-	} else {
-		h.logger.Error("client is missing")
+		h.logger.Error("client is missing: " + err.Error())
+		return err
 	}
+	h.logger.Info(fmt.Sprintf("AuthConnect() - clientID: %s, username: %s, password: %s, client_CN: %s", c.ID, c.Username, string(c.Password), c.Cert.Subject.CommonName))
 	return nil
 }
 
@@ -40,10 +40,11 @@ func (h *Handler) AuthConnect(ctx context.Context) error {
 func (h *Handler) AuthPublish(ctx context.Context, topic *string, payload *[]byte) error {
 	var c session.Client
 	if err := c.FromContext(ctx); err != nil {
-		h.logger.Info(fmt.Sprintf("AuthPublish() - clientID: %s, topic: %s, payload: %s", c.ID, *topic, string(*payload)))
-	} else {
-		h.logger.Error("client is missing")
+		h.logger.Error("client is missing: " + err.Error())
+		return err
 	}
+	h.logger.Info(fmt.Sprintf("AuthPublish() - clientID: %s, topic: %s, payload: %s", c.ID, *topic, string(*payload)))
+
 	return nil
 }
 
@@ -52,10 +53,10 @@ func (h *Handler) AuthPublish(ctx context.Context, topic *string, payload *[]byt
 func (h *Handler) AuthSubscribe(ctx context.Context, topics *[]string) error {
 	var c session.Client
 	if err := c.FromContext(ctx); err != nil {
-		h.logger.Info(fmt.Sprintf("AuthSubscribe() - clientID: %s, topics: %s", c.ID, strings.Join(*topics, ",")))
-	} else {
-		h.logger.Error("client is missing")
+		h.logger.Error("client is missing: " + err.Error())
+		return err
 	}
+	h.logger.Info(fmt.Sprintf("AuthSubscribe() - clientID: %s, topics: %s", c.ID, strings.Join(*topics, ",")))
 	return nil
 }
 
@@ -63,48 +64,48 @@ func (h *Handler) AuthSubscribe(ctx context.Context, topics *[]string) error {
 func (h *Handler) Connect(ctx context.Context) {
 	var c session.Client
 	if err := c.FromContext(ctx); err != nil {
-		h.logger.Info(fmt.Sprintf("Connect() - username: %s, clientID: %s", c.Username, c.ID))
-	} else {
-		h.logger.Error("client is missing")
+		h.logger.Error("client is missing: " + err.Error())
+		return
 	}
+	h.logger.Info(fmt.Sprintf("Connect() - username: %s, clientID: %s", c.Username, c.ID))
 }
 
 // Publish - after client successfully published
 func (h *Handler) Publish(ctx context.Context, topic *string, payload *[]byte) {
 	var c session.Client
 	if err := c.FromContext(ctx); err != nil {
-		h.logger.Info(fmt.Sprintf("Publish() - username: %s, clientID: %s, topic: %s, payload: %s", c.Username, c.ID, *topic, string(*payload)))
-	} else {
-		h.logger.Error("client is missing")
+		h.logger.Error("client is missing: " + err.Error())
+		return
 	}
+	h.logger.Info(fmt.Sprintf("Publish() - username: %s, clientID: %s, topic: %s, payload: %s", c.Username, c.ID, *topic, string(*payload)))
 }
 
 // Subscribe - after client successfully subscribed
 func (h *Handler) Subscribe(ctx context.Context, topics *[]string) {
 	var c session.Client
 	if err := c.FromContext(ctx); err != nil {
-		h.logger.Info(fmt.Sprintf("Subscribe() - username: %s, clientID: %s, topics: %s", c.Username, c.ID, strings.Join(*topics, ",")))
-	} else {
-		h.logger.Error("client is missing")
+		h.logger.Error("client is missing: " + err.Error())
+		return
 	}
+	h.logger.Info(fmt.Sprintf("Subscribe() - username: %s, clientID: %s, topics: %s", c.Username, c.ID, strings.Join(*topics, ",")))
 }
 
 // Unsubscribe - after client unsubscribed
 func (h *Handler) Unsubscribe(ctx context.Context, topics *[]string) {
 	var c session.Client
 	if err := c.FromContext(ctx); err != nil {
-		h.logger.Info(fmt.Sprintf("Unsubscribe() - username: %s, clientID: %s, topics: %s", c.Username, c.ID, strings.Join(*topics, ",")))
-	} else {
-		h.logger.Error("client is missing")
+		h.logger.Error("client is missing: " + err.Error())
+		return
 	}
+	h.logger.Info(fmt.Sprintf("Unsubscribe() - username: %s, clientID: %s, topics: %s", c.Username, c.ID, strings.Join(*topics, ",")))
 }
 
 // Disconnect on conection lost
 func (h *Handler) Disconnect(ctx context.Context) {
 	var c session.Client
 	if err := c.FromContext(ctx); err != nil {
-		h.logger.Info(fmt.Sprintf("Disconnect() - client with username: %s and ID: %s disconenected", c.Username, c.ID))
-	} else {
-		h.logger.Error("client is missing")
+		h.logger.Error("client is missing: " + err.Error())
+		return
 	}
+	h.logger.Info(fmt.Sprintf("Disconnect() - client with username: %s and ID: %s disconenected", c.Username, c.ID))
 }
