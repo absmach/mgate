@@ -39,7 +39,9 @@ func New(inbound, outbound net.Conn, handler Handler, logger logger.Logger, cert
 		inbound:  inbound,
 		outbound: outbound,
 		handler:  handler,
-		Client:   Client{Cert: cert},
+		Client: Client{
+			Cert: cert,
+		},
 	}
 }
 
