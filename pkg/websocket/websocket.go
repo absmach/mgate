@@ -95,8 +95,8 @@ func (p Proxy) pass(ctx context.Context, in *websocket.Conn) {
 		return
 	}
 
-	sess := session.New(ctx, c, s, p.event, p.logger, clientCert)
-	err = sess.Stream()
+	sess := session.New(c, s, p.event, p.logger, clientCert)
+	err = sess.Stream(ctx)
 	errc <- err
 	var client session.Client
 	if err := client.FromContext(ctx); err != nil {

@@ -59,14 +59,10 @@ func (p Proxy) handle(ctx context.Context, inbound net.Conn) {
 		return
 	}
 
-	s := session.New(ctx, inbound, outbound, p.handler, p.logger, clientCert)
+	s := session.New(inbound, outbound, p.handler, p.logger, clientCert)
 
-	if err = s.Stream(); err != io.EOF {
-		var c session.Client
-		if err := c.FromContext(s.Context); err != nil {
-			p.logger.Error("Client is not set: " + err.Error())
-		}
-		p.logger.Warn("Broken connection for client: " + c.ID + " with error: " + err.Error())
+	if err = s.Stream(ctx); err != io.EOF {
+		p.logger.Warn("Broken connection for client: " + s.Client.ID + " with error: " + err.Error())
 	}
 }
 

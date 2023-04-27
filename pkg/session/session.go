@@ -29,41 +29,41 @@ type Session struct {
 	inbound  net.Conn
 	outbound net.Conn
 	handler  Handler
-	cert     x509.Certificate
-	context.Context
+	Client   Client
 }
 
 // New creates a new Session.
-func New(ctx context.Context, inbound, outbound net.Conn, handler Handler, logger logger.Logger, cert x509.Certificate) *Session {
+func New(inbound, outbound net.Conn, handler Handler, logger logger.Logger, cert x509.Certificate) *Session {
 	return &Session{
 		logger:   logger,
 		inbound:  inbound,
 		outbound: outbound,
 		handler:  handler,
-		cert:     cert,
-		Context:  ctx,
+		Client:   Client{Cert: cert},
 	}
 }
 
 // Stream starts proxying traffic between client and broker.
-func (s *Session) Stream() error {
+func (s *Session) Stream(ctx context.Context) error {
 	// In parallel read from client, send to broker
 	// and read from broker, send to client.
 	errs := make(chan error, 2)
 
-	go s.stream(up, s.inbound, s.outbound, errs)
-	go s.stream(down, s.outbound, s.inbound, errs)
+	go s.stream(ctx, up, s.inbound, s.outbound, errs)
+	go s.stream(ctx, down, s.outbound, s.inbound, errs)
 
 	// Handle whichever error happens first.
 	// The other routine won't be blocked when writing
 	// to the errors channel because it is buffered.
 	err := <-errs
 
-	s.handler.Disconnect(s.Context)
+	ctx = s.Client.ToContext(ctx)
+
+	s.handler.Disconnect(ctx)
 	return err
 }
 
-func (s *Session) stream(dir direction, r, w net.Conn, errs chan error) {
+func (s *Session) stream(ctx context.Context, dir direction, r, w net.Conn, errs chan error) {
 	for {
 		// Read from one connection
 		pkt, err := packets.ReadPacket(r)
@@ -72,8 +72,10 @@ func (s *Session) stream(dir direction, r, w net.Conn, errs chan error) {
 			return
 		}
 
+		ctx = s.Client.ToContext(ctx)
+
 		if dir == up {
-			if err := s.authorize(s.Context, pkt); err != nil {
+			if err := s.authorize(ctx, pkt); err != nil {
 				errs <- wrap(err, dir)
 				return
 			}
@@ -86,7 +88,7 @@ func (s *Session) stream(dir direction, r, w net.Conn, errs chan error) {
 		}
 
 		if dir == up {
-			s.notify(s.Context, pkt)
+			s.notify(ctx, pkt)
 		}
 	}
 }
@@ -94,24 +96,19 @@ func (s *Session) stream(dir direction, r, w net.Conn, errs chan error) {
 func (s *Session) authorize(ctx context.Context, pkt packets.ControlPacket) error {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
-		var c Client
-		c.ID = p.ClientIdentifier
-		c.Username = p.Username
-		c.Password = p.Password
-		c.Cert = s.cert
-		s.Context = c.ToContext(ctx)
-		ctx = s.Context
+		s.Client.ID = p.ClientIdentifier
+		s.Client.Username = p.Username
+		s.Client.Password = p.Password
 
+		ctx = s.Client.ToContext(ctx)
 		if err := s.handler.AuthConnect(ctx); err != nil {
 			return err
 		}
 		// Copy back to the packet in case values are changed by Event handler.
 		// This is specific to CONN, as only that package type has credentials.
-		if err := c.FromContext(s.Context); err != nil {
-			p.ClientIdentifier = c.ID
-			p.Username = c.Username
-			p.Password = c.Password
-		}
+		p.ClientIdentifier = s.Client.ID
+		p.Username = s.Client.ID
+		p.Password = s.Client.Password
 		return nil
 	case *packets.PublishPacket:
 		return s.handler.AuthPublish(ctx, &p.TopicName, &p.Payload)
