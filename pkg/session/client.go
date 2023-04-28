@@ -6,8 +6,13 @@ import (
 	"errors"
 )
 
+// The ctxkey type is unexported to prevent collisions with context keys defined in
+// other packages.
 type ctxkey int
 
+// mproxyClientKey is the context key for the session client.  Its value of one is
+// arbitrary.  If this package defined other context keys, they would have
+// different integer values.
 const mproxyClientKey ctxkey = 1
 
 // ErrClientNotInContext failed to retrieve client from context
