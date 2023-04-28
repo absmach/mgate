@@ -109,7 +109,7 @@ func (s *Session) authorize(ctx context.Context, pkt packets.ControlPacket) erro
 		// Copy back to the packet in case values are changed by Event handler.
 		// This is specific to CONN, as only that package type has credentials.
 		p.ClientIdentifier = s.Client.ID
-		p.Username = s.Client.ID
+		p.Username = s.Client.Username
 		p.Password = s.Client.Password
 		return nil
 	case *packets.PublishPacket:
