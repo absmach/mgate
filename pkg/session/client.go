@@ -32,13 +32,9 @@ func (c Client) ToContext(ctx context.Context) context.Context {
 }
 
 // FromContext retrieve client from context.Context
-func (c *Client) FromContext(ctx context.Context) error {
+func FromContext(ctx context.Context) (Client, error) {
 	if client, ok := ctx.Value(mproxyClientKey).(Client); ok {
-		c.ID = client.ID
-		c.Password = client.Password
-		c.Username = client.Username
-		c.Cert = client.Cert
-		return nil
+		return client, nil
 	}
-	return ErrClientNotInContext
+	return Client{}, ErrClientNotInContext
 }

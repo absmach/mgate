@@ -26,8 +26,8 @@ func New(logger logger.Logger) *Handler {
 // AuthConnect is called on device connection,
 // prior forwarding to the MQTT broker
 func (h *Handler) AuthConnect(ctx context.Context) error {
-	var c session.Client
-	if err := c.FromContext(ctx); err != nil {
+	c, err := session.FromContext(ctx)
+	if err != nil {
 		h.logger.Error("client is missing: " + err.Error())
 		return err
 	}
@@ -38,8 +38,8 @@ func (h *Handler) AuthConnect(ctx context.Context) error {
 // AuthPublish is called on device publish,
 // prior forwarding to the MQTT broker
 func (h *Handler) AuthPublish(ctx context.Context, topic *string, payload *[]byte) error {
-	var c session.Client
-	if err := c.FromContext(ctx); err != nil {
+	c, err := session.FromContext(ctx)
+	if err != nil {
 		h.logger.Error("client is missing: " + err.Error())
 		return err
 	}
@@ -51,8 +51,8 @@ func (h *Handler) AuthPublish(ctx context.Context, topic *string, payload *[]byt
 // AuthSubscribe is called on device publish,
 // prior forwarding to the MQTT broker
 func (h *Handler) AuthSubscribe(ctx context.Context, topics *[]string) error {
-	var c session.Client
-	if err := c.FromContext(ctx); err != nil {
+	c, err := session.FromContext(ctx)
+	if err != nil {
 		h.logger.Error("client is missing: " + err.Error())
 		return err
 	}
@@ -62,8 +62,8 @@ func (h *Handler) AuthSubscribe(ctx context.Context, topics *[]string) error {
 
 // Connect - after client successfully connected
 func (h *Handler) Connect(ctx context.Context) {
-	var c session.Client
-	if err := c.FromContext(ctx); err != nil {
+	c, err := session.FromContext(ctx)
+	if err != nil {
 		h.logger.Error("client is missing: " + err.Error())
 		return
 	}
@@ -72,8 +72,8 @@ func (h *Handler) Connect(ctx context.Context) {
 
 // Publish - after client successfully published
 func (h *Handler) Publish(ctx context.Context, topic *string, payload *[]byte) {
-	var c session.Client
-	if err := c.FromContext(ctx); err != nil {
+	c, err := session.FromContext(ctx)
+	if err != nil {
 		h.logger.Error("client is missing: " + err.Error())
 		return
 	}
@@ -82,8 +82,8 @@ func (h *Handler) Publish(ctx context.Context, topic *string, payload *[]byte) {
 
 // Subscribe - after client successfully subscribed
 func (h *Handler) Subscribe(ctx context.Context, topics *[]string) {
-	var c session.Client
-	if err := c.FromContext(ctx); err != nil {
+	c, err := session.FromContext(ctx)
+	if err != nil {
 		h.logger.Error("client is missing: " + err.Error())
 		return
 	}
@@ -92,8 +92,8 @@ func (h *Handler) Subscribe(ctx context.Context, topics *[]string) {
 
 // Unsubscribe - after client unsubscribed
 func (h *Handler) Unsubscribe(ctx context.Context, topics *[]string) {
-	var c session.Client
-	if err := c.FromContext(ctx); err != nil {
+	c, err := session.FromContext(ctx)
+	if err != nil {
 		h.logger.Error("client is missing: " + err.Error())
 		return
 	}
@@ -102,8 +102,8 @@ func (h *Handler) Unsubscribe(ctx context.Context, topics *[]string) {
 
 // Disconnect on conection lost
 func (h *Handler) Disconnect(ctx context.Context) {
-	var c session.Client
-	if err := c.FromContext(ctx); err != nil {
+	c, err := session.FromContext(ctx)
+	if err != nil {
 		h.logger.Error("client is missing: " + err.Error())
 		return
 	}
