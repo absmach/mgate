@@ -83,11 +83,11 @@ func (p Proxy) pass(ctx context.Context, in *websocket.Conn) {
 	}
 
 	errc := make(chan error, 1)
-	c := newConn(in)
-	s := newConn(srv)
+	inboundConn := newConn(in)
+	outboundConn := newConn(srv)
 
-	defer s.Close()
-	defer c.Close()
+	defer inboundConn.Close()
+	defer outboundConn.Close()
 
 	clientCert, err := mptls.ClientCert(in.UnderlyingConn())
 	if err != nil {
@@ -95,8 +95,8 @@ func (p Proxy) pass(ctx context.Context, in *websocket.Conn) {
 		return
 	}
 
-	sess := session.New(c, s, p.event, p.logger, clientCert)
-	err = sess.Stream(ctx)
+	s := session.New(inboundConn, outboundConn, p.event, p.logger, clientCert)
+	err = s.Stream(ctx)
 	errc <- err
 	if client, err := session.FromContext(ctx); err != nil {
 		p.logger.Warn("Broken connection for client: " + client.ID + " with error: " + err.Error())
