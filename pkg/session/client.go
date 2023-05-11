@@ -6,14 +6,14 @@ import (
 	"errors"
 )
 
-// The ctxkey type is unexported to prevent collisions with context keys defined in
+// The ctxKey type is unexported to prevent collisions with context keys defined in
 // other packages.
-type ctxkey int
+type ctxKey int
 
-// mproxyClientKey is the context key for the session client.  Its value of one is
+// clientKey is the context key for the session client.  Its value of one is
 // arbitrary.  If this package defined other context keys, they would have
 // different integer values.
-const mproxyClientKey ctxkey = 1
+const clientKey ctxKey = 1
 
 // ErrClientNotInContext failed to retrieve client from context
 var ErrClientNotInContext error = errors.New("client not set in context")
@@ -28,12 +28,12 @@ type Client struct {
 
 // ToContext store Client in context.Context values
 func (c Client) ToContext(ctx context.Context) context.Context {
-	return context.WithValue(ctx, mproxyClientKey, c)
+	return context.WithValue(ctx, clientKey, c)
 }
 
 // FromContext retrieve client from context.Context
 func FromContext(ctx context.Context) (Client, error) {
-	if client, ok := ctx.Value(mproxyClientKey).(Client); ok {
+	if client, ok := ctx.Value(clientKey).(Client); ok {
 		return client, nil
 	}
 	return Client{}, ErrClientNotInContext
