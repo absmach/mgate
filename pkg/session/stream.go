@@ -54,8 +54,7 @@ func stream(ctx context.Context, dir direction, r, w net.Conn, h Handler, errs c
 		}
 
 		if dir == up {
-			ctx, err = authorize(ctx, pkt, h)
-			if err != nil {
+			if err = authorize(ctx, pkt, h); err != nil {
 				errs <- wrap(ctx, err, dir)
 				return
 			}
@@ -73,7 +72,7 @@ func stream(ctx context.Context, dir direction, r, w net.Conn, h Handler, errs c
 	}
 }
 
-func authorize(ctx context.Context, pkt packets.ControlPacket, h Handler) (context.Context, error) {
+func authorize(ctx context.Context, pkt packets.ControlPacket, h Handler) error {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
 		s, ok := FromContext(ctx)
@@ -85,20 +84,20 @@ func authorize(ctx context.Context, pkt packets.ControlPacket, h Handler) (conte
 
 		ctx = NewContext(ctx, s)
 		if err := h.AuthConnect(ctx); err != nil {
-			return ctx, err
+			return err
 		}
 		// Copy back to the packet in case values are changed by Event handler.
 		// This is specific to CONN, as only that package type has credentials.
 		p.ClientIdentifier = s.ID
 		p.Username = s.Username
 		p.Password = s.Password
-		return ctx, nil
+		return nil
 	case *packets.PublishPacket:
-		return ctx, h.AuthPublish(ctx, &p.TopicName, &p.Payload)
+		return h.AuthPublish(ctx, &p.TopicName, &p.Payload)
 	case *packets.SubscribePacket:
-		return ctx, h.AuthSubscribe(ctx, &p.Topics)
+		return h.AuthSubscribe(ctx, &p.Topics)
 	default:
-		return ctx, nil
+		return nil
 	}
 }
 
