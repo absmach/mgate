@@ -26,31 +26,14 @@ var (
 
 // Stream starts proxy between client and broker.
 func Stream(ctx context.Context, inbound, outbound net.Conn, handler Handler, cert x509.Certificate) error {
-	s := Session{
-		Cert: cert,
-	}
 	// Authorize CONNECT.
 	pkt, err := packets.ReadPacket(inbound)
 	if err != nil {
 		return err
 	}
-	switch p := pkt.(type) {
-	case *packets.ConnectPacket:
-		s.ID = p.ClientIdentifier
-		s.Username = p.Username
-		s.Password = p.Password
-
-		ctx = NewContext(ctx, &s)
-		if err := handler.AuthConnect(ctx); err != nil {
-			return wrap(ctx, err, down)
-		}
-		// Copy back to the packet in case values are changed by Event handler.
-		// This is specific to CONN, as only that package type has credentials.
-		p.ClientIdentifier = s.ID
-		p.Username = s.Username
-		p.Password = s.Password
-	default:
-		return fmt.Errorf("invalid packet for client with id: %s, expected CONNECT packet", s.ID)
+	ctx, err = authorize(ctx, pkt, handler, cert)
+	if err != nil {
+		return err
 	}
 	// Send CONNECT to broker.
 	if err = pkt.Write(outbound); err != nil {
@@ -60,19 +43,19 @@ func Stream(ctx context.Context, inbound, outbound net.Conn, handler Handler, ce
 	// and read from broker, send to client.
 	errs := make(chan error, 2)
 
-	go stream(ctx, up, inbound, outbound, handler, errs)
-	go stream(ctx, down, outbound, inbound, handler, errs)
+	go stream(ctx, up, inbound, outbound, handler, cert, errs)
+	go stream(ctx, down, outbound, inbound, handler, cert, errs)
 
 	// Handle whichever error happens first.
 	// The other routine won't be blocked when writing
 	// to the errors channel because it is buffered.
 	err = <-errs
 
-	handler.Disconnect(NewContext(ctx, &s))
+	handler.Disconnect(ctx)
 	return err
 }
 
-func stream(ctx context.Context, dir direction, r, w net.Conn, h Handler, errs chan error) {
+func stream(ctx context.Context, dir direction, r, w net.Conn, h Handler, cert x509.Certificate, errs chan error) {
 	for {
 		// Read from one connection.
 		pkt, err := packets.ReadPacket(r)
@@ -81,9 +64,12 @@ func stream(ctx context.Context, dir direction, r, w net.Conn, h Handler, errs c
 			return
 		}
 
-		if err := authorize(ctx, pkt, h); err != nil {
-			errs <- wrap(ctx, err, dir)
-			return
+		if dir == up {
+			ctx, err = authorize(ctx, pkt, h, cert)
+			if err != nil {
+				errs <- wrap(ctx, err, dir)
+				return
+			}
 		}
 
 		// Send to another.
@@ -98,16 +84,32 @@ func stream(ctx context.Context, dir direction, r, w net.Conn, h Handler, errs c
 	}
 }
 
-func authorize(ctx context.Context, pkt packets.ControlPacket, h Handler) error {
+func authorize(ctx context.Context, pkt packets.ControlPacket, h Handler, cert x509.Certificate) (context.Context, error) {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
-		return h.AuthConnect(ctx)
+		s := Session{
+			ID:       p.ClientIdentifier,
+			Username: p.Username,
+			Password: p.Password,
+			Cert:     cert,
+		}
+
+		ctx = NewContext(ctx, &s)
+		if err := h.AuthConnect(ctx); err != nil {
+			return ctx, err
+		}
+		// Copy back to the packet in case values are changed by Event handler.
+		// This is specific to CONN, as only that package type has credentials.
+		p.ClientIdentifier = s.ID
+		p.Username = s.Username
+		p.Password = s.Password
+		return ctx, nil
 	case *packets.PublishPacket:
-		return h.AuthPublish(ctx, &p.TopicName, &p.Payload)
+		return ctx, h.AuthPublish(ctx, &p.TopicName, &p.Payload)
 	case *packets.SubscribePacket:
-		return h.AuthSubscribe(ctx, &p.Topics)
+		return ctx, h.AuthSubscribe(ctx, &p.Topics)
 	default:
-		return nil
+		return ctx, nil
 	}
 }
 
