@@ -26,36 +26,25 @@ var (
 
 // Stream starts proxy between client and broker.
 func Stream(ctx context.Context, inbound, outbound net.Conn, handler Handler, cert x509.Certificate) error {
-	// Authorize CONNECT.
-	pkt, err := packets.ReadPacket(inbound)
-	if err != nil {
-		return err
+	s := Session{
+		Cert: cert,
 	}
-	ctx, err = authorize(ctx, pkt, handler, cert)
-	if err != nil {
-		return err
-	}
-	// Send CONNECT to broker.
-	if err = pkt.Write(outbound); err != nil {
-		return wrap(ctx, err, up)
-	}
-	// In parallel read from client, send to broker
-	// and read from broker, send to client.
+	ctx = NewContext(ctx, &s)
 	errs := make(chan error, 2)
 
-	go stream(ctx, up, inbound, outbound, handler, cert, errs)
-	go stream(ctx, down, outbound, inbound, handler, cert, errs)
+	go stream(ctx, up, inbound, outbound, handler, errs)
+	go stream(ctx, down, outbound, inbound, handler, errs)
 
 	// Handle whichever error happens first.
 	// The other routine won't be blocked when writing
 	// to the errors channel because it is buffered.
-	err = <-errs
+	err := <-errs
 
 	handler.Disconnect(ctx)
 	return err
 }
 
-func stream(ctx context.Context, dir direction, r, w net.Conn, h Handler, cert x509.Certificate, errs chan error) {
+func stream(ctx context.Context, dir direction, r, w net.Conn, h Handler, errs chan error) {
 	for {
 		// Read from one connection.
 		pkt, err := packets.ReadPacket(r)
@@ -65,7 +54,7 @@ func stream(ctx context.Context, dir direction, r, w net.Conn, h Handler, cert x
 		}
 
 		if dir == up {
-			ctx, err = authorize(ctx, pkt, h, cert)
+			ctx, err = authorize(ctx, pkt, h)
 			if err != nil {
 				errs <- wrap(ctx, err, dir)
 				return
@@ -84,17 +73,17 @@ func stream(ctx context.Context, dir direction, r, w net.Conn, h Handler, cert x
 	}
 }
 
-func authorize(ctx context.Context, pkt packets.ControlPacket, h Handler, cert x509.Certificate) (context.Context, error) {
+func authorize(ctx context.Context, pkt packets.ControlPacket, h Handler) (context.Context, error) {
 	switch p := pkt.(type) {
 	case *packets.ConnectPacket:
-		s := Session{
-			ID:       p.ClientIdentifier,
-			Username: p.Username,
-			Password: p.Password,
-			Cert:     cert,
+		s, ok := FromContext(ctx)
+		if ok {
+			s.ID = p.ClientIdentifier
+			s.Username = p.Username
+			s.Password = p.Password
 		}
 
-		ctx = NewContext(ctx, &s)
+		ctx = NewContext(ctx, s)
 		if err := h.AuthConnect(ctx); err != nil {
 			return ctx, err
 		}
