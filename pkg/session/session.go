@@ -5,14 +5,9 @@ import (
 	"crypto/x509"
 )
 
-// The ctxKey type is unexported to prevent collisions with context keys defined in
+// The sessionKey type is unexported to prevent collisions with context keys defined in
 // other packages.
-type ctxKey int
-
-// SessionKey is the context key for the session. Its value (1) is
-// arbitrary. If this package defined other context keys, they would have
-// different integer values.
-const sessionKey ctxKey = 1
+type sessionKey struct{}
 
 // Session stores MQTT session data.
 type Session struct {
@@ -25,14 +20,14 @@ type Session struct {
 // NewContext stores Session in context.Context values.
 // It uses pointer to the session so it can be modified by handler.
 func NewContext(ctx context.Context, s *Session) context.Context {
-	return context.WithValue(ctx, sessionKey, s)
+	return context.WithValue(ctx, sessionKey{}, s)
 }
 
 // FromContext retrieves Session from context.Context.
 // Second value indicates if session is present in the context
 // and if it's safe to use it (it's not nil).
 func FromContext(ctx context.Context) (*Session, bool) {
-	if s, ok := ctx.Value(sessionKey).(*Session); ok && s != nil {
+	if s, ok := ctx.Value(sessionKey{}).(*Session); ok && s != nil {
 		return s, true
 	}
 	return nil, false
