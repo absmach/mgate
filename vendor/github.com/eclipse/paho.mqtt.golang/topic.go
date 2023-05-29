@@ -1,10 +1,14 @@
 /*
- * Copyright (c) 2014 IBM Corp.
+ * Copyright (c) 2021 IBM Corp and others.
  *
  * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * are made available under the terms of the Eclipse Public License v2.0
+ * and Eclipse Distribution License v1.0 which accompany this distribution.
+ *
+ * The Eclipse Public License is available at
+ *    https://www.eclipse.org/legal/epl-2.0/
+ * and the Eclipse Distribution License is available at
+ *   http://www.eclipse.org/org/documents/edl-v10.php.
  *
  * Contributors:
  *    Seth Hoenig
@@ -19,18 +23,18 @@ import (
 	"strings"
 )
 
-//ErrInvalidQos is the error returned when an packet is to be sent
-//with an invalid Qos value
-var ErrInvalidQos = errors.New("Invalid QoS")
+// ErrInvalidQos is the error returned when an packet is to be sent
+// with an invalid Qos value
+var ErrInvalidQos = errors.New("invalid QoS")
 
-//ErrInvalidTopicEmptyString is the error returned when a topic string
-//is passed in that is 0 length
-var ErrInvalidTopicEmptyString = errors.New("Invalid Topic; empty string")
+// ErrInvalidTopicEmptyString is the error returned when a topic string
+// is passed in that is 0 length
+var ErrInvalidTopicEmptyString = errors.New("invalid Topic; empty string")
 
-//ErrInvalidTopicMultilevel is the error returned when a topic string
-//is passed in that has the multi level wildcard in any position but
-//the last
-var ErrInvalidTopicMultilevel = errors.New("Invalid Topic; multi-level wildcard must be last level")
+// ErrInvalidTopicMultilevel is the error returned when a topic string
+// is passed in that has the multi level wildcard in any position but
+// the last
+var ErrInvalidTopicMultilevel = errors.New("invalid Topic; multi-level wildcard must be last level")
 
 // Topic Names and Topic Filters
 // The MQTT v3.1.1 spec clarifies a number of ambiguities with regard
@@ -46,10 +50,14 @@ var ErrInvalidTopicMultilevel = errors.New("Invalid Topic; multi-level wildcard 
 // - A TopicName may not contain a wildcard.
 // - A TopicFilter may only have a # (multi-level) wildcard as the last level.
 // - A TopicFilter may contain any number of + (single-level) wildcards.
-// - A TopicFilter with a # will match the absense of a level
+// - A TopicFilter with a # will match the absence of a level
 //     Example:  a subscription to "foo/#" will match messages published to "foo".
 
 func validateSubscribeMap(subs map[string]byte) ([]string, []byte, error) {
+	if len(subs) == 0 {
+		return nil, nil, errors.New("invalid subscription; subscribe map must not be empty")
+	}
+
 	var topics []string
 	var qoss []byte
 	for topic, qos := range subs {
@@ -75,7 +83,7 @@ func validateTopicAndQos(topic string, qos byte) error {
 		}
 	}
 
-	if qos < 0 || qos > 2 {
+	if qos > 2 {
 		return ErrInvalidQos
 	}
 	return nil
