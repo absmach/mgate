@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2021 IBM Corp and others.
+ *
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v2.0
+ * and Eclipse Distribution License v1.0 which accompany this distribution.
+ *
+ * The Eclipse Public License is available at
+ *    https://www.eclipse.org/legal/epl-2.0/
+ * and the Eclipse Distribution License is available at
+ *   http://www.eclipse.org/org/documents/edl-v10.php.
+ *
+ * Contributors:
+ *    Allan Stockdill-Mander
+ */
+
 package packets
 
 import (
@@ -6,8 +22,8 @@ import (
 	"io"
 )
 
-//ConnackPacket is an internal representation of the fields of the
-//Connack MQTT packet
+// ConnackPacket is an internal representation of the fields of the
+// Connack MQTT packet
 type ConnackPacket struct {
 	FixedHeader
 	SessionPresent bool
@@ -15,10 +31,7 @@ type ConnackPacket struct {
 }
 
 func (ca *ConnackPacket) String() string {
-	str := fmt.Sprintf("%s", ca.FixedHeader)
-	str += " "
-	str += fmt.Sprintf("sessionpresent: %t returncode: %d", ca.SessionPresent, ca.ReturnCode)
-	return str
+	return fmt.Sprintf("%s sessionpresent: %t returncode: %d", ca.FixedHeader, ca.SessionPresent, ca.ReturnCode)
 }
 
 func (ca *ConnackPacket) Write(w io.Writer) error {
@@ -35,8 +48,8 @@ func (ca *ConnackPacket) Write(w io.Writer) error {
 	return err
 }
 
-//Unpack decodes the details of a ControlPacket after the fixed
-//header has been read
+// Unpack decodes the details of a ControlPacket after the fixed
+// header has been read
 func (ca *ConnackPacket) Unpack(b io.Reader) error {
 	flags, err := decodeByte(b)
 	if err != nil {
@@ -48,8 +61,8 @@ func (ca *ConnackPacket) Unpack(b io.Reader) error {
 	return err
 }
 
-//Details returns a Details struct containing the Qos and
-//MessageID of this ControlPacket
+// Details returns a Details struct containing the Qos and
+// MessageID of this ControlPacket
 func (ca *ConnackPacket) Details() Details {
 	return Details{Qos: 0, MessageID: 0}
 }
