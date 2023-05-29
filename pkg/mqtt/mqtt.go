@@ -59,10 +59,8 @@ func (p Proxy) handle(ctx context.Context, inbound net.Conn) {
 		return
 	}
 
-	s := session.New(inbound, outbound, p.handler, p.logger, clientCert)
-
-	if err = s.Stream(ctx); err != io.EOF {
-		p.logger.Warn("Broken connection for client: " + s.Client.ID + " with error: " + err.Error())
+	if err = session.Stream(ctx, inbound, outbound, p.handler, clientCert); err != io.EOF {
+		p.logger.Warn(err.Error())
 	}
 }
 
