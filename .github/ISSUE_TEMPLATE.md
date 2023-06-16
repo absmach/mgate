@@ -32,7 +32,7 @@ the following locations:
 **ENHANCEMENT**
 1. Describe the enhancement you are requesting. Enhancements include:
    - tests
-   - code refactor
+   - code refactoring
    - documentation
    - research
    - tooling
