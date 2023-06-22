@@ -1,4 +1,8 @@
 # mProxy
+
+![Go Report Card][grc]
+[![License][LIC-BADGE]][LIC]
+
 mProxy is an MQTT proxy.
 
 It is deployed in front of MQTT broker and can be used for authorization, packet inspection and modification,
@@ -103,3 +107,7 @@ The service is configured using the environment variables presented in the follo
 
 ## License
 [Apache-2.0](LICENSE)
+
+[grc]: https://goreportcard.com/badge/github.com/mainflux/mproxy
+[LIC]: LICENCE
+[LIC-BADGE]: https://img.shields.io/badge/License-Apache_2.0-blue.svg
