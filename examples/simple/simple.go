@@ -78,7 +78,7 @@ func (h *Handler) Connect(ctx context.Context) error {
 func (h *Handler) Publish(ctx context.Context, topic *string, payload *[]byte) error {
 	s, ok := session.FromContext(ctx)
 	if !ok {
-		h.logger.Error("Session is missing!")
+		h.logger.Error(errSessionMissing.Error())
 		return errSessionMissing
 	}
 	h.logger.Info(fmt.Sprintf("Publish() - username: %s, sessionID: %s, topic: %s, payload: %s", s.Username, s.ID, *topic, string(*payload)))
