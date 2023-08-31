@@ -16,7 +16,13 @@ func TestNewContext(t *testing.T) {
 		args args
 		want context.Context
 	}{
-		// TODO: Add test cases.
+		{
+			name: "successfully created new context",
+			args: args{context.Background(),
+				&Session{},
+			},
+			want: context.WithValue(context.Background(), sessionKey{}, &Session{}),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -37,7 +43,14 @@ func TestFromContext(t *testing.T) {
 		want  *Session
 		want1 bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "successfully get session from context",
+			args: args{
+				context.WithValue(context.TODO(), sessionKey{}, &Session{}),
+			},
+			want:  &Session{},
+			want1: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
