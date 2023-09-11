@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/eclipse/paho.mqtt.golang/packets"
+	// "github.com/mainflux/mainflux/logger"
 )
 
 func TestStream(t *testing.T) {
@@ -17,12 +18,40 @@ func TestStream(t *testing.T) {
 		handler  Handler
 		cert     x509.Certificate
 	}
+
+	// type Handler struct {
+	// 	logger logger.Logger
+	// }
+
+	// h := &Handler{
+	// 	logger: nil,
+	// }
+
+	outboundConn, _ := net.Dial("tcp", "https://localhost:80")
+	defer outboundConn.Close()
+
+	listener, _ := net.Listen("tcp", "https://localhost:8080")
+	defer listener.Close()
+
+	inboundConn, _ := listener.Accept()
+	defer inboundConn.Close()
+
 	tests := []struct {
 		name    string
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "successfully stream",
+			args: args{
+				ctx:      context.Background(),
+				inbound:  inboundConn,
+				outbound: outboundConn,
+				handler:  nil,
+				cert:     x509.Certificate{},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
