@@ -2,8 +2,10 @@ package session
 
 import (
 	"context"
-	"reflect"
+	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewContext(t *testing.T) {
@@ -18,18 +20,25 @@ func TestNewContext(t *testing.T) {
 	}{
 		{
 			name: "successfully created new context",
-			args: args{context.Background(),
-				&Session{},
+			args: args{
+				ctx: context.Background(),
+				s: &Session{
+					ID:       "myID",
+					Username: "myName",
+					Password: nil,
+				},
 			},
-			want: context.WithValue(context.Background(), sessionKey{}, &Session{}),
+			want: context.WithValue(context.Background(), sessionKey{}, &Session{
+				ID:       "myID",
+				Username: "myName",
+				Password: nil,
+			}),
 		},
 	}
+
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := NewContext(tt.args.ctx, tt.args.s); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewContext() = %v, want %v", got, tt.want)
-			}
-		})
+		got := NewContext(tt.args.ctx, tt.args.s)
+		assert.Equal(t, got, tt.want, fmt.Sprintf("%s: expected %s got %s\n", tt.name, tt.want, got))
 	}
 }
 
@@ -46,21 +55,25 @@ func TestFromContext(t *testing.T) {
 		{
 			name: "successfully get session from context",
 			args: args{
-				context.WithValue(context.TODO(), sessionKey{}, &Session{}),
+				context.WithValue(context.TODO(), sessionKey{}, &Session{
+					ID:       "myID",
+					Username: "myName",
+					Password: nil,
+				}),
 			},
-			want:  &Session{},
+			want: &Session{
+				ID:       "myID",
+				Username: "myName",
+				Password: nil,
+			},
 			want1: true,
 		},
 	}
+
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := FromContext(tt.args.ctx)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("FromContext() got = %v, want %v", got, tt.want)
-			}
-			if got1 != tt.want1 {
-				t.Errorf("FromContext() got1 = %v, want %v", got1, tt.want1)
-			}
-		})
+		got, gotBool := FromContext(tt.args.ctx)
+		assert.Equal(t, got.ID, tt.want.ID, fmt.Sprintf("%s: expected %s got %s\n", tt.name, tt.want.ID, got.ID))
+		assert.Equal(t, got.Password, tt.want.Password, fmt.Sprintf("%s: expected %s got %s\n", tt.name, tt.want.Password, got.Password))
+		assert.True(t, gotBool == tt.want1, fmt.Sprintf("%s: expected %v got %v\n", tt.name, tt.want1, gotBool))
 	}
 }
