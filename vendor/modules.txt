@@ -29,6 +29,7 @@ github.com/pmezard/go-difflib/difflib
 # github.com/stretchr/testify v1.6.1
 ## explicit; go 1.13
 github.com/stretchr/testify/assert
+github.com/stretchr/testify/require
 # golang.org/x/net v0.10.0
 ## explicit; go 1.17
 golang.org/x/net/internal/socks
