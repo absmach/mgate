@@ -4,16 +4,21 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
+	"os"
+
 	"net"
-	"reflect"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
-	ca  = "../../test/certs/ca.crt"
-	crt = "../../test/certs/server.crt"
-	key = "../../test/certs/server.key"
+	ca  = "../../certs/ca.crt"
+	crt = "../../certs/ca.crt"
+	key = "../../certs/ca.key"
 )
 
 func TestLoadTLSCfg(t *testing.T) {
@@ -25,39 +30,37 @@ func TestLoadTLSCfg(t *testing.T) {
 
 	cert, _ := tls.LoadX509KeyPair(crt, key)
 	roots := x509.NewCertPool()
+	caCertPEM, _ := os.ReadFile(ca)
+	roots.AppendCertsFromPEM(caCertPEM)
 
 	tests := []struct {
 		name    string
 		args    args
 		want    *tls.Config
-		wantErr bool
+		wantErr error
 	}{
 		{
 			name: "Successfully loaded config",
 			args: args{
-				ca:  "../../test/certs/ca.crt",
-				crt: "../../test/certs/server.crt",
-				key: "../../test/certs/server.key",
+				ca:  ca,
+				crt: crt,
+				key: key,
 			},
 			want: &tls.Config{
 				Certificates: []tls.Certificate{cert},
 				ClientAuth:   tls.RequireAndVerifyClientCert,
 				ClientCAs:    roots,
 			},
-			wantErr: true,
+			wantErr: nil,
 		},
 	}
+
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := LoadTLSCfg(tt.args.ca, tt.args.crt, tt.args.key)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("LoadTLSCfg() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("LoadTLSCfg() = %v, want %v", got, tt.want)
-			}
-		})
+		got, err := LoadTLSCfg(tt.args.ca, tt.args.crt, tt.args.key)
+		require.Nil(t, err, fmt.Sprintf("%s: expected %v got %v\n", tt.name, tt.wantErr, err))
+		assert.Equal(t, got.Certificates, tt.want.Certificates, fmt.Sprintf("%s: expected %v got %v\n", tt.name, tt.want.Certificates, got.Certificates))
+		assert.Equal(t, got.ClientAuth, tt.want.ClientAuth, fmt.Sprintf("%s: expected %s got %s\n", tt.name, tt.want.ClientAuth, got.ClientAuth))
+		assert.Equal(t, got.ClientCAs.Equal(tt.want.ClientCAs), true, fmt.Sprintf("%s: expected %v got %v\n", tt.name, tt.want.ClientCAs, got.ClientCAs))
 	}
 }
 
@@ -71,33 +74,27 @@ func TestClientCert(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
-	conn, _ := d.DialContext(ctx, "tcp", "localhost:8080")
+	tlsConn, _ := d.DialContext(ctx, "tcp", "golang.org:80")
 
 	tests := []struct {
 		name    string
 		args    args
 		want    x509.Certificate
-		wantErr bool
+		wantErr error
 	}{
 		{
-			name: "Successfully loaded client certificate",
+			name: "Successfully loaded tcp client certificate",
 			args: args{
-				conn: conn,
+				conn: tlsConn,
 			},
 			want:    x509.Certificate{},
-			wantErr: false,
+			wantErr: nil,
 		},
 	}
+
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := ClientCert(tt.args.conn)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ClientCerteeee() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ClientCert() = %v, want %v", got, tt.want)
-			}
-		})
+		got, err := ClientCert(tt.args.conn)
+		require.Nil(t, err, fmt.Sprintf("%s: expected %v got %v\n", tt.name, tt.wantErr, err))
+		assert.Equal(t, got, tt.want, fmt.Sprintf("%s: expected %v got %v\n", tt.name, tt.want, got))
 	}
 }

@@ -3,10 +3,11 @@ package session
 import (
 	"context"
 	"crypto/x509"
+	"fmt"
 	"net"
 	"testing"
 
-	"github.com/eclipse/paho.mqtt.golang/packets"
+	"github.com/stretchr/testify/require"
 	// "github.com/mainflux/mainflux/logger"
 )
 
@@ -27,14 +28,10 @@ func TestStream(t *testing.T) {
 	// 	logger: nil,
 	// }
 
-	outboundConn, _ := net.Dial("tcp", "https://localhost:80")
-	defer outboundConn.Close()
+	outboundConn, _ := net.Dial("tcp", "golang.org:80")
 
-	listener, _ := net.Listen("tcp", "https://localhost:8080")
-	defer listener.Close()
-
-	inboundConn, _ := listener.Accept()
-	defer inboundConn.Close()
+	// listener, _ := net.Listen("tcp", ":8080")
+	inboundConn, _ := net.Dial("tcp", "localhost:8080")
 
 	tests := []struct {
 		name    string
@@ -60,89 +57,8 @@ func TestStream(t *testing.T) {
 			}
 		})
 	}
-}
-
-func Test_stream(t *testing.T) {
-	type args struct {
-		ctx  context.Context
-		dir  direction
-		r    net.Conn
-		w    net.Conn
-		h    Handler
-		errs chan error
-	}
-	tests := []struct {
-		name string
-		args args
-	}{
-		// TODO: Add test cases.
-	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			stream(tt.args.ctx, tt.args.dir, tt.args.r, tt.args.w, tt.args.h, tt.args.errs)
-		})
-	}
-}
-
-func Test_authorize(t *testing.T) {
-	type args struct {
-		ctx context.Context
-		pkt packets.ControlPacket
-		h   Handler
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := authorize(tt.args.ctx, tt.args.pkt, tt.args.h); (err != nil) != tt.wantErr {
-				t.Errorf("authorize() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func Test_notify(t *testing.T) {
-	type args struct {
-		ctx context.Context
-		pkt packets.ControlPacket
-		h   Handler
-	}
-	tests := []struct {
-		name string
-		args args
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			notify(tt.args.ctx, tt.args.pkt, tt.args.h)
-		})
-	}
-}
-
-func Test_wrap(t *testing.T) {
-	type args struct {
-		ctx context.Context
-		err error
-		dir direction
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := wrap(tt.args.ctx, tt.args.err, tt.args.dir); (err != nil) != tt.wantErr {
-				t.Errorf("wrap() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
+		err := Stream(tt.args.ctx, tt.args.inbound, tt.args.outbound, tt.args.handler, tt.args.cert)
+		require.Nil(t, err, fmt.Sprintf("%s: expected %v got %v\n", tt.name, tt.wantErr, err))
 	}
 }
