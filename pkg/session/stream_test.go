@@ -51,13 +51,6 @@ func TestStream(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := Stream(tt.args.ctx, tt.args.inbound, tt.args.outbound, tt.args.handler, tt.args.cert); (err != nil) != tt.wantErr {
-				t.Errorf("Stream() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-	for _, tt := range tests {
 		err := Stream(tt.args.ctx, tt.args.inbound, tt.args.outbound, tt.args.handler, tt.args.cert)
 		require.Nil(t, err, fmt.Sprintf("%s: expected %v got %v\n", tt.name, tt.wantErr, err))
 	}

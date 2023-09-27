@@ -1,56 +1,95 @@
 package websocket
 
 import (
-	"net"
-	"reflect"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func Test_newConn(t *testing.T) {
-	type args struct {
-		ws *websocket.Conn
+var (
+	msgChan = make(chan []byte)
+	count   uint64
+)
+
+func handler(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		return
 	}
-	tests := []struct {
-		name string
-		args args
-		want net.Conn
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := newConn(tt.args.ws); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("newConn() = %v, want %v", got, tt.want)
-			}
-		})
+	defer conn.Close()
+	for {
+		_, message, err := conn.ReadMessage()
+		if err != nil {
+			break
+		}
+		atomic.AddUint64(&count, 1)
+		msgChan <- message
 	}
 }
 
-func Test_wsWrapper_SetDeadline(t *testing.T) {
+func Test_SetDeadline(t *testing.T) {
 	type args struct {
 		t time.Time
 	}
+
+	s := httptest.NewServer(http.HandlerFunc(handler))
+	defer s.Close()
+
+	// Convert http://127.0.0.1 to ws://127.0.0.1
+	u := strings.Replace(s.URL, "http", "ws", 1)
+
+	// Connect to the server
+	wsConn, _, err := websocket.DefaultDialer.Dial(u, nil)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	defer wsConn.Close()
+
 	tests := []struct {
 		name    string
 		c       *wsWrapper
 		args    args
-		wantErr bool
+		wantErr error
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Successfully set deadline",
+			c: &wsWrapper{
+				Conn: wsConn,
+			},
+			args: args{
+				t: time.Now(),
+			},
+			wantErr: nil,
+		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.c.SetDeadline(tt.args.t); (err != nil) != tt.wantErr {
-				t.Errorf("wsWrapper.SetDeadline() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
+		err := tt.c.SetDeadline(tt.args.t)
+		assert.Equal(t, err, tt.wantErr, fmt.Sprintf("%s: expected %v got %v\n", tt.name, tt.wantErr, err))
 	}
 }
 
-func Test_wsWrapper_Write(t *testing.T) {
+func Test_Write(t *testing.T) {
+	s := httptest.NewServer(http.HandlerFunc(handler))
+	defer s.Close()
+
+	// Convert http://127.0.0.1 to ws://127.0.0.1
+	u := strings.Replace(s.URL, "http", "ws", 1)
+
+	// Connect to the server
+	wsConn, _, err := websocket.DefaultDialer.Dial(u, nil)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	defer wsConn.Close()
+
 	type args struct {
 		p []byte
 	}
@@ -59,28 +98,46 @@ func Test_wsWrapper_Write(t *testing.T) {
 		c       *wsWrapper
 		args    args
 		want    int
-		wantErr bool
+		wantErr error
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Successfully wrote data",
+			c: &wsWrapper{
+				Conn: wsConn,
+			},
+			args: args{
+				p: []byte("test"),
+			},
+			want:    4,
+			wantErr: nil,
+		},
 	}
+
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.c.Write(tt.args.p)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("wsWrapper.Write() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("wsWrapper.Write() = %v, want %v", got, tt.want)
-			}
-		})
+		got, err := tt.c.Write(tt.args.p)
+		assert.Equal(t, got, tt.want, fmt.Sprintf("%s: expected %v got %v\n", tt.name, tt.want, got))
+		assert.Equal(t, err, tt.wantErr, fmt.Sprintf("%s: expected %v got %v\n", tt.name, tt.wantErr, err))
 	}
 }
 
-func Test_wsWrapper_Read(t *testing.T) {
+func Test_Read(t *testing.T) {
 	type args struct {
 		p []byte
 	}
+
+	s := httptest.NewServer(http.HandlerFunc(handler))
+	defer s.Close()
+
+	// Convert http://127.0.0.1 to ws://127.0.0.1
+	u := "wss://echo.websocket.org"
+
+	// Connect to the server
+	wsConn, _, err := websocket.DefaultDialer.Dial(u, nil)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	defer wsConn.Close()
+
 	tests := []struct {
 		name    string
 		c       *wsWrapper
@@ -88,35 +145,55 @@ func Test_wsWrapper_Read(t *testing.T) {
 		want    int
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Successfully read data",
+			c: &wsWrapper{
+				Conn: wsConn,
+			},
+			args: args{
+				p: []byte("test"),
+			},
+			want:    4,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.c.Read(tt.args.p)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("wsWrapper.Read() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("wsWrapper.Read() = %v, want %v", got, tt.want)
-			}
-		})
+		got, err := tt.c.Read(tt.args.p)
+		assert.Equal(t, got, tt.want, fmt.Sprintf("%s: expected %v got %v\n", tt.name, tt.want, got))
+		require.Nil(t, err, fmt.Sprintf("%s: expected %v got %v\n", tt.name, tt.wantErr, err))
 	}
 }
 
-func Test_wsWrapper_Close(t *testing.T) {
+func Test_Close(t *testing.T) {
+	s := httptest.NewServer(http.HandlerFunc(handler))
+	defer s.Close()
+
+	// Convert http://127.0.0.1 to ws://127.0.0.1
+	u := strings.Replace(s.URL, "http", "ws", 1)
+
+	// Connect to the server
+	wsConn, _, err := websocket.DefaultDialer.Dial(u, nil)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	defer wsConn.Close()
+
 	tests := []struct {
 		name    string
 		c       *wsWrapper
-		wantErr bool
+		wantErr error
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Successfully closed connection",
+			c: &wsWrapper{
+				Conn: wsConn,
+			},
+			wantErr: nil,
+		},
 	}
+
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.c.Close(); (err != nil) != tt.wantErr {
-				t.Errorf("wsWrapper.Close() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
+		err := tt.c.Close()
+		require.Nil(t, err, fmt.Sprintf("%s: expected %v got %v\n", tt.name, tt.wantErr, err))
 	}
 }
