@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
 	"os"
 	"os/signal"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 
 	mflog "github.com/mainflux/mainflux/logger"
 	"github.com/mainflux/mproxy/examples/simple"
+	hproxy "github.com/mainflux/mproxy/pkg/http"
 	"github.com/mainflux/mproxy/pkg/mqtt"
 	"github.com/mainflux/mproxy/pkg/session"
 	mptls "github.com/mainflux/mproxy/pkg/tls"
@@ -64,6 +66,20 @@ const (
 	envClientTLS = "MPROXY_CLIENT_TLS"
 	defLogLevel  = "debug"
 	envLogLevel  = "MPROXY_LOG_LEVEL"
+
+	envHTTPHost       = "MPROXY_HTTP_HOST"
+	envHTTPPort       = "MPROXY_HTTP_PORT"
+	envHTTPargetHost  = "MPROXY_HTTP_TARGET_HOST"
+	envHTTPTargetPort = "MPROXY_HTTP_TARGET_PORT"
+	envHTTPServerCert = "MPROXY_HTTP_SERVER_CERT"
+	envHTTPServerKey  = "MPROXY_HTTP_SERVER_KEY"
+
+	defHTTPHost       = "0.0.0.0"
+	defHTTPPort       = "8888"
+	defHTTPTargetHost = "0.0.0.0"
+	defHTTPTargetPort = "8081"
+	defHTTPServerCert = ""
+	defHTTPServerKey  = ""
 )
 
 type config struct {
@@ -87,7 +103,18 @@ type config struct {
 	serverCert     string
 	serverKey      string
 
+	httpConfig HTTPConfig
+
 	logLevel string
+}
+
+type HTTPConfig struct {
+	host       string
+	port       string
+	targetHost string
+	targetPort string
+	serverCert string
+	serverKey  string
 }
 
 func main() {
@@ -116,6 +143,7 @@ func main() {
 		// MQTTS
 		logger.Info(fmt.Sprintf("Starting MQTTS proxy on port %s ", cfg.mqttsPort))
 		go proxyMQTTS(ctx, cfg, tlsCfg, logger, h, errs)
+		go proxyHTTPs(ctx, cfg.httpConfig, logger, h, errs)
 	} else {
 		// WS
 		logger.Info(fmt.Sprintf("Starting WebSocket proxy on port %s ", cfg.wsPort))
@@ -124,6 +152,10 @@ func main() {
 		// MQTT
 		logger.Info(fmt.Sprintf("Starting MQTT proxy on port %s ", cfg.mqttPort))
 		go proxyMQTT(ctx, cfg, logger, h, errs)
+
+		//HTTP
+		logger.Info(fmt.Sprintf("Starting HTTP proxy on port %s ", cfg.httpConfig.port))
+		go proxyHTTP(ctx, cfg.httpConfig, logger, h, errs)
 	}
 
 	go func() {
@@ -173,6 +205,16 @@ func loadConfig() config {
 		serverCert:     env(envServerCert, defServerCert),
 		serverKey:      env(envServerKey, defServerKey),
 
+		// HTTP
+		httpConfig: HTTPConfig{
+			port:       env(envHTTPPort, defHTTPPort),
+			host:       env(envHTTPHost, defHTTPHost),
+			targetHost: env(envHTTPargetHost, defHTTPTargetHost),
+			targetPort: env(envHTTPTargetPort, defHTTPTargetPort),
+			serverCert: env(envHTTPServerCert, defHTTPServerCert),
+			serverKey:  env(envHTTPServerKey, defHTTPServerKey),
+		},
+
 		// Log
 		logLevel: env(envLogLevel, defLogLevel),
 	}
@@ -207,4 +249,28 @@ func proxyMQTTS(ctx context.Context, cfg config, tlsCfg *tls.Config, logger mflo
 	mp := mqtt.New(address, target, handler, logger)
 
 	errs <- mp.ListenTLS(ctx, tlsCfg)
+}
+
+func proxyHTTP(ctx context.Context, cfg HTTPConfig, logger mflog.Logger, handler session.Handler, errs chan error) {
+	address := fmt.Sprintf("%s:%s", cfg.host, cfg.port)
+	target := fmt.Sprintf("%s:%s", cfg.targetHost, cfg.targetPort)
+	hp, err := hproxy.NewProxy(address, target, handler, logger)
+	if err != nil {
+		errs <- err
+		return
+	}
+	http.HandleFunc("/", hp.Handler)
+	errs <- hp.Listen()
+}
+
+func proxyHTTPs(ctx context.Context, cfg HTTPConfig, logger mflog.Logger, handler session.Handler, errs chan error) {
+	address := fmt.Sprintf("%s:%s", cfg.host, cfg.port)
+	target := fmt.Sprintf("%s:%s", cfg.targetHost, cfg.targetPort)
+	hp, err := hproxy.NewProxy(address, target, handler, logger)
+	if err != nil {
+		errs <- err
+		return
+	}
+	http.HandleFunc("/", hp.Handler)
+	errs <- hp.ListenTLS(cfg.serverCert, cfg.serverKey)
 }
