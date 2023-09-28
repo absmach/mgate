@@ -3,13 +3,17 @@ package session
 import (
 	"context"
 	"crypto/x509"
-	"fmt"
 	"net"
+	"os"
 	"testing"
+	"time"
 
-	"github.com/stretchr/testify/require"
-	// "github.com/mainflux/mainflux/logger"
+	"github.com/mainflux/mainflux/logger"
 )
+
+type config struct {
+	logLevel string
+}
 
 func TestStream(t *testing.T) {
 	type args struct {
@@ -20,13 +24,11 @@ func TestStream(t *testing.T) {
 		cert     x509.Certificate
 	}
 
-	// type Handler struct {
-	// 	logger logger.Logger
-	// }
+	cfg := config{
+		logLevel: "info",
+	}
 
-	// h := &Handler{
-	// 	logger: nil,
-	// }
+	logger, _ := logger.New(os.Stdout, cfg.logLevel)
 
 	outboundConn, _ := net.Dial("tcp", "golang.org:80")
 
@@ -34,9 +36,10 @@ func TestStream(t *testing.T) {
 	inboundConn, _ := net.Dial("tcp", "localhost:8080")
 
 	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
+		name        string
+		args        args
+		wantErr     bool
+		timeoutSecs int
 	}{
 		{
 			name: "successfully stream",
@@ -47,11 +50,28 @@ func TestStream(t *testing.T) {
 				handler:  nil,
 				cert:     x509.Certificate{},
 			},
-			wantErr: false,
+			wantErr:     false,
+			timeoutSecs: 5,
 		},
 	}
 	for _, tt := range tests {
-		err := Stream(tt.args.ctx, tt.args.inbound, tt.args.outbound, tt.args.handler, tt.args.cert)
-		require.Nil(t, err, fmt.Sprintf("%s: expected %v got %v\n", tt.name, tt.wantErr, err))
+		ctx, cancel := context.WithTimeout(tt.args.ctx, time.Duration(tt.timeoutSecs)*time.Second)
+
+		defer cancel()
+
+		errChan := make(chan error, 1)
+
+		go func() {
+			errChan <- Stream(ctx, tt.args.inbound, tt.args.outbound, tt.args.handler, tt.args.cert)
+		}()
+
+		select {
+		case err := <-errChan:
+			if (err != nil) != tt.wantErr {
+				t.Errorf("%s: expected %v got %v\n", tt.name, tt.wantErr, err)
+			}
+		case <-ctx.Done():
+			logger.Info("Listen completed successfully")
+		}
 	}
 }

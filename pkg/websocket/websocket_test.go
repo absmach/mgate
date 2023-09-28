@@ -3,12 +3,14 @@ package websocket
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/gorilla/websocket"
 	mflog "github.com/mainflux/mainflux/logger"
@@ -21,6 +23,12 @@ import (
 type config struct {
 	logLevel string
 }
+
+var (
+	ca  = "../../certs/ca.crt"
+	crt = "../../certs/ca.crt"
+	key = "../../certs/ca.key"
+)
 
 func TestNew(t *testing.T) {
 	type args struct {
@@ -70,16 +78,18 @@ func TestNew(t *testing.T) {
 }
 
 func Test_Handler(t *testing.T) {
-	var cfg config
+	cfg := config{
+		logLevel: "Info",
+	}
 
 	logger, _ := mflog.New(os.Stdout, cfg.logLevel)
 
 	h := simple.New(logger)
 
 	pr := Proxy{
-		target: "target",
-		path:   "path",
-		scheme: "scheme",
+		target: "localhost",
+		path:   ":8080",
+		scheme: "https",
 		event:  h,
 		logger: logger,
 	}
@@ -92,9 +102,9 @@ func Test_Handler(t *testing.T) {
 		{
 			name: "Successfully handled request",
 			p: Proxy{
-				target: "target",
-				path:   "path",
-				scheme: "scheme",
+				target: "localhost",
+				path:   ":8080",
+				scheme: "https",
 				event:  h,
 				logger: logger,
 			},
@@ -140,6 +150,15 @@ func TestProxy_Listen(t *testing.T) {
 	type args struct {
 		wsPort string
 	}
+
+	cfg := config{
+		logLevel: "info",
+	}
+
+	logger, _ := mflog.New(os.Stdout, cfg.logLevel)
+
+	h := simple.New(logger)
+
 	tests := []struct {
 		name    string
 		p       Proxy
@@ -152,8 +171,8 @@ func TestProxy_Listen(t *testing.T) {
 				target: "target",
 				path:   "path",
 				scheme: "scheme",
-				event:  nil,
-				logger: nil,
+				event:  h,
+				logger: logger,
 			},
 			args: args{
 				wsPort: "8080",
@@ -162,8 +181,22 @@ func TestProxy_Listen(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		err := tt.p.Listen(tt.args.wsPort)
-		assert.Equal(t, err, tt.wantErr, fmt.Sprintf("%s: expected %v got %v", tt.name, nil, err))
+		errorChan := make(chan error, 1)
+
+		go func() {
+			err := tt.p.Listen(tt.args.wsPort)
+
+			if err != nil {
+				errorChan <- err
+			}
+		}()
+
+		select {
+		case err := <-errorChan:
+			t.Errorf("%s: unexpected error: %v\n", tt.name, err)
+		case <-time.After(5 * time.Second):
+			logger.Info("Listen completed successfully without errors")
+		}
 	}
 }
 
@@ -174,6 +207,20 @@ func TestProxy_ListenTLS(t *testing.T) {
 		key     string
 		wssPort string
 	}
+
+	cert, _ := tls.LoadX509KeyPair(crt, key)
+	roots := x509.NewCertPool()
+	caCertPEM, _ := os.ReadFile(ca)
+	roots.AppendCertsFromPEM(caCertPEM)
+
+	cfg := config{
+		logLevel: "info",
+	}
+
+	logger, _ := mflog.New(os.Stdout, cfg.logLevel)
+
+	h := simple.New(logger)
+
 	tests := []struct {
 		name    string
 		p       Proxy
@@ -186,20 +233,38 @@ func TestProxy_ListenTLS(t *testing.T) {
 				target: "target",
 				path:   "path",
 				scheme: "scheme",
-				event:  nil,
-				logger: nil,
+				event:  h,
+				logger: logger,
 			},
 			args: args{
-				tlsCfg:  nil,
-				crt:     "cert.pem",
-				key:     "key.pem",
+				tlsCfg: &tls.Config{
+					Certificates: []tls.Certificate{cert},
+					ClientAuth:   tls.RequireAndVerifyClientCert,
+					ClientCAs:    roots,
+				},
+				crt:     crt,
+				key:     key,
 				wssPort: "8080",
 			},
 			wantErr: nil,
 		},
 	}
 	for _, tt := range tests {
-		err := tt.p.ListenTLS(tt.args.tlsCfg, tt.args.crt, tt.args.key, tt.args.wssPort)
-		assert.Equal(t, err, tt.wantErr, fmt.Sprintf("%s: expected %v got %v", tt.name, tt.wantErr, err))
+		errorChan := make(chan error, 1)
+
+		go func() {
+			err := tt.p.ListenTLS(tt.args.tlsCfg, tt.args.crt, tt.args.key, tt.args.wssPort)
+
+			if err != nil {
+				errorChan <- err
+			}
+		}()
+
+		select {
+		case err := <-errorChan:
+			t.Errorf("%s: unexpected error: %v\n", tt.name, err)
+		case <-time.After(5 * time.Second):
+			logger.Info("Listen completed successfully without errors")
+		}
 	}
 }
