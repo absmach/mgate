@@ -37,7 +37,7 @@ type Proxy struct {
 }
 
 func NewProxy(address, targetUrl string, handler session.Handler, logger logger.Logger) (Proxy, error) {
-	target, err := url.Parse("https://localhost:8081")
+	target, err := url.Parse(targetUrl)
 	if err != nil {
 		return Proxy{}, err
 	}
