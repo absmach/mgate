@@ -48,7 +48,7 @@ func (p Proxy) handle(ctx context.Context, inbound net.Conn) {
 	defer p.close(inbound)
 	outbound, err := p.dialer.Dial("tcp", p.target)
 	if err != nil {
-		p.logger.Error("Cannot connect to remote broker " + p.target + " due to: " + err.Error())
+		p.logger.Error("Cc0eannot connect to remote broker " + p.target + " due to: " + err.Error())
 		return
 	}
 	defer p.close(outbound)
