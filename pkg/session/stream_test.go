@@ -3,6 +3,7 @@ package session
 import (
 	"context"
 	"crypto/x509"
+	"encoding/pem"
 	"net"
 	"os"
 	"testing"
@@ -14,6 +15,10 @@ import (
 type config struct {
 	logLevel string
 }
+
+var (
+	ca = "../../certs/ca.crt"
+)
 
 func TestStream(t *testing.T) {
 	type args struct {
@@ -30,10 +35,26 @@ func TestStream(t *testing.T) {
 
 	logger, _ := logger.New(os.Stdout, cfg.logLevel)
 
-	outboundConn, _ := net.Dial("tcp", "golang.org:80")
+	handle := newHandler(logger)
 
-	// listener, _ := net.Listen("tcp", ":8080")
-	inboundConn, _ := net.Dial("tcp", "localhost:8080")
+	outboundConn, _ := net.Dial("tcp", testURL)
+
+	inboundConn, _ := net.Dial("tcp", testURL)
+
+	roots := x509.NewCertPool()
+	caCertPEM, _ := os.ReadFile(ca)
+	block, _ := pem.Decode(caCertPEM)
+	
+	if block == nil {
+		t.Fatalf("Failed to load certificate")
+	}
+
+	// Parse the certificate from the PEM block
+	certificate, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	roots.AppendCertsFromPEM(caCertPEM)
 
 	tests := []struct {
 		name        string
@@ -47,8 +68,8 @@ func TestStream(t *testing.T) {
 				ctx:      context.Background(),
 				inbound:  inboundConn,
 				outbound: outboundConn,
-				handler:  nil,
-				cert:     x509.Certificate{},
+				handler:  handle,
+				cert:     *certificate,
 			},
 			wantErr:     false,
 			timeoutSecs: 5,

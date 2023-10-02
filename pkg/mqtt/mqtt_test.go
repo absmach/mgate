@@ -109,7 +109,7 @@ func TestProxy_Listen(t *testing.T) {
 			timeoutSecs: 5,
 		},
 		{
-			name: "incorrect listen",
+			name: "incorrect listen - missing port",
 			args: args{
 				address: "unlocalhost",
 				target:  "localhost",
@@ -182,8 +182,8 @@ func Test_ListenTLS(t *testing.T) {
 		{
 			name: "successfully listen",
 			args: args{
-				address: "localhost:8080",
-				target:  "localhost:8080",
+				address: "localhost:8000",
+				target:  "localhost:8000",
 				handler: h,
 				logger:  logger,
 				context: ctx,
