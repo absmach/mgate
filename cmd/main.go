@@ -221,15 +221,15 @@ func main() {
 			Certificates: tlsCfg.Certificates,
 			ClientCAs:    tlsCfg.ClientCAs,
 		}
-		go proxyCoapDTLS(cfg, dtlsCfg, logger, errs)
+		go proxyCoapDTLS(cfg, dtlsCfg, logger, h, errs)
 	case cfg.clientTLS:
 		tlsCfg, err := mptls.LoadTLSCfg(cfg.caCerts, cfg.serverCert, cfg.serverKey)
 		if err != nil {
 			errs <- err
 		}
-		go proxyCoapTLS(cfg, tlsCfg, logger, errs)
+		go proxyCoapTLS(cfg, tlsCfg, logger, h, errs)
 	default:
-		go proxyCoap(cfg, logger, errs)
+		go proxyCoap(cfg, logger, h, errs)
 	}
 
 	go func() {
@@ -392,7 +392,7 @@ func proxyWSS(ctx context.Context, cfg config, logger mflog.Logger, handler sess
 func proxyCoapTLS(cfg config, tlsCfg *tls.Config, logger mflog.Logger, errs chan error) {
 	address := fmt.Sprintf("%s:%s", cfg.coapHost, cfg.coapPort)
 	target := fmt.Sprintf("%s:%s", cfg.coapTargetHost, cfg.coapTargetPort)
-	cp, err := coap.NewProxy(address, target, logger)
+	cp, err := coap.NewProxy(address, target, logger, handler)
 	if err != nil {
 		errs <- err
 	}
@@ -400,10 +400,10 @@ func proxyCoapTLS(cfg config, tlsCfg *tls.Config, logger mflog.Logger, errs chan
 	errs <- cp.ListenTLS(tlsCfg)
 }
 
-func proxyCoapDTLS(cfg config, dtlsCfg *dtls.Config, logger mflog.Logger, errs chan error) {
+func proxyCoapDTLS(cfg config, dtlsCfg *dtls.Config, logger mflog.Logger, handler session.Handler, errs chan error) {
 	address := fmt.Sprintf("%s:%s", cfg.coapHost, cfg.coapPort)
 	target := fmt.Sprintf("%s:%s", cfg.coapTargetHost, cfg.coapTargetPort)
-	cp, err := coap.NewProxy(address, target, logger)
+	cp, err := coap.NewProxy(address, target, logger, handler)
 	if err != nil {
 		errs <- err
 	}
@@ -411,10 +411,10 @@ func proxyCoapDTLS(cfg config, dtlsCfg *dtls.Config, logger mflog.Logger, errs c
 	errs <- cp.ListenDLS(dtlsCfg)
 }
 
-func proxyCoap(cfg config, logger mflog.Logger, errs chan error) {
+func proxyCoap(cfg config, logger mflog.Logger, handler session.Handler, errs chan error) {
 	address := fmt.Sprintf("%s:%s", cfg.coapHost, cfg.coapPort)
 	target := fmt.Sprintf("%s:%s", cfg.coapTargetHost, cfg.coapTargetPort)
-	cp, err := coap.NewProxy(address, target, logger)
+	cp, err := coap.NewProxy(address, target, logger, handler)
 	if err != nil {
 		errs <- err
 	}
