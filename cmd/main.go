@@ -257,7 +257,7 @@ func loadConfig() config {
 	}
 	dtls, err := strconv.ParseBool(env(envCoAPDTLS, defCoAPDTLS))
 	if err != nil {
-		log.Fatalf("Invalid value passed for %s\n", envClientTLS)
+		log.Fatalf("Invalid value passed for %s\n", envCoAPDTLS)
 	}
 
 	return config{

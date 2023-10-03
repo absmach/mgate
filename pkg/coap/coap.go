@@ -85,6 +85,7 @@ func (p *Proxy) handler(w mux.ResponseWriter, r *mux.Message) {
 	path, err := r.Options().Path()
 	if err != nil {
 		p.logger.Error(err.Error())
+		return
 	}
 	p.logger.Debug(fmt.Sprintf("Got message path=%v: %+v from %v", path, r, w.Conn().RemoteAddr()))
 	switch r.Code() {
@@ -107,6 +108,8 @@ func NewProxy(address, target string, logger logger.Logger) (*Proxy, error) {
 
 	return &Proxy{
 		targetConn: targetConn,
+		logger:     logger,
+		address:    address,
 	}, nil
 }
 
