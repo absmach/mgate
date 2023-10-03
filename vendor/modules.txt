@@ -1,3 +1,6 @@
+# github.com/dsnet/golib/memfile v1.0.0
+## explicit; go 1.12
+github.com/dsnet/golib/memfile
 # github.com/eclipse/paho.mqtt.golang v1.4.2
 ## explicit; go 1.14
 github.com/eclipse/paho.mqtt.golang
@@ -17,14 +20,111 @@ github.com/google/uuid
 # github.com/gorilla/websocket v1.5.0
 ## explicit; go 1.12
 github.com/gorilla/websocket
+# github.com/hashicorp/errwrap v1.1.0
+## explicit
+github.com/hashicorp/errwrap
+# github.com/hashicorp/go-multierror v1.1.1
+## explicit; go 1.13
+github.com/hashicorp/go-multierror
 # github.com/mainflux/mainflux v0.12.0
 ## explicit; go 1.14
 github.com/mainflux/mainflux/logger
-# golang.org/x/net v0.17.0
+# github.com/pion/dtls/v2 v2.2.8-0.20230905141523-2b584af66577
+## explicit; go 1.13
+github.com/pion/dtls/v2
+github.com/pion/dtls/v2/internal/ciphersuite
+github.com/pion/dtls/v2/internal/ciphersuite/types
+github.com/pion/dtls/v2/internal/closer
+github.com/pion/dtls/v2/internal/net
+github.com/pion/dtls/v2/internal/net/udp
+github.com/pion/dtls/v2/internal/util
+github.com/pion/dtls/v2/pkg/crypto/ccm
+github.com/pion/dtls/v2/pkg/crypto/ciphersuite
+github.com/pion/dtls/v2/pkg/crypto/clientcertificate
+github.com/pion/dtls/v2/pkg/crypto/elliptic
+github.com/pion/dtls/v2/pkg/crypto/hash
+github.com/pion/dtls/v2/pkg/crypto/prf
+github.com/pion/dtls/v2/pkg/crypto/signature
+github.com/pion/dtls/v2/pkg/crypto/signaturehash
+github.com/pion/dtls/v2/pkg/net
+github.com/pion/dtls/v2/pkg/protocol
+github.com/pion/dtls/v2/pkg/protocol/alert
+github.com/pion/dtls/v2/pkg/protocol/extension
+github.com/pion/dtls/v2/pkg/protocol/handshake
+github.com/pion/dtls/v2/pkg/protocol/recordlayer
+# github.com/pion/logging v0.2.2
+## explicit; go 1.12
+github.com/pion/logging
+# github.com/pion/transport/v3 v3.0.1
+## explicit; go 1.12
+github.com/pion/transport/v3/deadline
+github.com/pion/transport/v3/netctx
+github.com/pion/transport/v3/packetio
+github.com/pion/transport/v3/replaydetector
+github.com/pion/transport/v3/udp
+# github.com/plgd-dev/go-coap/v3 v3.1.5
+## explicit; go 1.18
+github.com/plgd-dev/go-coap/v3
+github.com/plgd-dev/go-coap/v3/dtls
+github.com/plgd-dev/go-coap/v3/dtls/server
+github.com/plgd-dev/go-coap/v3/message
+github.com/plgd-dev/go-coap/v3/message/codes
+github.com/plgd-dev/go-coap/v3/message/noresponse
+github.com/plgd-dev/go-coap/v3/message/pool
+github.com/plgd-dev/go-coap/v3/mux
+github.com/plgd-dev/go-coap/v3/net
+github.com/plgd-dev/go-coap/v3/net/blockwise
+github.com/plgd-dev/go-coap/v3/net/client
+github.com/plgd-dev/go-coap/v3/net/client/limitParallelRequests
+github.com/plgd-dev/go-coap/v3/net/monitor/inactivity
+github.com/plgd-dev/go-coap/v3/net/observation
+github.com/plgd-dev/go-coap/v3/net/responsewriter
+github.com/plgd-dev/go-coap/v3/options
+github.com/plgd-dev/go-coap/v3/options/config
+github.com/plgd-dev/go-coap/v3/pkg/cache
+github.com/plgd-dev/go-coap/v3/pkg/connections
+github.com/plgd-dev/go-coap/v3/pkg/errors
+github.com/plgd-dev/go-coap/v3/pkg/fn
+github.com/plgd-dev/go-coap/v3/pkg/rand
+github.com/plgd-dev/go-coap/v3/pkg/runner/periodic
+github.com/plgd-dev/go-coap/v3/pkg/sync
+github.com/plgd-dev/go-coap/v3/tcp
+github.com/plgd-dev/go-coap/v3/tcp/client
+github.com/plgd-dev/go-coap/v3/tcp/coder
+github.com/plgd-dev/go-coap/v3/tcp/server
+github.com/plgd-dev/go-coap/v3/udp
+github.com/plgd-dev/go-coap/v3/udp/client
+github.com/plgd-dev/go-coap/v3/udp/coder
+github.com/plgd-dev/go-coap/v3/udp/server
+# go.uber.org/atomic v1.11.0
+## explicit; go 1.18
+go.uber.org/atomic
+# golang.org/x/crypto v0.13.0
 ## explicit; go 1.17
+golang.org/x/crypto/cryptobyte
+golang.org/x/crypto/cryptobyte/asn1
+golang.org/x/crypto/curve25519
+golang.org/x/crypto/curve25519/internal/field
+# golang.org/x/exp v0.0.0-20230905200255-921286631fa9
+## explicit; go 1.20
+golang.org/x/exp/maps
+# golang.org/x/net v0.15.0
+## explicit; go 1.17
+golang.org/x/net/bpf
+golang.org/x/net/internal/iana
+golang.org/x/net/internal/socket
 golang.org/x/net/internal/socks
+golang.org/x/net/ipv4
+golang.org/x/net/ipv6
 golang.org/x/net/proxy
 # golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 ## explicit
 golang.org/x/sync/errgroup
+# golang.org/x/sync v0.3.0
+## explicit; go 1.17
 golang.org/x/sync/semaphore
+# golang.org/x/sys v0.12.0
+## explicit; go 1.17
+golang.org/x/sys/internal/unsafeheader
+golang.org/x/sys/unix
+golang.org/x/sys/windows

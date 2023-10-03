@@ -14,12 +14,14 @@ import (
 
 	mflog "github.com/mainflux/mainflux/logger"
 	"github.com/mainflux/mproxy/examples/simple"
+	"github.com/mainflux/mproxy/pkg/coap"
 	hproxy "github.com/mainflux/mproxy/pkg/http"
 	"github.com/mainflux/mproxy/pkg/mqtt"
 	"github.com/mainflux/mproxy/pkg/mqtt/websocket"
 	"github.com/mainflux/mproxy/pkg/session"
 	mptls "github.com/mainflux/mproxy/pkg/tls"
-	"github.com/mainflux/mproxy/pkg/websockets"
+	"github.com/mainflux/mproxy/pkg/websocket"
+	"github.com/pion/dtls/v2"
 )
 
 const (
@@ -104,6 +106,13 @@ type config struct {
 	mqttConfig   MQTTConfig
 	wsMQTTConfig WSMQTTConfig
 	wsConfig     WSConfig
+
+	coapHost       string
+	coapPort       string
+	coapTLS        bool
+	coapDTLS       bool
+	coapTargetHost string
+	coapTargetPort string
 
 	logLevel string
 }
@@ -190,6 +199,27 @@ func main() {
 		// HTTP
 		logger.Info(fmt.Sprintf("Starting HTTP proxy on port %s ", cfg.httpConfig.port))
 		go proxyHTTP(ctx, cfg.httpConfig, logger, h, errs)
+	}
+
+	switch {
+	case cfg.coapDTLS:
+		tlsCfg, err := mptls.LoadTLSCfg(cfg.caCerts, cfg.serverCert, cfg.serverKey)
+		if err != nil {
+			errs <- err
+		}
+		dtlsCfg := &dtls.Config{
+			Certificates: tlsCfg.Certificates,
+			ClientCAs:    tlsCfg.ClientCAs,
+		}
+		go proxyCoapDTLS(cfg, dtlsCfg, logger, errs)
+	case cfg.coapTLS:
+		tlsCfg, err := mptls.LoadTLSCfg(cfg.caCerts, cfg.serverCert, cfg.serverKey)
+		if err != nil {
+			errs <- err
+		}
+		go proxyCoapTLS(cfg, tlsCfg, logger, errs)
+	default:
+		go proxyCoap(cfg, logger, errs)
 	}
 
 	go func() {
@@ -339,4 +369,35 @@ func proxyWSS(ctx context.Context, cfg config, logger mflog.Logger, handler sess
 		errs <- err
 	}
 	errs <- wp.ListenTLS(cfg.serverCert, cfg.serverKey)
+func proxyCoapTLS(cfg config, tlsCfg *tls.Config, logger mflog.Logger, errs chan error) {
+	address := fmt.Sprintf("%s:%s", cfg.coapHost, cfg.coapPort)
+	target := fmt.Sprintf("%s:%s", cfg.coapTargetHost, cfg.coapTargetPort)
+	cp, err := coap.NewProxy(address, target, logger)
+	if err != nil {
+		errs <- err
+	}
+
+	errs <- cp.ListenTLS(tlsCfg)
+}
+
+func proxyCoapDTLS(cfg config, dtlsCfg *dtls.Config, logger mflog.Logger, errs chan error) {
+	address := fmt.Sprintf("%s:%s", cfg.coapHost, cfg.coapPort)
+	target := fmt.Sprintf("%s:%s", cfg.coapTargetHost, cfg.coapTargetPort)
+	cp, err := coap.NewProxy(address, target, logger)
+	if err != nil {
+		errs <- err
+	}
+
+	errs <- cp.ListenDLS(dtlsCfg)
+}
+
+func proxyCoap(cfg config, logger mflog.Logger, errs chan error) {
+	address := fmt.Sprintf("%s:%s", cfg.coapHost, cfg.coapPort)
+	target := fmt.Sprintf("%s:%s", cfg.coapTargetHost, cfg.coapTargetPort)
+	cp, err := coap.NewProxy(address, target, logger)
+	if err != nil {
+		errs <- err
+	}
+
+	errs <- cp.Listen()
 }
