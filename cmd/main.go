@@ -94,6 +94,17 @@ const (
 	defHTTPTargetPort = "8081"
 	defHTTPServerCert = ""
 	defHTTPServerKey  = ""
+	envCoAPHost       = "MPROXY_COAP_HOST"
+	envCoAPPort       = "MPROXY_COAP_PORT"
+	envCoAPTargetHost = "MPROXY_COAP_TARGET_HOST"
+	envCoAPTargetPort = "MPROXY_COAP_TARGET_PORT"
+	envCoAPDTLS       = "MPROXY_COAP_DTLS"
+
+	defCoAPHost       = ""
+	defCoAPPort       = "5683"
+	defCoAPTargetPort = "5684"
+	defCoAPTargetHost = ""
+	defCoAPDTLS       = "false"
 )
 
 type config struct {
@@ -109,7 +120,6 @@ type config struct {
 
 	coapHost       string
 	coapPort       string
-	coapTLS        bool
 	coapDTLS       bool
 	coapTargetHost string
 	coapTargetPort string
@@ -212,7 +222,7 @@ func main() {
 			ClientCAs:    tlsCfg.ClientCAs,
 		}
 		go proxyCoapDTLS(cfg, dtlsCfg, logger, errs)
-	case cfg.coapTLS:
+	case cfg.clientTLS:
 		tlsCfg, err := mptls.LoadTLSCfg(cfg.caCerts, cfg.serverCert, cfg.serverKey)
 		if err != nil {
 			errs <- err
@@ -242,6 +252,10 @@ func env(key, fallback string) string {
 
 func loadConfig() config {
 	tls, err := strconv.ParseBool(env(envClientTLS, defClientTLS))
+	if err != nil {
+		log.Fatalf("Invalid value passed for %s\n", envClientTLS)
+	}
+	dtls, err := strconv.ParseBool(env(envCoAPDTLS, defCoAPDTLS))
 	if err != nil {
 		log.Fatalf("Invalid value passed for %s\n", envClientTLS)
 	}
@@ -290,6 +304,12 @@ func loadConfig() config {
 			targetHost: env(envWSTargetHost, defWSTargetHost),
 			targetPort: env(envWSTargetPort, defWSTargetPort),
 		},
+		// CoAP
+		coapHost:       env(envCoAPHost, defCoAPHost),
+		coapPort:       env(envCoAPPort, defCoAPPort),
+		coapDTLS:       dtls,
+		coapTargetHost: env(envCoAPTargetHost, defCoAPTargetHost),
+		coapTargetPort: env(envCoAPTargetPort, defCoAPTargetPort),
 
 		// Log
 		logLevel: env(envLogLevel, defLogLevel),
