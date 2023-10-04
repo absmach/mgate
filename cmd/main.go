@@ -16,9 +16,9 @@ import (
 	"github.com/mainflux/mproxy/examples/simple"
 	hproxy "github.com/mainflux/mproxy/pkg/http"
 	"github.com/mainflux/mproxy/pkg/mqtt"
+	"github.com/mainflux/mproxy/pkg/mqtt/websocket"
 	"github.com/mainflux/mproxy/pkg/session"
 	mptls "github.com/mainflux/mproxy/pkg/tls"
-	"github.com/mainflux/mproxy/pkg/websocket"
 )
 
 const (
