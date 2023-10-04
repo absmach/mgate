@@ -65,14 +65,20 @@ func (p *Proxy) stream(ctx context.Context, topic string, src, dest *websocket.C
 	}
 }
 
-func NewProxy(address, target string) (*Proxy, error) {
+func NewProxy(address, target string, logger logger.Logger, handler session.Handler) (*Proxy, error) {
 	targetConn, _, err := websocket.DefaultDialer.Dial(target, nil)
 	if err != nil {
 		return nil, err
 	}
-	return &Proxy{targetConn: targetConn}, nil
+	return &Proxy{targetConn: targetConn, address: address, logger: logger, event: handler}, nil
 }
 
+// Listen - listen withrout tls.
 func (p *Proxy) Listen() error {
 	return http.ListenAndServe(p.address, http.HandlerFunc(p.handler))
+}
+
+// ListenTLS - version of Listen with TLS encryption.
+func (p Proxy) ListenTLS(crt, key string) error {
+	return http.ListenAndServeTLS(p.address, crt, key, http.HandlerFunc(p.handler))
 }
