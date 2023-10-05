@@ -32,12 +32,12 @@ func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 		p.logger.Error(err.Error())
 		return
 	}
-	if err := p.event.AuthPublish(ctx, &r.URL.Path, &payload); err != nil {
+	if err := p.event.AuthPublish(ctx, &r.RequestURI, &payload); err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		p.logger.Error(err.Error())
 		return
 	}
-	if err := p.event.Publish(ctx, &r.URL.Path, &payload); err != nil {
+	if err := p.event.Publish(ctx, &r.RequestURI, &payload); err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		p.logger.Error(err.Error())
 		return
