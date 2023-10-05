@@ -13,12 +13,20 @@ import (
 // Handler default handler reads authorization header and
 // performs authorization before proxying the request.
 func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Authorization") == "" {
+	username, password, ok := r.BasicAuth()
+	switch {
+	case r.Header.Get("Authorization") != "":
+		password = r.Header.Get("Authorization")
+	case ok:
+		break
+	default:
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
+
 	s := &session.Session{
-		Password: []byte(r.Header.Get("Authorization")),
+		Password: []byte(password),
+		Username: username,
 	}
 	ctx := session.NewContext(r.Context(), s)
 	if err := p.event.AuthConnect(ctx); err != nil {
