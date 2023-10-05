@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bytes"
 	"io"
 	"net/http"
 	"net/http/httputil"
@@ -35,6 +36,8 @@ func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	payload, err := io.ReadAll(r.Body)
+	r.Body.Close() //  must close
+	r.Body = io.NopCloser(bytes.NewBuffer(payload))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		p.logger.Error(err.Error())
