@@ -2,6 +2,8 @@ package http
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httputil"
@@ -10,6 +12,11 @@ import (
 	"github.com/mainflux/mproxy/pkg/logger"
 	"github.com/mainflux/mproxy/pkg/session"
 )
+
+const contentType = "application/json"
+
+// ErrMissingAuthentication returned when no basic or Authorization header is set.
+var ErrMissingAuthentication = errors.New("missing authorization")
 
 // Handler default handler reads authorization header and
 // performs authorization before proxying the request.
@@ -21,7 +28,7 @@ func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 	case r.Header.Get("Authorization") != "":
 		password = r.Header.Get("Authorization")
 	default:
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		encodeError(w, http.StatusBadGateway, ErrMissingAuthentication)
 		return
 	}
 
@@ -31,7 +38,7 @@ func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := session.NewContext(r.Context(), s)
 	if err := p.event.AuthConnect(ctx); err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		encodeError(w, http.StatusUnauthorized, err)
 		p.logger.Error(err.Error())
 		return
 	}
@@ -39,21 +46,29 @@ func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 	r.Body.Close() //  must close
 	r.Body = io.NopCloser(bytes.NewBuffer(payload))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		encodeError(w, http.StatusBadRequest, err)
 		p.logger.Error(err.Error())
 		return
 	}
 	if err := p.event.AuthPublish(ctx, &r.RequestURI, &payload); err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		encodeError(w, http.StatusUnauthorized, err)
 		p.logger.Error(err.Error())
 		return
 	}
 	if err := p.event.Publish(ctx, &r.RequestURI, &payload); err != nil {
-		http.Error(w, err.Error(), http.StatusBadGateway)
+		encodeError(w, http.StatusBadGateway, err)
 		p.logger.Error(err.Error())
 		return
 	}
 	p.target.ServeHTTP(w, r)
+}
+
+func encodeError(w http.ResponseWriter, statusCode int, err error) {
+	w.WriteHeader(statusCode)
+	w.Header().Set("Content-Type", contentType)
+	if err := json.NewEncoder(w).Encode(err); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 }
 
 // Proxy represents HTTP Proxy.
