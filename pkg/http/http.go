@@ -16,10 +16,10 @@ import (
 func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 	username, password, ok := r.BasicAuth()
 	switch {
-	case r.Header.Get("Authorization") != "":
-		password = r.Header.Get("Authorization")
 	case ok:
 		break
+	case r.Header.Get("Authorization") != "":
+		password = r.Header.Get("Authorization")
 	default:
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
