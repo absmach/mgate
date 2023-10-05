@@ -1,6 +1,7 @@
 package http
 
 import (
+	"io"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -22,6 +23,22 @@ func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 	ctx := session.NewContext(r.Context(), s)
 	if err := p.event.AuthConnect(ctx); err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
+		p.logger.Error(err.Error())
+		return
+	}
+	payload, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		p.logger.Error(err.Error())
+		return
+	}
+	if err := p.event.AuthPublish(ctx, &r.URL.Path, &payload); err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		p.logger.Error(err.Error())
+		return
+	}
+	if err := p.event.Publish(ctx, &r.URL.Path, &payload); err != nil {
+		http.Error(w, err.Error(), http.StatusBadGateway)
 		p.logger.Error(err.Error())
 		return
 	}
