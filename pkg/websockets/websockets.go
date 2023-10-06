@@ -24,7 +24,7 @@ type Proxy struct {
 	logger     logger.Logger
 }
 
-func (p *Proxy) handler(w http.ResponseWriter, r *http.Request) {
+func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 	var token string
 	switch {
 	case r.URL.Query()["authorization"][0] != "":
@@ -107,10 +107,10 @@ func NewProxy(address, target string, logger logger.Logger, handler session.Hand
 
 // Listen - listen withrout tls.
 func (p *Proxy) Listen() error {
-	return http.ListenAndServe(p.address, http.HandlerFunc(p.handler))
+	return http.ListenAndServe(p.address, http.HandlerFunc(p.Handler))
 }
 
 // ListenTLS - version of Listen with TLS encryption.
 func (p Proxy) ListenTLS(crt, key string) error {
-	return http.ListenAndServeTLS(p.address, crt, key, http.HandlerFunc(p.handler))
+	return http.ListenAndServeTLS(p.address, crt, key, http.HandlerFunc(p.Handler))
 }
