@@ -2,6 +2,7 @@ package websockets
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -9,7 +10,10 @@ import (
 	"github.com/mainflux/mproxy/pkg/session"
 )
 
-var upgrader = websocket.Upgrader{}
+var (
+	upgrader               = websocket.Upgrader{}
+	ErrAuthorizationNotSet = errors.New("authorization not set")
+)
 
 type Proxy struct {
 	targetConn *websocket.Conn
@@ -19,23 +23,31 @@ type Proxy struct {
 }
 
 func (p *Proxy) handler(w http.ResponseWriter, r *http.Request) {
-	token := r.URL.Query()["authorization"][0]
+	var token string
+	switch {
+	case r.URL.Query()["authorization"][0] != "":
+		token = r.URL.Query()["authorization"][0]
+	case r.Header.Get("Authorization") != "":
+		token = r.Header.Get("Authorization")
+	default:
+		http.Error(w, ErrAuthorizationNotSet.Error(), http.StatusUnauthorized)
+		return
+	}
+
 	topic := r.URL.Path
 	s := session.Session{Password: []byte(token)}
 	ctx := session.NewContext(context.Background(), &s)
 	if err := p.event.AuthConnect(ctx); err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		if _, err := w.Write([]byte(err.Error())); err != nil {
-			p.logger.Error(err.Error())
-			return
-		}
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
 	}
 	if err := p.event.AuthSubscribe(ctx, &[]string{topic}); err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		if _, err := w.Write([]byte(err.Error())); err != nil {
-			p.logger.Error(err.Error())
-			return
-		}
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	if err := p.event.Subscribe(ctx, &[]string{topic}); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 	inConn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -56,6 +68,9 @@ func (p *Proxy) stream(ctx context.Context, topic string, src, dest *websocket.C
 		}
 		if upstream {
 			if err := p.event.AuthPublish(ctx, &topic, &payload); err != nil {
+				return err
+			}
+			if err := p.event.Publish(ctx, &topic, &payload); err != nil {
 				return err
 			}
 		}
