@@ -3,11 +3,13 @@ package websockets
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/websocket"
 	"github.com/mainflux/mproxy/pkg/logger"
 	"github.com/mainflux/mproxy/pkg/session"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -56,8 +58,23 @@ func (p *Proxy) handler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer inConn.Close()
 
-	go p.stream(ctx, topic, inConn, p.targetConn, true)
-	go p.stream(ctx, topic, p.targetConn, inConn, false)
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		return p.stream(ctx, topic, inConn, p.targetConn, true)
+	})
+	g.Go(func() error {
+		return p.stream(ctx, topic, p.targetConn, inConn, false)
+	})
+
+	if err := g.Wait(); err != nil {
+		if err := p.event.Unsubscribe(ctx, &[]string{topic}); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		p.logger.Error(fmt.Sprintf("ws Proxy terminated: %s", err))
+		return
+	}
 }
 
 func (p *Proxy) stream(ctx context.Context, topic string, src, dest *websocket.Conn, upstream bool) error {
