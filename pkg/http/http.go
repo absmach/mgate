@@ -1,7 +1,6 @@
 package http
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -48,8 +47,11 @@ func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 		p.logger.Error(err.Error())
 		return
 	}
-	r.Body.Close() //  must close
-	r.Body = io.NopCloser(bytes.NewBuffer(payload))
+	if err := r.Body.Close(); err != nil {
+		encodeError(w, http.StatusInternalServerError, err)
+		p.logger.Error(err.Error())
+		return
+	}
 	if err := p.session.AuthPublish(ctx, &r.RequestURI, &payload); err != nil {
 		encodeError(w, http.StatusUnauthorized, err)
 		p.logger.Error(err.Error())
