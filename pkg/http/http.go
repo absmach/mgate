@@ -49,6 +49,11 @@ func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	r.Body = io.NopCloser(bytes.NewBuffer(payload))
+	defer func() {
+		if err := r.Body.Close(); err != nil {
+			p.logger.Error(err.Error())
+		}
+	}()
 	if err := p.session.AuthConnect(ctx); err != nil {
 		encodeError(w, http.StatusUnauthorized, err)
 		p.logger.Error(err.Error())

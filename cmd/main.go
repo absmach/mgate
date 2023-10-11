@@ -76,7 +76,7 @@ const (
 
 	defHTTPHost       = "0.0.0.0"
 	defHTTPPort       = "8888"
-	defHTTPTargetHost = "0.0.0.0"
+	defHTTPTargetHost = "http://localhost"
 	defHTTPTargetPort = "8081"
 	defHTTPServerCert = ""
 	defHTTPServerKey  = ""
