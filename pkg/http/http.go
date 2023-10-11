@@ -37,11 +37,6 @@ func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 		Username: username,
 	}
 	ctx := session.NewContext(r.Context(), s)
-	if err := p.session.AuthConnect(ctx); err != nil {
-		encodeError(w, http.StatusUnauthorized, err)
-		p.logger.Error(err.Error())
-		return
-	}
 	payload, err := io.ReadAll(r.Body)
 	if err != nil {
 		encodeError(w, http.StatusBadRequest, err)
@@ -56,11 +51,6 @@ func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 	r.Body = io.NopCloser(bytes.NewBuffer(payload))
 	if err := p.session.AuthPublish(ctx, &r.RequestURI, &payload); err != nil {
 		encodeError(w, http.StatusUnauthorized, err)
-		p.logger.Error(err.Error())
-		return
-	}
-	if err := p.session.Publish(ctx, &r.RequestURI, &payload); err != nil {
-		encodeError(w, http.StatusBadGateway, err)
 		p.logger.Error(err.Error())
 		return
 	}
