@@ -37,25 +37,25 @@ func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 		Username: username,
 	}
 	ctx := session.NewContext(r.Context(), s)
-	if err := p.event.AuthConnect(ctx); err != nil {
+	if err := p.session.AuthConnect(ctx); err != nil {
 		encodeError(w, http.StatusUnauthorized, err)
 		p.logger.Error(err.Error())
 		return
 	}
 	payload, err := io.ReadAll(r.Body)
-	r.Body.Close() //  must close
-	r.Body = io.NopCloser(bytes.NewBuffer(payload))
 	if err != nil {
 		encodeError(w, http.StatusBadRequest, err)
 		p.logger.Error(err.Error())
 		return
 	}
-	if err := p.event.AuthPublish(ctx, &r.RequestURI, &payload); err != nil {
+	r.Body.Close() //  must close
+	r.Body = io.NopCloser(bytes.NewBuffer(payload))
+	if err := p.session.AuthPublish(ctx, &r.RequestURI, &payload); err != nil {
 		encodeError(w, http.StatusUnauthorized, err)
 		p.logger.Error(err.Error())
 		return
 	}
-	if err := p.event.Publish(ctx, &r.RequestURI, &payload); err != nil {
+	if err := p.session.Publish(ctx, &r.RequestURI, &payload); err != nil {
 		encodeError(w, http.StatusBadGateway, err)
 		p.logger.Error(err.Error())
 		return
@@ -75,7 +75,7 @@ func encodeError(w http.ResponseWriter, statusCode int, err error) {
 type Proxy struct {
 	address string
 	target  *httputil.ReverseProxy
-	event   session.Handler
+	session session.Handler
 	logger  logger.Logger
 }
 
@@ -88,7 +88,7 @@ func NewProxy(address, targetUrl string, handler session.Handler, logger logger.
 	return Proxy{
 		address: address,
 		target:  httputil.NewSingleHostReverseProxy(target),
-		event:   handler,
+		session: handler,
 		logger:  logger,
 	}, nil
 }
