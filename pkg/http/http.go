@@ -48,12 +48,10 @@ func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 		p.logger.Error(err.Error())
 		return
 	}
+
+	// r.Body is reset to ensure it can be safely copied by httputil.ReverseProxy.
+	// no close method is required since NopClose Close() always returns nill.
 	r.Body = io.NopCloser(bytes.NewBuffer(payload))
-	defer func() {
-		if err := r.Body.Close(); err != nil {
-			p.logger.Error(err.Error())
-		}
-	}()
 	if err := p.session.AuthConnect(ctx); err != nil {
 		encodeError(w, http.StatusUnauthorized, err)
 		p.logger.Error(err.Error())
