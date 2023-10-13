@@ -113,18 +113,20 @@ type config struct {
 	serverCert string
 	serverKey  string
 
-	httpConfig   HTTPConfig
-	mqttConfig   MQTTConfig
-	wsMQTTConfig WSMQTTConfig
-	wsConfig     WSConfig
-
-	coapHost       string
-	coapPort       string
-	coapDTLS       bool
-	coapTargetHost string
-	coapTargetPort string
+	httpConfig HTTPConfig
+	mqttConfig MQTTConfig
+	wsConfig   WSConfig
+	coapConfig CoapConfig
 
 	logLevel string
+}
+
+type CoapConfig struct {
+	host       string
+	port       string
+	DTLS       bool
+	targetHost string
+	targetPort string
 }
 
 type WSConfig struct {
@@ -212,7 +214,7 @@ func main() {
 	}
 
 	switch {
-	case cfg.coapDTLS:
+	case cfg.coapConfig.DTLS:
 		tlsCfg, err := mptls.LoadTLSCfg(cfg.caCerts, cfg.serverCert, cfg.serverKey)
 		if err != nil {
 			errs <- err
@@ -221,15 +223,15 @@ func main() {
 			Certificates: tlsCfg.Certificates,
 			ClientCAs:    tlsCfg.ClientCAs,
 		}
-		go proxyCoapDTLS(cfg, dtlsCfg, logger, h, errs)
+		go proxyCoapDTLS(cfg.coapConfig, dtlsCfg, logger, h, errs)
 	case cfg.clientTLS:
 		tlsCfg, err := mptls.LoadTLSCfg(cfg.caCerts, cfg.serverCert, cfg.serverKey)
 		if err != nil {
 			errs <- err
 		}
-		go proxyCoapTLS(cfg, tlsCfg, logger, h, errs)
+		go proxyCoapTLS(cfg.coapConfig, tlsCfg, logger, h, errs)
 	default:
-		go proxyCoap(cfg, logger, h, errs)
+		go proxyCoap(cfg.coapConfig, logger, h, errs)
 	}
 
 	go func() {
@@ -305,11 +307,13 @@ func loadConfig() config {
 			targetPort: env(envWSTargetPort, defWSTargetPort),
 		},
 		// CoAP
-		coapHost:       env(envCoAPHost, defCoAPHost),
-		coapPort:       env(envCoAPPort, defCoAPPort),
-		coapDTLS:       dtls,
-		coapTargetHost: env(envCoAPTargetHost, defCoAPTargetHost),
-		coapTargetPort: env(envCoAPTargetPort, defCoAPTargetPort),
+		coapConfig: CoapConfig{
+			host:       env(envCoAPHost, defCoAPHost),
+			port:       env(envCoAPPort, defCoAPPort),
+			DTLS:       dtls,
+			targetHost: env(envCoAPTargetHost, defCoAPTargetHost),
+			targetPort: env(envCoAPTargetPort, defCoAPTargetPort),
+		},
 
 		// Log
 		logLevel: env(envLogLevel, defLogLevel),
@@ -392,6 +396,9 @@ func proxyWSS(ctx context.Context, cfg config, logger mflog.Logger, handler sess
 func proxyCoapTLS(cfg config, tlsCfg *tls.Config, logger mflog.Logger, errs chan error) {
 	address := fmt.Sprintf("%s:%s", cfg.coapHost, cfg.coapPort)
 	target := fmt.Sprintf("%s:%s", cfg.coapTargetHost, cfg.coapTargetPort)
+func proxyCoapTLS(cfg CoapConfig, tlsCfg *tls.Config, logger mflog.Logger, handler session.Handler, errs chan error) {
+	address := fmt.Sprintf("%s:%s", cfg.host, cfg.port)
+	target := fmt.Sprintf("%s:%s", cfg.targetHost, cfg.targetPort)
 	cp, err := coap.NewProxy(address, target, logger, handler)
 	if err != nil {
 		errs <- err
@@ -400,9 +407,9 @@ func proxyCoapTLS(cfg config, tlsCfg *tls.Config, logger mflog.Logger, errs chan
 	errs <- cp.ListenTLS(tlsCfg)
 }
 
-func proxyCoapDTLS(cfg config, dtlsCfg *dtls.Config, logger mflog.Logger, handler session.Handler, errs chan error) {
-	address := fmt.Sprintf("%s:%s", cfg.coapHost, cfg.coapPort)
-	target := fmt.Sprintf("%s:%s", cfg.coapTargetHost, cfg.coapTargetPort)
+func proxyCoapDTLS(cfg CoapConfig, dtlsCfg *dtls.Config, logger mflog.Logger, handler session.Handler, errs chan error) {
+	address := fmt.Sprintf("%s:%s", cfg.host, cfg.port)
+	target := fmt.Sprintf("%s:%s", cfg.targetHost, cfg.targetPort)
 	cp, err := coap.NewProxy(address, target, logger, handler)
 	if err != nil {
 		errs <- err
@@ -411,9 +418,9 @@ func proxyCoapDTLS(cfg config, dtlsCfg *dtls.Config, logger mflog.Logger, handle
 	errs <- cp.ListenDLS(dtlsCfg)
 }
 
-func proxyCoap(cfg config, logger mflog.Logger, handler session.Handler, errs chan error) {
-	address := fmt.Sprintf("%s:%s", cfg.coapHost, cfg.coapPort)
-	target := fmt.Sprintf("%s:%s", cfg.coapTargetHost, cfg.coapTargetPort)
+func proxyCoap(cfg CoapConfig, logger mflog.Logger, handler session.Handler, errs chan error) {
+	address := fmt.Sprintf("%s:%s", cfg.host, cfg.port)
+	target := fmt.Sprintf("%s:%s", cfg.targetHost, cfg.targetPort)
 	cp, err := coap.NewProxy(address, target, logger, handler)
 	if err != nil {
 		errs <- err

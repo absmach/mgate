@@ -8,13 +8,13 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/mainflux/mainflux v0.12.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	github.com/pion/dtls/v2 v2.2.8-0.20230905141523-2b584af66577
 )
 
 require (
 	github.com/dsnet/golib/memfile v1.0.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/pion/dtls/v2 v2.2.8-0.20230905141523-2b584af66577 // indirect
 	github.com/pion/logging v0.2.2 // indirect
 	github.com/pion/transport/v3 v3.0.1 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
