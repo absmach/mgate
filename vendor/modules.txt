@@ -20,7 +20,7 @@ github.com/gorilla/websocket
 # github.com/mainflux/mainflux v0.12.0
 ## explicit; go 1.14
 github.com/mainflux/mainflux/logger
-# golang.org/x/net v0.10.0
+# golang.org/x/net v0.17.0
 ## explicit; go 1.17
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
