@@ -18,23 +18,34 @@ var (
 )
 
 type Proxy struct {
-	targetConn *websocket.Conn
-	address    string
-	event      session.Handler
-	logger     logger.Logger
+	target  string
+	address string
+	event   session.Handler
+	logger  logger.Logger
 }
 
 func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 	var token string
+	headers := http.Header{}
 	switch {
-	case r.URL.Query()["authorization"][0] != "":
+	case len(r.URL.Query()["authorization"]) != 0:
 		token = r.URL.Query()["authorization"][0]
 	case r.Header.Get("Authorization") != "":
 		token = r.Header.Get("Authorization")
+		headers.Add("Authorization", token)
 	default:
 		http.Error(w, ErrAuthorizationNotSet.Error(), http.StatusUnauthorized)
 		return
 	}
+
+	target := fmt.Sprintf("%s%s", p.target, r.RequestURI)
+
+	targetConn, _, err := websocket.DefaultDialer.Dial(target, headers)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+	defer targetConn.Close()
 
 	topic := r.URL.Path
 	s := session.Session{Password: []byte(token)}
@@ -61,10 +72,10 @@ func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 	g, ctx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
-		return p.stream(ctx, topic, inConn, p.targetConn, true)
+		return p.stream(ctx, topic, inConn, targetConn, true)
 	})
 	g.Go(func() error {
-		return p.stream(ctx, topic, p.targetConn, inConn, false)
+		return p.stream(ctx, topic, targetConn, inConn, false)
 	})
 
 	if err := g.Wait(); err != nil {
@@ -98,11 +109,7 @@ func (p *Proxy) stream(ctx context.Context, topic string, src, dest *websocket.C
 }
 
 func NewProxy(address, target string, logger logger.Logger, handler session.Handler) (*Proxy, error) {
-	targetConn, _, err := websocket.DefaultDialer.Dial(target, nil)
-	if err != nil {
-		return nil, err
-	}
-	return &Proxy{targetConn: targetConn, address: address, logger: logger, event: handler}, nil
+	return &Proxy{target: target, address: address, logger: logger, event: handler}, nil
 }
 
 // Listen - listen withrout tls.

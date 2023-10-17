@@ -63,10 +63,10 @@ const (
 	envServerCert     = "MPROXY_SERVER_CERT"
 	envServerKey      = "MPROXY_SERVER_KEY"
 
-	// WS - MQTT
+	// WS
 	defWSHost       = "0.0.0.0"
 	defWSPort       = "8081"
-	defWSTargetHost = "localhost"
+	defWSTargetHost = "ws://localhost"
 	defWSTargetPort = "8889"
 
 	envWSHost       = "MPROXY_WS_HOST"
