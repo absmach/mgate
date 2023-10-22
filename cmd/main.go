@@ -20,7 +20,7 @@ import (
 	"github.com/mainflux/mproxy/pkg/mqtt/websocket"
 	"github.com/mainflux/mproxy/pkg/session"
 	mptls "github.com/mainflux/mproxy/pkg/tls"
-	"github.com/mainflux/mproxy/pkg/websocket"
+	"github.com/mainflux/mproxy/pkg/websockets"
 	"github.com/pion/dtls/v2"
 )
 
@@ -393,9 +393,7 @@ func proxyWSS(ctx context.Context, cfg config, logger mflog.Logger, handler sess
 		errs <- err
 	}
 	errs <- wp.ListenTLS(cfg.serverCert, cfg.serverKey)
-func proxyCoapTLS(cfg config, tlsCfg *tls.Config, logger mflog.Logger, errs chan error) {
-	address := fmt.Sprintf("%s:%s", cfg.coapHost, cfg.coapPort)
-	target := fmt.Sprintf("%s:%s", cfg.coapTargetHost, cfg.coapTargetPort)
+}
 func proxyCoapTLS(cfg CoapConfig, tlsCfg *tls.Config, logger mflog.Logger, handler session.Handler, errs chan error) {
 	address := fmt.Sprintf("%s:%s", cfg.host, cfg.port)
 	target := fmt.Sprintf("%s:%s", cfg.targetHost, cfg.targetPort)
