@@ -113,10 +113,11 @@ type config struct {
 	serverCert string
 	serverKey  string
 
-	httpConfig HTTPConfig
-	mqttConfig MQTTConfig
-	wsConfig   WSConfig
-	coapConfig CoapConfig
+	httpConfig   HTTPConfig
+	mqttConfig   MQTTConfig
+	wsMQTTConfig WSMQTTConfig
+	wsConfig     WSConfig
+	coapConfig   CoapConfig
 
 	logLevel string
 }
