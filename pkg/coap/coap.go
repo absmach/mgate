@@ -159,36 +159,15 @@ func (p *Proxy) handler(w mux.ResponseWriter, r *mux.Message) {
 		}
 		return
 	}
-	p.logger.Debug(fmt.Sprintf("Got message path=%v: %+v from %v", path, r, w.Conn().RemoteAddr()))
 	switch r.Code() {
 	case codes.GET:
-		if err := p.event.AuthSubscribe(ctx, &[]string{path}); err != nil {
-			if err := sendErrorMessage(w.Conn(), r.Token(), err, codes.Unauthorized); err != nil {
-				p.logger.Error(err.Error())
-			}
-			return
-		}
-		if err := p.event.Subscribe(ctx, &[]string{path}); err != nil {
-			if err := sendErrorMessage(w.Conn(), r.Token(), err, codes.Unauthorized); err != nil {
-				p.logger.Error(err.Error())
-			}
-			return
-		}
 		obs, err := r.Options().Observe()
-		switch {
-		// obs == 0, start observe
-		case obs == 0 && err == nil:
-			go p.observeUpstream(context.Background(), w.Conn(), r.Options(), r.Token(), path)
-
-		default:
-			if err := p.getUpstream(w.Conn(), r, r.Token()); err != nil {
-				p.logger.Debug(fmt.Sprintf("error performing get: %v\n", err))
-				if err := sendErrorMessage(w.Conn(), r.Token(), err, codes.BadGateway); err != nil {
-					p.logger.Error(err.Error())
-				}
-				return
+		if err != nil {
+			if err := sendErrorMessage(w.Conn(), r.Token(), err, codes.BadRequest); err != nil {
+				p.logger.Error(err.Error())
 			}
 		}
+		p.handleGet(ctx, path, w.Conn(), r.Token(), obs, r)
 
 	case codes.POST:
 		body, err := r.ReadBody()
@@ -198,25 +177,57 @@ func (p *Proxy) handler(w mux.ResponseWriter, r *mux.Message) {
 			}
 			return
 		}
-		if err := p.event.AuthPublish(ctx, &path, &body); err != nil {
-			if err := sendErrorMessage(w.Conn(), r.Token(), err, codes.Unauthorized); err != nil {
+		p.handlePost(ctx, w.Conn(), body, r.Token(), path, r)
+	}
+}
+
+func (p *Proxy) handleGet(ctx context.Context, path string, con mux.Conn, token []byte, obs uint32, r *mux.Message) {
+	if err := p.event.AuthSubscribe(ctx, &[]string{path}); err != nil {
+		if err := sendErrorMessage(con, token, err, codes.Unauthorized); err != nil {
+			p.logger.Error(err.Error())
+		}
+		return
+	}
+	if err := p.event.Subscribe(ctx, &[]string{path}); err != nil {
+		if err := sendErrorMessage(con, token, err, codes.Unauthorized); err != nil {
+			p.logger.Error(err.Error())
+		}
+		return
+	}
+	switch {
+	// obs == 0, start observe
+	case obs == 0:
+		go p.observeUpstream(ctx, con, r.Options(), token, path)
+
+	default:
+		if err := p.getUpstream(con, r, token); err != nil {
+			p.logger.Debug(fmt.Sprintf("error performing get: %v\n", err))
+			if err := sendErrorMessage(con, token, err, codes.BadGateway); err != nil {
 				p.logger.Error(err.Error())
 			}
 			return
 		}
-		if err := p.event.Publish(ctx, &path, &body); err != nil {
-			if err := sendErrorMessage(w.Conn(), r.Token(), err, codes.BadRequest); err != nil {
-				p.logger.Error(err.Error())
-			}
-			return
+	}
+}
+func (p *Proxy) handlePost(ctx context.Context, con mux.Conn, body, token []byte, path string, r *mux.Message) {
+	if err := p.event.AuthPublish(ctx, &path, &body); err != nil {
+		if err := sendErrorMessage(con, token, err, codes.Unauthorized); err != nil {
+			p.logger.Error(err.Error())
 		}
-		if err := p.postUpstream(w.Conn(), r, r.Token()); err != nil {
-			p.logger.Debug(fmt.Sprintf("error performing post: %v\n", err))
-			if err := sendErrorMessage(w.Conn(), r.Token(), err, codes.BadGateway); err != nil {
-				p.logger.Error(err.Error())
-			}
-			return
+		return
+	}
+	if err := p.event.Publish(ctx, &path, &body); err != nil {
+		if err := sendErrorMessage(con, token, err, codes.BadRequest); err != nil {
+			p.logger.Error(err.Error())
 		}
+		return
+	}
+	if err := p.postUpstream(con, r, token); err != nil {
+		p.logger.Debug(fmt.Sprintf("error performing post: %v\n", err))
+		if err := sendErrorMessage(con, token, err, codes.BadGateway); err != nil {
+			p.logger.Error(err.Error())
+		}
+		return
 	}
 }
 
