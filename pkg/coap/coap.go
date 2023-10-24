@@ -102,13 +102,12 @@ func (p *Proxy) getUpstream(cc mux.Conn, req *mux.Message, token []byte) error {
 	return sendPoolMessage(cc, pm, token)
 }
 
-func (p *Proxy) observeUpstream(ctx context.Context, cc mux.Conn, opts []message.Option, token []byte, path string) error {
+func (p *Proxy) observeUpstream(ctx context.Context, cc mux.Conn, opts []message.Option, token []byte, path string) {
 	targetConn, err := udp.Dial(p.target)
 	if err != nil {
 		if err := sendErrorMessage(cc, token, err, codes.BadGateway); err != nil {
 			p.logger.Error(err.Error())
 		}
-		return err
 	}
 	defer targetConn.Close()
 	doneObserving := make(chan struct{})
@@ -125,17 +124,17 @@ func (p *Proxy) observeUpstream(ctx context.Context, cc mux.Conn, opts []message
 		}
 	}, opts...)
 	if err != nil {
-		return err
+		if err := sendErrorMessage(cc, token, err, codes.BadGateway); err != nil {
+			p.logger.Error(err.Error())
+		}
 	}
 
 	select {
 	case <-doneObserving:
 		obs.Cancel(ctx)
 	case <-ctx.Done():
-		return nil
+		return
 	}
-
-	return nil
 }
 
 func (p *Proxy) handler(w mux.ResponseWriter, r *mux.Message) {
