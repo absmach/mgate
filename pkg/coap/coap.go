@@ -24,34 +24,6 @@ type Proxy struct {
 	event   session.Handler
 }
 
-func sendPoolMessage(cc mux.Conn, pm *pool.Message, token []byte) error {
-	m := cc.AcquireMessage(pm.Context())
-	defer cc.ReleaseMessage(m)
-	m.SetCode(pm.Code())
-	m.SetBody(pm.Body())
-	m.SetToken(token)
-	formt, err := pm.ContentFormat()
-	switch err {
-	case nil:
-		m.SetContentFormat(formt)
-	case message.ErrOptionNotFound:
-		m.SetContentFormat(message.TextPlain)
-	default:
-		return err
-	}
-	obs, err := pm.Observe()
-	switch err {
-	case nil:
-		m.SetObserve(uint32(obs))
-	case message.ErrOptionNotFound:
-		break
-	default:
-		return err
-	}
-
-	return cc.WriteMessage(m)
-}
-
 func sendErrorMessage(cc mux.Conn, token []byte, err error, code codes.Code) error {
 	m := cc.AcquireMessage(cc.Context())
 	defer cc.ReleaseMessage(m)
@@ -81,7 +53,8 @@ func (p *Proxy) postUpstream(cc mux.Conn, req *mux.Message, token []byte) error 
 	if err != nil {
 		return err
 	}
-	return sendPoolMessage(cc, pm, token)
+	pm.SetToken(token)
+	return cc.WriteMessage(pm)
 }
 
 func (p *Proxy) getUpstream(cc mux.Conn, req *mux.Message, token []byte) error {
@@ -99,7 +72,8 @@ func (p *Proxy) getUpstream(cc mux.Conn, req *mux.Message, token []byte) error {
 	if err != nil {
 		return err
 	}
-	return sendPoolMessage(cc, pm, token)
+	pm.SetToken(token)
+	return cc.WriteMessage(pm)
 }
 
 func (p *Proxy) observeUpstream(ctx context.Context, cc mux.Conn, opts []message.Option, token []byte, path string) {
@@ -113,7 +87,8 @@ func (p *Proxy) observeUpstream(ctx context.Context, cc mux.Conn, opts []message
 	doneObserving := make(chan struct{})
 
 	obs, err := targetConn.Observe(context.Background(), path, func(req *pool.Message) {
-		if err := sendPoolMessage(cc, req, token); err != nil {
+		req.SetToken(token)
+		if err := cc.WriteMessage(req); err != nil {
 			if err := sendErrorMessage(cc, token, err, codes.BadGateway); err != nil {
 				p.logger.Error(err.Error())
 			}
