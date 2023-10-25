@@ -14,12 +14,14 @@ import (
 
 	mflog "github.com/mainflux/mainflux/logger"
 	"github.com/mainflux/mproxy/examples/simple"
+	"github.com/mainflux/mproxy/pkg/coap"
 	hproxy "github.com/mainflux/mproxy/pkg/http"
 	"github.com/mainflux/mproxy/pkg/mqtt"
 	"github.com/mainflux/mproxy/pkg/mqtt/websocket"
 	"github.com/mainflux/mproxy/pkg/session"
 	mptls "github.com/mainflux/mproxy/pkg/tls"
 	"github.com/mainflux/mproxy/pkg/websockets"
+	"github.com/pion/dtls/v2"
 )
 
 const (
@@ -92,6 +94,17 @@ const (
 	defHTTPTargetPort = "8081"
 	defHTTPServerCert = ""
 	defHTTPServerKey  = ""
+	envCoAPHost       = "MPROXY_COAP_HOST"
+	envCoAPPort       = "MPROXY_COAP_PORT"
+	envCoAPTargetHost = "MPROXY_COAP_TARGET_HOST"
+	envCoAPTargetPort = "MPROXY_COAP_TARGET_PORT"
+	envCoAPDTLS       = "MPROXY_COAP_DTLS"
+
+	defCoAPHost       = ""
+	defCoAPPort       = "5683"
+	defCoAPTargetPort = "5684"
+	defCoAPTargetHost = ""
+	defCoAPDTLS       = "false"
 )
 
 type config struct {
@@ -104,8 +117,17 @@ type config struct {
 	mqttConfig   MQTTConfig
 	wsMQTTConfig WSMQTTConfig
 	wsConfig     WSConfig
+	coapConfig   CoapConfig
 
 	logLevel string
+}
+
+type CoapConfig struct {
+	host       string
+	port       string
+	DTLS       bool
+	targetHost string
+	targetPort string
 }
 
 type WSConfig struct {
@@ -192,6 +214,27 @@ func main() {
 		go proxyHTTP(ctx, cfg.httpConfig, logger, h, errs)
 	}
 
+	switch {
+	case cfg.coapConfig.DTLS:
+		tlsCfg, err := mptls.LoadTLSCfg(cfg.caCerts, cfg.serverCert, cfg.serverKey)
+		if err != nil {
+			errs <- err
+		}
+		dtlsCfg := &dtls.Config{
+			Certificates: tlsCfg.Certificates,
+			ClientCAs:    tlsCfg.ClientCAs,
+		}
+		go proxyCoapDTLS(cfg.coapConfig, dtlsCfg, logger, h, errs)
+	case cfg.clientTLS:
+		tlsCfg, err := mptls.LoadTLSCfg(cfg.caCerts, cfg.serverCert, cfg.serverKey)
+		if err != nil {
+			errs <- err
+		}
+		go proxyCoapTLS(cfg.coapConfig, tlsCfg, logger, h, errs)
+	default:
+		go proxyCoap(cfg.coapConfig, logger, h, errs)
+	}
+
 	go func() {
 		c := make(chan os.Signal, 2)
 		signal.Notify(c, syscall.SIGINT)
@@ -214,6 +257,10 @@ func loadConfig() config {
 	tls, err := strconv.ParseBool(env(envClientTLS, defClientTLS))
 	if err != nil {
 		log.Fatalf("Invalid value passed for %s\n", envClientTLS)
+	}
+	dtls, err := strconv.ParseBool(env(envCoAPDTLS, defCoAPDTLS))
+	if err != nil {
+		log.Fatalf("Invalid value passed for %s\n", envCoAPDTLS)
 	}
 
 	return config{
@@ -259,6 +306,14 @@ func loadConfig() config {
 			port:       env(envWSPort, defWSPort),
 			targetHost: env(envWSTargetHost, defWSTargetHost),
 			targetPort: env(envWSTargetPort, defWSTargetPort),
+		},
+		// CoAP
+		coapConfig: CoapConfig{
+			host:       env(envCoAPHost, defCoAPHost),
+			port:       env(envCoAPPort, defCoAPPort),
+			DTLS:       dtls,
+			targetHost: env(envCoAPTargetHost, defCoAPTargetHost),
+			targetPort: env(envCoAPTargetPort, defCoAPTargetPort),
 		},
 
 		// Log
@@ -339,4 +394,36 @@ func proxyWSS(ctx context.Context, cfg config, logger mflog.Logger, handler sess
 		errs <- err
 	}
 	errs <- wp.ListenTLS(cfg.serverCert, cfg.serverKey)
+}
+func proxyCoapTLS(cfg CoapConfig, tlsCfg *tls.Config, logger mflog.Logger, handler session.Handler, errs chan error) {
+	address := fmt.Sprintf("%s:%s", cfg.host, cfg.port)
+	target := fmt.Sprintf("%s:%s", cfg.targetHost, cfg.targetPort)
+	cp, err := coap.NewProxy(address, target, logger, handler)
+	if err != nil {
+		errs <- err
+	}
+
+	errs <- cp.ListenTLS(tlsCfg)
+}
+
+func proxyCoapDTLS(cfg CoapConfig, dtlsCfg *dtls.Config, logger mflog.Logger, handler session.Handler, errs chan error) {
+	address := fmt.Sprintf("%s:%s", cfg.host, cfg.port)
+	target := fmt.Sprintf("%s:%s", cfg.targetHost, cfg.targetPort)
+	cp, err := coap.NewProxy(address, target, logger, handler)
+	if err != nil {
+		errs <- err
+	}
+
+	errs <- cp.ListenDLS(dtlsCfg)
+}
+
+func proxyCoap(cfg CoapConfig, logger mflog.Logger, handler session.Handler, errs chan error) {
+	address := fmt.Sprintf("%s:%s", cfg.host, cfg.port)
+	target := fmt.Sprintf("%s:%s", cfg.targetHost, cfg.targetPort)
+	cp, err := coap.NewProxy(address, target, logger, handler)
+	if err != nil {
+		errs <- err
+	}
+
+	errs <- cp.Listen()
 }
