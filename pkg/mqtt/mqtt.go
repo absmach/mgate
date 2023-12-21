@@ -7,9 +7,9 @@ import (
 	"io"
 	"net"
 
-	"github.com/mainflux/mproxy/pkg/logger"
-	"github.com/mainflux/mproxy/pkg/session"
-	mptls "github.com/mainflux/mproxy/pkg/tls"
+	"github.com/absmach/mproxy/pkg/logger"
+	"github.com/absmach/mproxy/pkg/session"
+	mptls "github.com/absmach/mproxy/pkg/tls"
 )
 
 // Proxy is main MQTT proxy struct
@@ -81,7 +81,6 @@ func (p Proxy) Listen(ctx context.Context) error {
 
 // ListenTLS - version of Listen with TLS encryption
 func (p Proxy) ListenTLS(ctx context.Context, tlsCfg *tls.Config) error {
-
 	l, err := tls.Listen("tcp", p.address, tlsCfg)
 	if err != nil {
 		return err

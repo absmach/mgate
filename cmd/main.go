@@ -6,20 +6,19 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
 
-	mflog "github.com/mainflux/mainflux/logger"
-	"github.com/mainflux/mproxy/examples/simple"
-	hproxy "github.com/mainflux/mproxy/pkg/http"
-	"github.com/mainflux/mproxy/pkg/mqtt"
-	"github.com/mainflux/mproxy/pkg/mqtt/websocket"
-	"github.com/mainflux/mproxy/pkg/session"
-	mptls "github.com/mainflux/mproxy/pkg/tls"
-	"github.com/mainflux/mproxy/pkg/websockets"
+	mflog "github.com/absmach/magistrala/logger"
+	"github.com/absmach/mproxy/examples/simple"
+	hproxy "github.com/absmach/mproxy/pkg/http"
+	"github.com/absmach/mproxy/pkg/mqtt"
+	"github.com/absmach/mproxy/pkg/mqtt/websocket"
+	"github.com/absmach/mproxy/pkg/session"
+	mptls "github.com/absmach/mproxy/pkg/tls"
+	"github.com/absmach/mproxy/pkg/websockets"
 )
 
 const (

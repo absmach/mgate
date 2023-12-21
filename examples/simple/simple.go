@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mainflux/mainflux/logger"
-	"github.com/mainflux/mproxy/pkg/session"
+	"github.com/absmach/magistrala/logger"
+	"github.com/absmach/mproxy/pkg/session"
 )
 
 var errSessionMissing = errors.New("session is missing")
