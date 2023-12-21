@@ -8,10 +8,10 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/absmach/mproxy/pkg/logger"
+	"github.com/absmach/mproxy/pkg/session"
+	mptls "github.com/absmach/mproxy/pkg/tls"
 	"github.com/gorilla/websocket"
-	"github.com/mainflux/mproxy/pkg/logger"
-	"github.com/mainflux/mproxy/pkg/session"
-	mptls "github.com/mainflux/mproxy/pkg/tls"
 )
 
 // Proxy represents WS Proxy.
@@ -76,7 +76,6 @@ func (p Proxy) pass(ctx context.Context, in *websocket.Conn) {
 		Subprotocols: []string{"mqtt"},
 	}
 	srv, _, err := dialer.Dial(url.String(), nil)
-
 	if err != nil {
 		p.logger.Error("Unable to connect to broker: " + err.Error())
 		return

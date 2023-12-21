@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/absmach/mproxy/pkg/logger"
+	"github.com/absmach/mproxy/pkg/session"
 	"github.com/gorilla/websocket"
-	"github.com/mainflux/mproxy/pkg/logger"
-	"github.com/mainflux/mproxy/pkg/session"
 	"golang.org/x/sync/errgroup"
 )
 

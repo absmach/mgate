@@ -9,8 +9,8 @@ import (
 	"net/http/httputil"
 	"net/url"
 
-	"github.com/mainflux/mproxy/pkg/logger"
-	"github.com/mainflux/mproxy/pkg/session"
+	"github.com/absmach/mproxy/pkg/logger"
+	"github.com/absmach/mproxy/pkg/session"
 )
 
 const contentType = "application/json"

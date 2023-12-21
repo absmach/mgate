@@ -6,20 +6,19 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
 
-	mflog "github.com/mainflux/mainflux/logger"
-	"github.com/mainflux/mproxy/examples/simple"
-	hproxy "github.com/mainflux/mproxy/pkg/http"
-	"github.com/mainflux/mproxy/pkg/mqtt"
-	"github.com/mainflux/mproxy/pkg/mqtt/websocket"
-	"github.com/mainflux/mproxy/pkg/session"
-	mptls "github.com/mainflux/mproxy/pkg/tls"
-	"github.com/mainflux/mproxy/pkg/websockets"
+	mglog "github.com/absmach/magistrala/logger"
+	"github.com/absmach/mproxy/examples/simple"
+	hproxy "github.com/absmach/mproxy/pkg/http"
+	"github.com/absmach/mproxy/pkg/mqtt"
+	"github.com/absmach/mproxy/pkg/mqtt/websocket"
+	"github.com/absmach/mproxy/pkg/session"
+	mptls "github.com/absmach/mproxy/pkg/tls"
+	"github.com/absmach/mproxy/pkg/websockets"
 )
 
 const (
@@ -147,7 +146,7 @@ type HTTPConfig struct {
 func main() {
 	cfg := loadConfig()
 
-	logger, err := mflog.New(os.Stdout, cfg.logLevel)
+	logger, err := mglog.New(os.Stdout, cfg.logLevel)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
@@ -266,7 +265,7 @@ func loadConfig() config {
 	}
 }
 
-func proxyMQTTWS(cfg WSMQTTConfig, logger mflog.Logger, handler session.Handler, errs chan error) {
+func proxyMQTTWS(cfg WSMQTTConfig, logger mglog.Logger, handler session.Handler, errs chan error) {
 	target := fmt.Sprintf("%s:%s", cfg.targetHost, cfg.targetPort)
 	wp := websocket.New(target, cfg.targetPath, cfg.targetScheme, handler, logger)
 	http.Handle(cfg.path, wp.Handler())
@@ -274,14 +273,14 @@ func proxyMQTTWS(cfg WSMQTTConfig, logger mflog.Logger, handler session.Handler,
 	errs <- wp.Listen(cfg.port)
 }
 
-func proxyMQTTWSS(cfg config, tlsCfg *tls.Config, logger mflog.Logger, handler session.Handler, errs chan error) {
+func proxyMQTTWSS(cfg config, tlsCfg *tls.Config, logger mglog.Logger, handler session.Handler, errs chan error) {
 	target := fmt.Sprintf("%s:%s", cfg.wsMQTTConfig.targetHost, cfg.wsMQTTConfig.targetPort)
 	wp := websocket.New(target, cfg.wsMQTTConfig.targetPath, cfg.wsMQTTConfig.targetScheme, handler, logger)
 	http.Handle(cfg.wsMQTTConfig.wssPath, wp.Handler())
 	errs <- wp.ListenTLS(tlsCfg, cfg.serverCert, cfg.serverKey, cfg.wsMQTTConfig.wssPort)
 }
 
-func proxyMQTT(ctx context.Context, cfg MQTTConfig, logger mflog.Logger, handler session.Handler, errs chan error) {
+func proxyMQTT(ctx context.Context, cfg MQTTConfig, logger mglog.Logger, handler session.Handler, errs chan error) {
 	address := fmt.Sprintf("%s:%s", cfg.host, cfg.port)
 	target := fmt.Sprintf("%s:%s", cfg.targetHost, cfg.targetPort)
 	mp := mqtt.New(address, target, handler, logger)
@@ -289,7 +288,7 @@ func proxyMQTT(ctx context.Context, cfg MQTTConfig, logger mflog.Logger, handler
 	errs <- mp.Listen(ctx)
 }
 
-func proxyMQTTS(ctx context.Context, cfg MQTTConfig, tlsCfg *tls.Config, logger mflog.Logger, handler session.Handler, errs chan error) {
+func proxyMQTTS(ctx context.Context, cfg MQTTConfig, tlsCfg *tls.Config, logger mglog.Logger, handler session.Handler, errs chan error) {
 	address := fmt.Sprintf("%s:%s", cfg.host, cfg.mqttsPort)
 	target := fmt.Sprintf("%s:%s", cfg.targetHost, cfg.targetPort)
 	mp := mqtt.New(address, target, handler, logger)
@@ -297,7 +296,7 @@ func proxyMQTTS(ctx context.Context, cfg MQTTConfig, tlsCfg *tls.Config, logger 
 	errs <- mp.ListenTLS(ctx, tlsCfg)
 }
 
-func proxyHTTP(ctx context.Context, cfg HTTPConfig, logger mflog.Logger, handler session.Handler, errs chan error) {
+func proxyHTTP(ctx context.Context, cfg HTTPConfig, logger mglog.Logger, handler session.Handler, errs chan error) {
 	address := fmt.Sprintf("%s:%s", cfg.host, cfg.port)
 	target := fmt.Sprintf("%s:%s", cfg.targetHost, cfg.targetPort)
 	hp, err := hproxy.NewProxy(address, target, handler, logger)
@@ -309,7 +308,7 @@ func proxyHTTP(ctx context.Context, cfg HTTPConfig, logger mflog.Logger, handler
 	errs <- hp.Listen()
 }
 
-func proxyHTTPS(ctx context.Context, cfg HTTPConfig, logger mflog.Logger, handler session.Handler, errs chan error) {
+func proxyHTTPS(ctx context.Context, cfg HTTPConfig, logger mglog.Logger, handler session.Handler, errs chan error) {
 	address := fmt.Sprintf("%s:%s", cfg.host, cfg.port)
 	target := fmt.Sprintf("%s:%s", cfg.targetHost, cfg.targetPort)
 	hp, err := hproxy.NewProxy(address, target, handler, logger)
@@ -321,7 +320,7 @@ func proxyHTTPS(ctx context.Context, cfg HTTPConfig, logger mflog.Logger, handle
 	errs <- hp.ListenTLS(cfg.serverCert, cfg.serverKey)
 }
 
-func proxyWS(ctx context.Context, cfg WSConfig, logger mflog.Logger, handler session.Handler, errs chan error) {
+func proxyWS(ctx context.Context, cfg WSConfig, logger mglog.Logger, handler session.Handler, errs chan error) {
 	address := fmt.Sprintf("%s:%s", cfg.host, cfg.port)
 	target := fmt.Sprintf("%s:%s", cfg.targetHost, cfg.targetPort)
 	wp, err := websockets.NewProxy(address, target, logger, handler)
@@ -331,7 +330,7 @@ func proxyWS(ctx context.Context, cfg WSConfig, logger mflog.Logger, handler ses
 	errs <- wp.Listen()
 }
 
-func proxyWSS(ctx context.Context, cfg config, logger mflog.Logger, handler session.Handler, errs chan error) {
+func proxyWSS(ctx context.Context, cfg config, logger mglog.Logger, handler session.Handler, errs chan error) {
 	address := fmt.Sprintf("%s:%s", cfg.wsConfig.host, cfg.wsConfig.port)
 	target := fmt.Sprintf("%s:%s", cfg.wsConfig.targetHost, cfg.wsConfig.targetPort)
 	wp, err := websockets.NewProxy(address, target, logger, handler)

@@ -10,8 +10,8 @@ logging and debugging and various other purposes.
 
 ## Usage
 ```bash
-go get github.com/mainflux/mproxy
-cd $(GOPATH)/github.com/mainflux/mproxy
+go get github.com/absmach/mproxy
+cd $(GOPATH)/github.com/absmach/mproxy
 make
 ./mproxy
 ```
@@ -108,6 +108,6 @@ The service is configured using the environment variables presented in the follo
 ## License
 [Apache-2.0](LICENSE)
 
-[grc]: https://goreportcard.com/badge/github.com/mainflux/mproxy
+[grc]: https://goreportcard.com/badge/github.com/absmach/mproxy
 [LIC]: LICENCE
 [LIC-BADGE]: https://img.shields.io/badge/License-Apache_2.0-blue.svg
