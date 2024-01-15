@@ -267,7 +267,7 @@ func loadConfig() config {
 
 func proxyMQTTWS(cfg WSMQTTConfig, logger mglog.Logger, handler session.Handler, errs chan error) {
 	target := fmt.Sprintf("%s:%s", cfg.targetHost, cfg.targetPort)
-	wp := websocket.New(target, cfg.targetPath, cfg.targetScheme, handler, logger)
+	wp := websocket.New(target, cfg.targetPath, cfg.targetScheme, handler, nil, logger)
 	http.Handle(cfg.path, wp.Handler())
 
 	errs <- wp.Listen(cfg.port)
@@ -275,7 +275,7 @@ func proxyMQTTWS(cfg WSMQTTConfig, logger mglog.Logger, handler session.Handler,
 
 func proxyMQTTWSS(cfg config, tlsCfg *tls.Config, logger mglog.Logger, handler session.Handler, errs chan error) {
 	target := fmt.Sprintf("%s:%s", cfg.wsMQTTConfig.targetHost, cfg.wsMQTTConfig.targetPort)
-	wp := websocket.New(target, cfg.wsMQTTConfig.targetPath, cfg.wsMQTTConfig.targetScheme, handler, logger)
+	wp := websocket.New(target, cfg.wsMQTTConfig.targetPath, cfg.wsMQTTConfig.targetScheme, handler, nil, logger)
 	http.Handle(cfg.wsMQTTConfig.wssPath, wp.Handler())
 	errs <- wp.ListenTLS(tlsCfg, cfg.serverCert, cfg.serverKey, cfg.wsMQTTConfig.wssPort)
 }
@@ -283,7 +283,7 @@ func proxyMQTTWSS(cfg config, tlsCfg *tls.Config, logger mglog.Logger, handler s
 func proxyMQTT(ctx context.Context, cfg MQTTConfig, logger mglog.Logger, handler session.Handler, errs chan error) {
 	address := fmt.Sprintf("%s:%s", cfg.host, cfg.port)
 	target := fmt.Sprintf("%s:%s", cfg.targetHost, cfg.targetPort)
-	mp := mqtt.New(address, target, handler, logger)
+	mp := mqtt.New(address, target, handler, nil, logger)
 
 	errs <- mp.Listen(ctx)
 }
@@ -291,7 +291,7 @@ func proxyMQTT(ctx context.Context, cfg MQTTConfig, logger mglog.Logger, handler
 func proxyMQTTS(ctx context.Context, cfg MQTTConfig, tlsCfg *tls.Config, logger mglog.Logger, handler session.Handler, errs chan error) {
 	address := fmt.Sprintf("%s:%s", cfg.host, cfg.mqttsPort)
 	target := fmt.Sprintf("%s:%s", cfg.targetHost, cfg.targetPort)
-	mp := mqtt.New(address, target, handler, logger)
+	mp := mqtt.New(address, target, handler, nil, logger)
 
 	errs <- mp.ListenTLS(ctx, tlsCfg)
 }

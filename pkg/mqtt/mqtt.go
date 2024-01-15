@@ -12,22 +12,24 @@ import (
 	mptls "github.com/absmach/mproxy/pkg/tls"
 )
 
-// Proxy is main MQTT proxy struct
+// Proxy is main MQTT proxy struct.
 type Proxy struct {
-	address string
-	target  string
-	handler session.Handler
-	logger  logger.Logger
-	dialer  net.Dialer
+	address     string
+	target      string
+	handler     session.Handler
+	interceptor session.Interceptor
+	logger      logger.Logger
+	dialer      net.Dialer
 }
 
-// New returns a new mqtt Proxy instance.
-func New(address, target string, handler session.Handler, logger logger.Logger) *Proxy {
+// New returns a new MQTT Proxy instance.
+func New(address, target string, handler session.Handler, interceptor session.Interceptor, logger logger.Logger) *Proxy {
 	return &Proxy{
-		address: address,
-		target:  target,
-		handler: handler,
-		logger:  logger,
+		address:     address,
+		target:      target,
+		handler:     handler,
+		logger:      logger,
+		interceptor: interceptor,
 	}
 }
 
@@ -59,7 +61,7 @@ func (p Proxy) handle(ctx context.Context, inbound net.Conn) {
 		return
 	}
 
-	if err = session.Stream(ctx, inbound, outbound, p.handler, clientCert); err != io.EOF {
+	if err = session.Stream(ctx, inbound, outbound, p.handler, p.interceptor, clientCert); err != io.EOF {
 		p.logger.Warn(err.Error())
 	}
 }
@@ -79,7 +81,7 @@ func (p Proxy) Listen(ctx context.Context) error {
 	return nil
 }
 
-// ListenTLS - version of Listen with TLS encryption
+// ListenTLS - version of Listen with TLS encryption.
 func (p Proxy) ListenTLS(ctx context.Context, tlsCfg *tls.Config) error {
 	l, err := tls.Listen("tcp", p.address, tlsCfg)
 	if err != nil {
