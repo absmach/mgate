@@ -16,21 +16,24 @@ import (
 
 // Proxy represents WS Proxy.
 type Proxy struct {
-	target string
-	path   string
-	scheme string
-	event  session.Handler
+	target      string
+	path        string
+	scheme      string
+	handler     session.Handler
+	interceptor session.Interceptor
+
 	logger logger.Logger
 }
 
 // New - creates new WS proxy
-func New(target, path, scheme string, event session.Handler, logger logger.Logger) *Proxy {
+func New(target, path, scheme string, handler session.Handler, interceptor session.Interceptor, logger logger.Logger) *Proxy {
 	return &Proxy{
-		target: target,
-		path:   path,
-		scheme: scheme,
-		event:  event,
-		logger: logger,
+		target:      target,
+		path:        path,
+		scheme:      scheme,
+		handler:     handler,
+		interceptor: interceptor,
+		logger:      logger,
 	}
 }
 
@@ -94,7 +97,7 @@ func (p Proxy) pass(ctx context.Context, in *websocket.Conn) {
 		return
 	}
 
-	err = session.Stream(ctx, inboundConn, outboundConn, p.event, clientCert)
+	err = session.Stream(ctx, inboundConn, outboundConn, p.handler, p.interceptor, clientCert)
 	errc <- err
 	p.logger.Warn("Broken connection for client with error: " + err.Error())
 }

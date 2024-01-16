@@ -10,11 +10,11 @@ import (
 	"github.com/eclipse/paho.mqtt.golang/packets"
 )
 
-type direction int
+type Direction int
 
 const (
-	up direction = iota
-	down
+	Up Direction = iota
+	Down
 )
 
 const unknownID = "unknown"
@@ -25,26 +25,26 @@ var (
 )
 
 // Stream starts proxy between client and broker.
-func Stream(ctx context.Context, inbound, outbound net.Conn, handler Handler, cert x509.Certificate) error {
+func Stream(ctx context.Context, in, out net.Conn, h Handler, ic Interceptor, cert x509.Certificate) error {
 	s := Session{
 		Cert: cert,
 	}
 	ctx = NewContext(ctx, &s)
 	errs := make(chan error, 2)
 
-	go stream(ctx, up, inbound, outbound, handler, errs)
-	go stream(ctx, down, outbound, inbound, handler, errs)
+	go stream(ctx, Up, in, out, h, ic, errs)
+	go stream(ctx, Down, out, in, h, ic, errs)
 
 	// Handle whichever error happens first.
 	// The other routine won't be blocked when writing
 	// to the errors channel because it is buffered.
 	err := <-errs
 
-	handler.Disconnect(ctx)
+	h.Disconnect(ctx)
 	return err
 }
 
-func stream(ctx context.Context, dir direction, r, w net.Conn, h Handler, errs chan error) {
+func stream(ctx context.Context, dir Direction, r, w net.Conn, h Handler, ic Interceptor, errs chan error) {
 	for {
 		// Read from one connection.
 		pkt, err := packets.ReadPacket(r)
@@ -53,8 +53,15 @@ func stream(ctx context.Context, dir direction, r, w net.Conn, h Handler, errs c
 			return
 		}
 
-		if dir == up {
+		if dir == Up {
 			if err = authorize(ctx, pkt, h); err != nil {
+				errs <- wrap(ctx, err, dir)
+				return
+			}
+		}
+		if ic != nil {
+			pkt, err = ic.Intercept(ctx, pkt, dir)
+			if err != nil {
 				errs <- wrap(ctx, err, dir)
 				return
 			}
@@ -66,7 +73,8 @@ func stream(ctx context.Context, dir direction, r, w net.Conn, h Handler, errs c
 			return
 		}
 
-		if dir == up {
+		// Notify only for packets sent from client to broker (incoming packets).
+		if dir == Up {
 			if err := notify(ctx, pkt, h); err != nil {
 				errs <- wrap(ctx, err, dir)
 			}
@@ -118,7 +126,7 @@ func notify(ctx context.Context, pkt packets.ControlPacket, h Handler) error {
 	}
 }
 
-func wrap(ctx context.Context, err error, dir direction) error {
+func wrap(ctx context.Context, err error, dir Direction) error {
 	if err == io.EOF {
 		return err
 	}
@@ -127,9 +135,9 @@ func wrap(ctx context.Context, err error, dir direction) error {
 		cid = s.ID
 	}
 	switch dir {
-	case up:
+	case Up:
 		return fmt.Errorf(errClient, cid, err.Error())
-	case down:
+	case Down:
 		return fmt.Errorf(errBroker, cid, err.Error())
 	default:
 		return err
