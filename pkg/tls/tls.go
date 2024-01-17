@@ -1,3 +1,6 @@
+// Copyright (c) Abstract Machines
+// SPDX-License-Identifier: Apache-2.0
+
 package tls
 
 import (
@@ -13,7 +16,7 @@ var (
 	errParseRoot  = errors.New("failed to parse root certificate")
 )
 
-// LoadTLSCfg return a TLS configuration that can be used in TLS servers
+// LoadTLSCfg return a TLS configuration that can be used in TLS servers.
 func LoadTLSCfg(ca, crt, key string) (*tls.Config, error) {
 	caCertPEM, err := os.ReadFile(ca)
 	if err != nil {
@@ -36,7 +39,7 @@ func LoadTLSCfg(ca, crt, key string) (*tls.Config, error) {
 	}, nil
 }
 
-// ClientCert returns client certificate
+// ClientCert returns client certificate.
 func ClientCert(conn net.Conn) (x509.Certificate, error) {
 	switch connVal := conn.(type) {
 	case *tls.Conn:

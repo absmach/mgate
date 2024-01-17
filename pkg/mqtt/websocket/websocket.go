@@ -1,3 +1,6 @@
+// Copyright (c) Abstract Machines
+// SPDX-License-Identifier: Apache-2.0
+
 package websocket
 
 import (
@@ -24,7 +27,7 @@ type Proxy struct {
 	logger      *slog.Logger
 }
 
-// New - creates new WS proxy
+// New - creates new WS proxy.
 func New(target, path, scheme string, handler session.Handler, interceptor session.Interceptor, logger *slog.Logger) *Proxy {
 	return &Proxy{
 		target:      target,
@@ -47,7 +50,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// Handler - proxies WS traffic
+// Handler - proxies WS traffic.
 func (p Proxy) Handler() http.Handler {
 	return p.handle()
 }
@@ -68,7 +71,7 @@ func (p Proxy) handle() http.Handler {
 func (p Proxy) pass(ctx context.Context, in *websocket.Conn) {
 	defer in.Close()
 
-	url := url.URL{
+	websocketURL := url.URL{
 		Scheme: p.scheme,
 		Host:   p.target,
 		Path:   p.path,
@@ -77,7 +80,7 @@ func (p Proxy) pass(ctx context.Context, in *websocket.Conn) {
 	dialer := &websocket.Dialer{
 		Subprotocols: []string{"mqtt"},
 	}
-	srv, _, err := dialer.Dial(url.String(), nil)
+	srv, _, err := dialer.Dial(websocketURL.String(), nil)
 	if err != nil {
 		p.logger.Error("Unable to connect to broker", slog.Any("error", err))
 		return
@@ -101,13 +104,13 @@ func (p Proxy) pass(ctx context.Context, in *websocket.Conn) {
 	p.logger.Warn("Broken connection for client", slog.Any("error", err))
 }
 
-// Listen of the server
+// Listen of the server.
 func (p Proxy) Listen(wsPort string) error {
 	port := fmt.Sprintf(":%s", wsPort)
 	return http.ListenAndServe(port, nil)
 }
 
-// ListenTLS - version of Listen with TLS encryption
+// ListenTLS - version of Listen with TLS encryption.
 func (p Proxy) ListenTLS(tlsCfg *tls.Config, crt, key, wssPort string) error {
 	port := fmt.Sprintf(":%s", wssPort)
 	server := &http.Server{
