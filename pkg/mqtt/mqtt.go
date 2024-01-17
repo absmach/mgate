@@ -5,9 +5,9 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 
-	"github.com/absmach/mproxy/pkg/logger"
 	"github.com/absmach/mproxy/pkg/session"
 	mptls "github.com/absmach/mproxy/pkg/tls"
 )
@@ -18,12 +18,12 @@ type Proxy struct {
 	target      string
 	handler     session.Handler
 	interceptor session.Interceptor
-	logger      logger.Logger
+	logger      *slog.Logger
 	dialer      net.Dialer
 }
 
 // New returns a new MQTT Proxy instance.
-func New(address, target string, handler session.Handler, interceptor session.Interceptor, logger logger.Logger) *Proxy {
+func New(address, target string, handler session.Handler, interceptor session.Interceptor, logger *slog.Logger) *Proxy {
 	return &Proxy{
 		address:     address,
 		target:      target,

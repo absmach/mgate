@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 
-	"github.com/absmach/mproxy/pkg/logger"
 	"github.com/absmach/mproxy/pkg/session"
 	"github.com/gorilla/websocket"
 	"golang.org/x/sync/errgroup"
@@ -21,7 +21,7 @@ type Proxy struct {
 	target  string
 	address string
 	event   session.Handler
-	logger  logger.Logger
+	logger  *slog.Logger
 }
 
 func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
@@ -108,7 +108,7 @@ func (p *Proxy) stream(ctx context.Context, topic string, src, dest *websocket.C
 	}
 }
 
-func NewProxy(address, target string, logger logger.Logger, handler session.Handler) (*Proxy, error) {
+func NewProxy(address, target string, logger *slog.Logger, handler session.Handler) (*Proxy, error) {
 	return &Proxy{target: target, address: address, logger: logger, event: handler}, nil
 }
 

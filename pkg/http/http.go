@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 
-	"github.com/absmach/mproxy/pkg/logger"
 	"github.com/absmach/mproxy/pkg/session"
 )
 
@@ -78,10 +78,10 @@ type Proxy struct {
 	address string
 	target  *httputil.ReverseProxy
 	session session.Handler
-	logger  logger.Logger
+	logger  *slog.Logger
 }
 
-func NewProxy(address, targetUrl string, handler session.Handler, logger logger.Logger) (Proxy, error) {
+func NewProxy(address, targetUrl string, handler session.Handler, logger *slog.Logger) (Proxy, error) {
 	target, err := url.Parse(targetUrl)
 	if err != nil {
 		return Proxy{}, err

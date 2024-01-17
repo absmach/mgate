@@ -22,7 +22,6 @@ func newConn(ws *websocket.Conn) net.Conn {
 		Conn: ws,
 	}
 	return wrapper
-
 }
 
 // SetDeadline sets both the read and write deadlines

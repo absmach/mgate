@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 
-	"github.com/absmach/magistrala/logger"
 	"github.com/absmach/mproxy/pkg/session"
 )
 
@@ -16,11 +16,11 @@ var _ session.Handler = (*Handler)(nil)
 
 // Handler implements mqtt.Handler interface
 type Handler struct {
-	logger logger.Logger
+	logger *slog.Logger
 }
 
 // New creates new Event entity
-func New(logger logger.Logger) *Handler {
+func New(logger *slog.Logger) *Handler {
 	return &Handler{
 		logger: logger,
 	}

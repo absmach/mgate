@@ -129,7 +129,7 @@ func main() {
 		qos:     2,
 	}
 
-	var mCallback mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
+	var mCallback mqtt.MessageHandler = func(_ mqtt.Client, msg mqtt.Message) {
 		fmt.Printf("Receiving message: %s\n", msg.Payload())
 	}
 	if token := sub.conn.client.Subscribe(sub.channel, sub.qos, mCallback); token.Wait() && token.Error() != nil {
@@ -163,7 +163,6 @@ func main() {
 	fmt.Println("Connected! Waiting for publisher to start...")
 	fmt.Println("Error during publish: ", <-errc)
 	<-errc
-
 }
 
 func (s session) random(d time.Duration, errc chan<- error) {

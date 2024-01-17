@@ -4,11 +4,11 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
 
-	"github.com/absmach/mproxy/pkg/logger"
 	"github.com/absmach/mproxy/pkg/session"
 	mptls "github.com/absmach/mproxy/pkg/tls"
 	"github.com/gorilla/websocket"
@@ -21,12 +21,11 @@ type Proxy struct {
 	scheme      string
 	handler     session.Handler
 	interceptor session.Interceptor
-
-	logger logger.Logger
+	logger      *slog.Logger
 }
 
 // New - creates new WS proxy
-func New(target, path, scheme string, handler session.Handler, interceptor session.Interceptor, logger logger.Logger) *Proxy {
+func New(target, path, scheme string, handler session.Handler, interceptor session.Interceptor, logger *slog.Logger) *Proxy {
 	return &Proxy{
 		target:      target,
 		path:        path,
