@@ -164,30 +164,30 @@ func main() {
 		}
 
 		// WSS - MQTT
-		logger.Info(fmt.Sprintf("Starting encrypted WebSocket proxy on port %s ", cfg.wsMQTTConfig.wssPort))
+		logServerStart(logger, "encrypted WebSocket", cfg.wsMQTTConfig.wssPort, cfg.wsMQTTConfig.targetPort)
 		go proxyMQTTWSS(cfg, tlsCfg, logger, h, errs)
 		// MQTTS
-		logger.Info(fmt.Sprintf("Starting MQTTS proxy on port %s ", cfg.mqttConfig.mqttsPort))
+		logServerStart(logger, "MQTTS", cfg.mqttConfig.mqttsPort, cfg.mqttConfig.targetPort)
 		go proxyMQTTS(ctx, cfg.mqttConfig, tlsCfg, logger, h, errs)
 		// WSS
-		logger.Info(fmt.Sprintf("Starting WSS proxy on port %s ", cfg.wsConfig.port))
+		logServerStart(logger, "WSS", cfg.wsConfig.port, cfg.wsConfig.targetPort)
 		go proxyWSS(ctx, cfg, logger, h, errs)
 		// HTTPS
-		logger.Info(fmt.Sprintf("Starting HTTPS proxy on port %s ", cfg.httpConfig.port))
+		logServerStart(logger, "HTTPS", cfg.httpConfig.port, cfg.httpConfig.targetPort)
 		go proxyHTTPS(ctx, cfg.httpConfig, logger, h, errs)
 	} else {
 		// WS - MQTT
-		logger.Info(fmt.Sprintf("Starting WebSocket proxy on port %s ", cfg.wsMQTTConfig.port))
+		logServerStart(logger, "WebSocket", cfg.wsMQTTConfig.port, cfg.wsMQTTConfig.targetPort)
 		go proxyMQTTWS(cfg.wsMQTTConfig, logger, h, errs)
 
 		// MQTT
-		logger.Info(fmt.Sprintf("Starting MQTT proxy on port %s ", cfg.mqttConfig.port))
+		logServerStart(logger, "MQTT", cfg.mqttConfig.port, cfg.mqttConfig.targetPort)
 		go proxyMQTT(ctx, cfg.mqttConfig, logger, h, errs)
 		// WS
-		logger.Info(fmt.Sprintf("Starting WS proxy on port %s ", cfg.wsConfig.port))
+		logServerStart(logger, "WS", cfg.wsConfig.port, cfg.wsConfig.targetPort)
 		go proxyWS(ctx, cfg.wsConfig, logger, h, errs)
 		// HTTP
-		logger.Info(fmt.Sprintf("Starting HTTP proxy on port %s ", cfg.httpConfig.port))
+		logServerStart(logger, "HTTP", cfg.httpConfig.port, cfg.httpConfig.targetPort)
 		go proxyHTTP(ctx, cfg.httpConfig, logger, h, errs)
 	}
 
@@ -343,4 +343,15 @@ func proxyWSS(_ context.Context, cfg config, logger *slog.Logger, handler sessio
 		errs <- err
 	}
 	errs <- wp.ListenTLS(cfg.serverCert, cfg.serverKey)
+}
+
+func logServerStart(logger *slog.Logger, name, port, targetPort string) {
+	logger.Info("Starting "+name+" proxy",
+		slog.Group("server",
+			slog.String("port", port),
+		),
+		slog.Group("target",
+			slog.String("port", targetPort),
+		),
+	)
 }

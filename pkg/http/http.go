@@ -40,12 +40,12 @@ func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 	payload, err := io.ReadAll(r.Body)
 	if err != nil {
 		encodeError(w, http.StatusBadRequest, err)
-		p.logger.Error(err.Error())
+		p.logger.Error("Failed to read body", slog.Any("error", err))
 		return
 	}
 	if err := r.Body.Close(); err != nil {
 		encodeError(w, http.StatusInternalServerError, err)
-		p.logger.Error(err.Error())
+		p.logger.Error("Failed to close body", slog.Any("error", err))
 		return
 	}
 
@@ -54,12 +54,12 @@ func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 	r.Body = io.NopCloser(bytes.NewBuffer(payload))
 	if err := p.session.AuthConnect(ctx); err != nil {
 		encodeError(w, http.StatusUnauthorized, err)
-		p.logger.Error(err.Error())
+		p.logger.Error("Failed to authorize connect", slog.Any("error", err))
 		return
 	}
 	if err := p.session.Publish(ctx, &r.RequestURI, &payload); err != nil {
 		encodeError(w, http.StatusBadRequest, err)
-		p.logger.Error(err.Error())
+		p.logger.Error("Failed to publish", slog.Any("error", err))
 		return
 	}
 	p.target.ServeHTTP(w, r)

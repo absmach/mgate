@@ -64,7 +64,7 @@ func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 	}
 	inConn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		p.logger.Warn(err.Error())
+		p.logger.Warn("WS Proxy failed to upgrade connection", slog.Any("error", err))
 		return
 	}
 	defer inConn.Close()
@@ -83,7 +83,7 @@ func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		p.logger.Error(fmt.Sprintf("ws Proxy terminated: %s", err))
+		p.logger.Error("WS Proxy terminated", slog.Any("error", err))
 		return
 	}
 }
