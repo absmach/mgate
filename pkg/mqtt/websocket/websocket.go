@@ -4,11 +4,11 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
 
-	"github.com/absmach/mproxy/pkg/logger"
 	"github.com/absmach/mproxy/pkg/session"
 	mptls "github.com/absmach/mproxy/pkg/tls"
 	"github.com/gorilla/websocket"
@@ -21,12 +21,11 @@ type Proxy struct {
 	scheme      string
 	handler     session.Handler
 	interceptor session.Interceptor
-
-	logger logger.Logger
+	logger      *slog.Logger
 }
 
 // New - creates new WS proxy
-func New(target, path, scheme string, handler session.Handler, interceptor session.Interceptor, logger logger.Logger) *Proxy {
+func New(target, path, scheme string, handler session.Handler, interceptor session.Interceptor, logger *slog.Logger) *Proxy {
 	return &Proxy{
 		target:      target,
 		path:        path,
@@ -57,7 +56,7 @@ func (p Proxy) handle() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cconn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			p.logger.Error("Error upgrading connection " + err.Error())
+			p.logger.Error("Error upgrading connection", slog.Any("error", err))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -80,7 +79,7 @@ func (p Proxy) pass(ctx context.Context, in *websocket.Conn) {
 	}
 	srv, _, err := dialer.Dial(url.String(), nil)
 	if err != nil {
-		p.logger.Error("Unable to connect to broker: " + err.Error())
+		p.logger.Error("Unable to connect to broker", slog.Any("error", err))
 		return
 	}
 
@@ -93,13 +92,13 @@ func (p Proxy) pass(ctx context.Context, in *websocket.Conn) {
 
 	clientCert, err := mptls.ClientCert(in.UnderlyingConn())
 	if err != nil {
-		p.logger.Error("Failed to get client certificate: " + err.Error())
+		p.logger.Error("Failed to get client certificate", slog.Any("error", err))
 		return
 	}
 
 	err = session.Stream(ctx, inboundConn, outboundConn, p.handler, p.interceptor, clientCert)
 	errc <- err
-	p.logger.Warn("Broken connection for client with error: " + err.Error())
+	p.logger.Warn("Broken connection for client", slog.Any("error", err))
 }
 
 // Listen of the server

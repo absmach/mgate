@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 
-	"github.com/absmach/mproxy/pkg/logger"
 	"github.com/absmach/mproxy/pkg/session"
 	"github.com/gorilla/websocket"
 	"golang.org/x/sync/errgroup"
@@ -21,7 +21,7 @@ type Proxy struct {
 	target  string
 	address string
 	event   session.Handler
-	logger  logger.Logger
+	logger  *slog.Logger
 }
 
 func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
@@ -64,7 +64,7 @@ func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 	}
 	inConn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		p.logger.Warn(err.Error())
+		p.logger.Warn("WS Proxy failed to upgrade connection", slog.Any("error", err))
 		return
 	}
 	defer inConn.Close()
@@ -83,7 +83,7 @@ func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		p.logger.Error(fmt.Sprintf("ws Proxy terminated: %s", err))
+		p.logger.Error("WS Proxy terminated", slog.Any("error", err))
 		return
 	}
 }
@@ -108,7 +108,7 @@ func (p *Proxy) stream(ctx context.Context, topic string, src, dest *websocket.C
 	}
 }
 
-func NewProxy(address, target string, logger logger.Logger, handler session.Handler) (*Proxy, error) {
+func NewProxy(address, target string, logger *slog.Logger, handler session.Handler) (*Proxy, error) {
 	return &Proxy{target: target, address: address, logger: logger, event: handler}, nil
 }
 
