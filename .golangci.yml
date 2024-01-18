@@ -12,9 +12,6 @@ linters-settings:
   importas:
     no-unaliased: true
     no-extra-aliases: false
-    alias:
-      - pkg: github.com/absmach/magistrala/logger
-        alias: mglog
 
   gocritic:
     enabled-checks:

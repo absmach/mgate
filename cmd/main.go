@@ -25,7 +25,6 @@ import (
 )
 
 const (
-	// WS - MQTT.
 	defMQTTWSHost         = "0.0.0.0"
 	defMQTTWSPath         = "/mqtt"
 	defMQTTWSPort         = "8080"
@@ -46,7 +45,6 @@ const (
 	envMQTTWSTargetPort   = "MPROXY_MQTT_WS_TARGET_PORT"
 	envMQTTWSTargetPath   = "MPROXY_MQTT_WS_TARGET_PATH"
 
-	// MQTT.
 	defMQTTHost       = "0.0.0.0"
 	defMQTTPort       = "1883"
 	defMQTTSPort      = "8883"
@@ -65,7 +63,6 @@ const (
 	envServerCert     = "MPROXY_SERVER_CERT"
 	envServerKey      = "MPROXY_SERVER_KEY"
 
-	// WS.
 	defWSHost       = "0.0.0.0"
 	defWSPort       = "8081"
 	defWSTargetHost = "ws://localhost"
