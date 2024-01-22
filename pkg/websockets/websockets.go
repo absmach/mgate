@@ -22,6 +22,7 @@ type Proxy struct {
 	address string
 	event   session.Handler
 	logger  *slog.Logger
+	server *http.Server
 }
 
 func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
@@ -40,6 +41,7 @@ func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 
 	target := fmt.Sprintf("%s%s", p.target, r.RequestURI)
 
+	fmt.Println("target: ", target)
 	targetConn, _, err := websocket.DefaultDialer.Dial(target, headers)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
@@ -114,10 +116,25 @@ func NewProxy(address, target string, logger *slog.Logger, handler session.Handl
 
 // Listen - listen withrout tls.
 func (p *Proxy) Listen() error {
-	return http.ListenAndServe(p.address, http.HandlerFunc(p.Handler))
+	p.server = &http.Server{
+        Addr:    p.address,
+        Handler: http.HandlerFunc(p.Handler),
+    }
+	return p.server.ListenAndServe()
 }
 
 // ListenTLS - version of Listen with TLS encryption.
 func (p Proxy) ListenTLS(crt, key string) error {
-	return http.ListenAndServeTLS(p.address, crt, key, http.HandlerFunc(p.Handler))
+	p.server = &http.Server{
+        Addr:    p.address,
+        Handler: http.HandlerFunc(p.Handler),
+    }
+	return p.server.ListenAndServeTLS( crt, key)
+}
+
+func (p *Proxy) Shutdown(ctx context.Context) error {
+    if p.server != nil {
+        return p.server.Shutdown(ctx)
+    }
+    return nil
 }
