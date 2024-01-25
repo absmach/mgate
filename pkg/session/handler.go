@@ -3,6 +3,8 @@ package session
 import "context"
 
 // Handler is an interface for mProxy hooks
+
+//go:generate mockery --name Handler --filename handler.go --quiet --note "Copyright (c) Abstract Machines"
 type Handler interface {
 	// Authorization on client `CONNECT`
 	// Each of the params are passed by reference, so that it can be changed
