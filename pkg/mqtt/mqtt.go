@@ -11,14 +11,14 @@ import (
 	"log/slog"
 	"net"
 
+	"github.com/absmach/mproxy"
 	"github.com/absmach/mproxy/pkg/session"
 	mptls "github.com/absmach/mproxy/pkg/tls"
 )
 
 // Proxy is main MQTT proxy struct.
 type Proxy struct {
-	address     string
-	target      string
+	config      mproxy.Config
 	handler     session.Handler
 	interceptor session.Interceptor
 	logger      *slog.Logger
@@ -26,10 +26,9 @@ type Proxy struct {
 }
 
 // New returns a new MQTT Proxy instance.
-func New(address, target string, handler session.Handler, interceptor session.Interceptor, logger *slog.Logger) *Proxy {
+func New(config mproxy.Config, handler session.Handler, interceptor session.Interceptor, logger *slog.Logger) *Proxy {
 	return &Proxy{
-		address:     address,
-		target:      target,
+		config:      config,
 		handler:     handler,
 		logger:      logger,
 		interceptor: interceptor,
@@ -51,9 +50,9 @@ func (p Proxy) accept(ctx context.Context, l net.Listener) {
 
 func (p Proxy) handle(ctx context.Context, inbound net.Conn) {
 	defer p.close(inbound)
-	outbound, err := p.dialer.Dial("tcp", p.target)
+	outbound, err := p.dialer.Dial("tcp", p.config.Target)
 	if err != nil {
-		p.logger.Error("Cannot connect to remote broker " + p.target + " due to: " + err.Error())
+		p.logger.Error("Cannot connect to remote broker " + p.config.Target + " due to: " + err.Error())
 		return
 	}
 	defer p.close(outbound)
@@ -71,31 +70,27 @@ func (p Proxy) handle(ctx context.Context, inbound net.Conn) {
 
 // Listen of the server, this will block.
 func (p Proxy) Listen(ctx context.Context) error {
-	l, err := net.Listen("tcp", p.address)
+	tlsCfg, secure, err := mptls.LoadTLSCfg(p.config.ServerCAFile, p.config.ClientCAFile, p.config.CertFile, p.config.KeyFile)
+	if err != nil {
+		return err
+	}
+
+	l, err := net.Listen("tcp", p.config.Address)
 	if err != nil {
 		return err
 	}
 	defer l.Close()
 
-	// Acceptor loop
-	p.accept(ctx, l)
-
-	p.logger.Info("Server Exiting...")
-	return nil
-}
-
-// ListenTLS - version of Listen with TLS encryption.
-func (p Proxy) ListenTLS(ctx context.Context, tlsCfg *tls.Config) error {
-	l, err := tls.Listen("tcp", p.address, tlsCfg)
-	if err != nil {
-		return err
+	if secure > mptls.WithoutTLS {
+		l = tls.NewListener(l, tlsCfg)
 	}
-	defer l.Close()
+
+	p.logger.Info(fmt.Sprintf("mqtt proxy server started %s", secure.String()))
 
 	// Acceptor loop
 	p.accept(ctx, l)
 
-	p.logger.Info("Server Exiting...")
+	p.logger.Info("mqtt proxy server exiting...")
 	return nil
 }
 

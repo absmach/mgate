@@ -158,7 +158,7 @@ func main() {
 	ctx := context.Background()
 
 	if cfg.clientTLS {
-		tlsCfg, err := mptls.LoadTLSCfg(cfg.caCerts, cfg.serverCert, cfg.serverKey)
+		tlsCfg, _, err := mptls.LoadTLSCfg(cfg.caCerts, "", cfg.serverCert, cfg.serverKey)
 		if err != nil {
 			errs <- err
 		}

@@ -8,10 +8,12 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/url"
 	"time"
 
+	"github.com/absmach/mproxy"
 	"github.com/absmach/mproxy/pkg/session"
 	mptls "github.com/absmach/mproxy/pkg/tls"
 	"github.com/gorilla/websocket"
@@ -19,7 +21,7 @@ import (
 
 // Proxy represents WS Proxy.
 type Proxy struct {
-	target      string
+	config      mproxy.Config
 	path        string
 	scheme      string
 	handler     session.Handler
@@ -30,7 +32,7 @@ type Proxy struct {
 // New - creates new WS proxy.
 func New(target, path, scheme string, handler session.Handler, interceptor session.Interceptor, logger *slog.Logger) *Proxy {
 	return &Proxy{
-		target:      target,
+		config:      config,
 		path:        path,
 		scheme:      scheme,
 		handler:     handler,
@@ -73,7 +75,7 @@ func (p Proxy) pass(ctx context.Context, in *websocket.Conn) {
 
 	websocketURL := url.URL{
 		Scheme: p.scheme,
-		Host:   p.target,
+		Host:   p.config.Target,
 		Path:   p.path,
 	}
 
