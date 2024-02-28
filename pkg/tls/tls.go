@@ -6,12 +6,18 @@ package tls
 import (
 	"bytes"
 	"crypto"
+	"bytes"
+	"crypto"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
+	"fmt"
+	"io"
 	"net"
+	"net/http"
+	"net/url"
 	"net/http"
 	"net/url"
 	"os"
@@ -59,28 +65,92 @@ func (s Security) String() string {
 		return "without TLS"
 	}
 }
+	errTLSdetails           = errors.New("failed to get TLS details of connection")
+	errParseRoot            = errors.New("failed to parse root certificate")
+	errLoadCerts            = errors.New("failed to load certificates")
+	errLoadServerCA         = errors.New("failed to load Server CA")
+	errLoadClientCA         = errors.New("failed to load Client CA")
+	errAppendCA             = errors.New("failed to append root ca tls.Config")
+	errClientCrt            = errors.New("client certificate not received")
+	errRetrieveIssuerCrt    = errors.New("failed to retrieve issuer certificate")
+	errReadIssuerCrt        = errors.New("failed to read issuer certificate")
+	errParseIssuerCrt       = errors.New("failed to parse issuer certificate")
+	errCreateOCSPReq        = errors.New("failed to create OCSP Request")
+	errCreateOCSPHTTPReq    = errors.New("failed to create OCSP HTTP Request")
+	errParseOCSPUrl         = errors.New("failed to parse OCSP server URL")
+	errOCSPReq              = errors.New("OCSP request failed")
+	errOCSPReadResp         = errors.New("failed to read OCSP response")
+	errParseOCSPRespForCert = errors.New("failed to parse OCSP Response for Certificate")
+	errParseCert            = errors.New("failed to parse Certificate")
+)
 
-// LoadTLSCfg return a TLS configuration that can be used in TLS servers.
-func LoadTLSCfg(ca, crt, key string) (*tls.Config, error) {
-	caCertPEM, err := os.ReadFile(ca)
-	if err != nil {
-		return nil, err
-	}
+type Security int
 
-	roots := x509.NewCertPool()
-	if ok := roots.AppendCertsFromPEM(caCertPEM); !ok {
-		return nil, errParseRoot
-	}
+const (
+	WithoutTLS Security = iota
+	WithTLS
+	WithmTLS
+)
 
-	cert, err := tls.LoadX509KeyPair(crt, key)
-	if err != nil {
-		return nil, err
+func (s Security) String() string {
+	switch s {
+	case WithTLS:
+		return "with TLS"
+	case WithmTLS:
+		return "with mTLS"
+	case WithoutTLS:
+		fallthrough
+	default:
+		return "without TLS"
 	}
-	return &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-		ClientCAs:    roots,
-	}, nil
+}
+
+// LoadTLSCfg return a TLS configuration that can be used in TLS servers
+func LoadTLSCfg(serverCA, clientCA, crt, key string) (*tls.Config, Security, error) {
+	tlsConfig := &tls.Config{}
+	secure := WithoutTLS
+	if crt != "" || key != "" {
+		certificate, err := tls.LoadX509KeyPair(crt, key)
+		if err != nil {
+			return nil, secure, errors.Join(errLoadCerts, err)
+		}
+		tlsConfig = &tls.Config{
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			Certificates: []tls.Certificate{certificate},
+		}
+
+		// Loading Server CA file
+		rootCA, err := loadCertFile(serverCA)
+		if err != nil {
+			return nil, secure, errors.Join(errLoadServerCA, err)
+		}
+		if len(rootCA) > 0 {
+			if tlsConfig.RootCAs == nil {
+				tlsConfig.RootCAs = x509.NewCertPool()
+			}
+			if !tlsConfig.RootCAs.AppendCertsFromPEM(rootCA) {
+				return nil, secure, errAppendCA
+			}
+			secure = WithTLS
+		}
+
+		// Loading Client CA File
+		clientCA, err := loadCertFile(clientCA)
+		if err != nil {
+			return nil, secure, errors.Join(errLoadClientCA, err)
+		}
+		if len(clientCA) > 0 {
+			if tlsConfig.ClientCAs == nil {
+				tlsConfig.ClientCAs = x509.NewCertPool()
+			}
+			if !tlsConfig.ClientCAs.AppendCertsFromPEM(clientCA) {
+				return nil, secure, errAppendCA
+			}
+			tlsConfig.VerifyPeerCertificate = verifyPeerCertificate
+			secure = WithmTLS
+		}
+	}
+	return tlsConfig, secure, nil
 }
 
 // ClientCert returns client certificate.

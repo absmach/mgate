@@ -29,8 +29,8 @@ type Proxy struct {
 	logger      *slog.Logger
 }
 
-// New - creates new WS proxy.
-func New(target, path, scheme string, handler session.Handler, interceptor session.Interceptor, logger *slog.Logger) *Proxy {
+// New - creates new WS proxy
+func New(config mproxy.Config, path, scheme string, handler session.Handler, interceptor session.Interceptor, logger *slog.Logger) *Proxy {
 	return &Proxy{
 		config:      config,
 		path:        path,
@@ -106,18 +106,25 @@ func (p Proxy) pass(ctx context.Context, in *websocket.Conn) {
 	p.logger.Warn("Broken connection for client", slog.Any("error", err))
 }
 
-// Listen of the server.
-func (p Proxy) Listen(wsPort string) error {
-	port := fmt.Sprintf(":%s", wsPort)
-	return http.ListenAndServe(port, nil)
-}
-
-// ListenTLS - version of Listen with TLS encryption.
-func (p Proxy) ListenTLS(tlsCfg *tls.Config, crt, key, wssPort string) error {
-	port := fmt.Sprintf(":%s", wssPort)
-	server := &http.Server{
-		Addr:      port,
-		TLSConfig: tlsCfg,
+func (p Proxy) Listen() error {
+	tlsCfg, secure, err := mptls.LoadTLSCfg(p.config.ServerCAFile, p.config.ClientCAFile, p.config.CertFile, p.config.KeyFile)
+	if err != nil {
+		return err
 	}
-	return server.ListenAndServeTLS(crt, key)
+
+	l, err := net.Listen("tcp", p.config.Address)
+	if err != nil {
+		return err
+	}
+	defer l.Close()
+
+	if secure > mptls.WithoutTLS {
+		l = tls.NewListener(l, tlsCfg)
+	}
+
+	p.logger.Info(fmt.Sprintf("http proxy server started %s", secure.String()))
+
+	var server http.Server
+
+	return server.Serve(l)
 }
