@@ -14,6 +14,7 @@ import (
 	"github.com/absmach/mproxy"
 	"github.com/absmach/mproxy/pkg/session"
 	mptls "github.com/absmach/mproxy/pkg/tls"
+	"golang.org/x/sync/errgroup"
 )
 
 // Proxy is main MQTT proxy struct.
@@ -37,14 +38,18 @@ func New(config mproxy.Config, handler session.Handler, interceptor session.Inte
 
 func (p Proxy) accept(ctx context.Context, l net.Listener) {
 	for {
-		conn, err := l.Accept()
-		if err != nil {
-			p.logger.Warn("Accept error " + err.Error())
-			continue
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			conn, err := l.Accept()
+			if err != nil {
+				p.logger.Warn("Accept error " + err.Error())
+				continue
+			}
+			p.logger.Info("Accepted new client")
+			go p.handle(ctx, conn)
 		}
-
-		p.logger.Info("Accepted new client")
-		go p.handle(ctx, conn)
 	}
 }
 
@@ -70,7 +75,7 @@ func (p Proxy) handle(ctx context.Context, inbound net.Conn) {
 
 // Listen of the server, this will block.
 func (p Proxy) Listen(ctx context.Context) error {
-	tlsCfg, secure, err := mptls.LoadTLSCfg(p.config.ServerCAFile, p.config.ClientCAFile, p.config.CertFile, p.config.KeyFile)
+	tlsCfg, secure, err := p.config.TLSConfig.Load()
 	if err != nil {
 		return err
 	}
@@ -86,11 +91,23 @@ func (p Proxy) Listen(ctx context.Context) error {
 	}
 
 	p.logger.Info(fmt.Sprintf("mqtt proxy server started %s", secure.String()))
+	g, ctx := errgroup.WithContext(ctx)
 
 	// Acceptor loop
-	p.accept(ctx, l)
+	g.Go(func() error {
+		p.accept(ctx, l)
+		return nil
+	})
 
-	p.logger.Info("mqtt proxy server exiting...")
+	g.Go(func() error {
+		<-ctx.Done()
+		return l.Close()
+	})
+	if err := g.Wait(); err != nil {
+		p.logger.Info("mqtt proxy server exiting with error ", err)
+	} else {
+		p.logger.Info("mqtt proxy server exiting...")
+	}
 	return nil
 }
 

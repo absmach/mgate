@@ -12,6 +12,7 @@ require (
 )
 
 require (
+	github.com/caarlos0/env/v10 v10.0.0 // indirect
 	golang.org/x/crypto v0.20.0 // indirect
 	golang.org/x/net v0.21.0 // indirect
 )

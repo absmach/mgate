@@ -10,7 +10,6 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/absmach/mproxy"
@@ -22,19 +21,15 @@ import (
 // Proxy represents WS Proxy.
 type Proxy struct {
 	config      mproxy.Config
-	path        string
-	scheme      string
 	handler     session.Handler
 	interceptor session.Interceptor
 	logger      *slog.Logger
 }
 
 // New - creates new WS proxy
-func New(config mproxy.Config, path, scheme string, handler session.Handler, interceptor session.Interceptor, logger *slog.Logger) *Proxy {
+func New(config mproxy.Config, handler session.Handler, interceptor session.Interceptor, logger *slog.Logger) *Proxy {
 	return &Proxy{
 		config:      config,
-		path:        path,
-		scheme:      scheme,
 		handler:     handler,
 		interceptor: interceptor,
 		logger:      logger,
@@ -73,16 +68,10 @@ func (p Proxy) handle() http.Handler {
 func (p Proxy) pass(ctx context.Context, in *websocket.Conn) {
 	defer in.Close()
 
-	websocketURL := url.URL{
-		Scheme: p.scheme,
-		Host:   p.config.Target,
-		Path:   p.path,
-	}
-
 	dialer := &websocket.Dialer{
 		Subprotocols: []string{"mqtt"},
 	}
-	srv, _, err := dialer.Dial(websocketURL.String(), nil)
+	srv, _, err := dialer.Dial(p.config.Target, nil)
 	if err != nil {
 		p.logger.Error("Unable to connect to broker", slog.Any("error", err))
 		return
@@ -107,7 +96,7 @@ func (p Proxy) pass(ctx context.Context, in *websocket.Conn) {
 }
 
 func (p Proxy) Listen() error {
-	tlsCfg, secure, err := mptls.LoadTLSCfg(p.config.ServerCAFile, p.config.ClientCAFile, p.config.CertFile, p.config.KeyFile)
+	tlsCfg, secure, err := p.config.TLSConfig.Load()
 	if err != nil {
 		return err
 	}
