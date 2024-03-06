@@ -212,7 +212,7 @@ func (c *Config) Load() (*tls.Config, Security, error) {
 			secure = WithmTLS
 			tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 			if len(c.ClientCertValidationMethods) > 0 {
-				tlsConfig.VerifyPeerCertificate = c.verifyPeerCertificate
+				tlsConfig.VerifyPeerCertificate = c.verifyPeerVerifiedCertificate
 				secure = WithmTLSVerify
 			}
 		}
@@ -248,7 +248,7 @@ func loadCertFile(certFile string) ([]byte, error) {
 	return []byte{}, nil
 }
 
-func (c *Config) verifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+func (c *Config) verifyPeerRawCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	if len(rawCerts) == 0 {
 		return errClientCrt
 	}
@@ -276,6 +276,67 @@ func (c *Config) verifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x5
 	return nil
 }
 
+func (c *Config) verifyPeerVerifiedCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+	if len(verifiedChains) == 0 {
+		return errClientCrt
+	}
+	for _, method := range c.ClientCertValidationMethods {
+		switch method {
+		case OCSP:
+			for _, verifiedChain := range verifiedChains {
+				for i := range verifiedChain {
+					cert := verifiedChain[i]
+					issuer := cert
+					if i+1 < len(verifiedChain) {
+						issuer = verifiedChain[i+1]
+					}
+					if err := c.ocspVerify(cert, issuer); err != nil {
+						return err
+					}
+				}
+			}
+		case CRL:
+			offlineCRL, err := c.loadOfflineCRL()
+			if err != nil {
+				return err
+			}
+			for _, verifiedChain := range verifiedChains {
+				for i := range verifiedChain {
+					cert := verifiedChain[i]
+					issuer := cert
+					if i+1 < len(verifiedChain) {
+						issuer = verifiedChain[i+1]
+					}
+					crl := offlineCRL
+					if len(cert.CRLDistributionPoints) > 0 {
+						crl, err = retrieveCRL(cert.CRLDistributionPoints[0], issuer, true)
+						if err != nil {
+							return err
+						}
+					} else {
+						if c.CRLDistributionPoints.String() != "" {
+							var crlIssuerCrt *x509.Certificate
+							if c.CRLDistributionPointsSignCheck {
+								if crlIssuerCrt, err = c.loadCRLIssuerCert(); err != nil {
+									return err
+								}
+							}
+							crl, err = retrieveCRL(c.CRLDistributionPoints.String(), crlIssuerCrt, c.CRLDistributionPointsSignCheck)
+							if err != nil {
+								return err
+							}
+						}
+					}
+					if err := c.crlVerify(cert, crl); err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func (c *Config) ocspVerifications(peerCertificates []*x509.Certificate) error {
 
 	for i, peerCertificate := range peerCertificates {
@@ -297,7 +358,7 @@ func (c *Config) ocspVerify(peerCertificate, issuerCert *x509.Certificate) error
 	if !isRootCA(peerCertificate) {
 		if issuerCert == nil {
 			if len(peerCertificate.IssuingCertificateURL) < 1 {
-				return fmt.Errorf("neither issuer certificate in chain nor issuer certificate URL is not present AIA , certificate common name %s  and serial number %x", peerCertificate.Subject.CommonName, peerCertificate.SerialNumber)
+				return fmt.Errorf("neither the issuer certificate is present in the chain nor is the issuer certificate URL present in AIA, certificate common name %s  and serial number %x", peerCertificate.Subject.CommonName, peerCertificate.SerialNumber)
 			}
 			issuerCert, err = retrieveIssuingCertificate(peerCertificate.IssuingCertificateURL[0])
 			if err != nil {

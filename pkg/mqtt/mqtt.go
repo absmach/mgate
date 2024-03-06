@@ -84,13 +84,12 @@ func (p Proxy) Listen(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer l.Close()
 
 	if secure > mptls.WithoutTLS {
 		l = tls.NewListener(l, tlsCfg)
 	}
 
-	p.logger.Info(fmt.Sprintf("mqtt proxy server started %s", secure.String()))
+	p.logger.Info(fmt.Sprintf("MQTT proxy server started at %s  %s", p.config.Address, secure.String()))
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Acceptor loop
@@ -104,9 +103,9 @@ func (p Proxy) Listen(ctx context.Context) error {
 		return l.Close()
 	})
 	if err := g.Wait(); err != nil {
-		p.logger.Info("mqtt proxy server exiting with error ", err)
+		p.logger.Info(fmt.Sprintf("MQTT proxy server at %s  %s exiting with errors", p.config.Address, secure.String()), slog.String("error", err.Error()))
 	} else {
-		p.logger.Info("mqtt proxy server exiting...")
+		p.logger.Info(fmt.Sprintf("MQTT proxy server at %s  %s exiting...", p.config.Address, secure.String()))
 	}
 	return nil
 }

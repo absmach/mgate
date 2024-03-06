@@ -10,12 +10,14 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/absmach/mproxy"
 	"github.com/absmach/mproxy/pkg/session"
 	mptls "github.com/absmach/mproxy/pkg/tls"
 	"github.com/gorilla/websocket"
+	"golang.org/x/sync/errgroup"
 )
 
 // Proxy represents WS Proxy.
@@ -28,6 +30,15 @@ type Proxy struct {
 
 // New - creates new WS proxy
 func New(config mproxy.Config, handler session.Handler, interceptor session.Interceptor, logger *slog.Logger) *Proxy {
+	config.PrefixPath = strings.TrimSpace(config.PrefixPath)
+	switch {
+	case config.PrefixPath != "":
+		if config.PrefixPath[0] != '/' {
+			config.PrefixPath = "/" + config.PrefixPath
+		}
+	case config.PrefixPath == "":
+		config.PrefixPath = "/"
+	}
 	return &Proxy{
 		config:      config,
 		handler:     handler,
@@ -47,22 +58,19 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// Handler - proxies WS traffic.
-func (p Proxy) Handler() http.Handler {
-	return p.handle()
-}
+func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != p.config.PrefixPath {
+		http.NotFound(w, r)
+		return
+	}
+	cconn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		p.logger.Error("Error upgrading connection", slog.Any("error", err))
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-func (p Proxy) handle() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cconn, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			p.logger.Error("Error upgrading connection", slog.Any("error", err))
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		go p.pass(r.Context(), cconn)
-	})
+	go p.pass(r.Context(), cconn)
 }
 
 func (p Proxy) pass(ctx context.Context, in *websocket.Conn) {
@@ -95,7 +103,7 @@ func (p Proxy) pass(ctx context.Context, in *websocket.Conn) {
 	p.logger.Warn("Broken connection for client", slog.Any("error", err))
 }
 
-func (p Proxy) Listen() error {
+func (p Proxy) Listen(ctx context.Context) error {
 	tlsCfg, secure, err := p.config.TLSConfig.Load()
 	if err != nil {
 		return err
@@ -105,15 +113,31 @@ func (p Proxy) Listen() error {
 	if err != nil {
 		return err
 	}
-	defer l.Close()
 
 	if secure > mptls.WithoutTLS {
 		l = tls.NewListener(l, tlsCfg)
 	}
 
-	p.logger.Info(fmt.Sprintf("http proxy server started %s", secure.String()))
-
 	var server http.Server
+	g, ctx := errgroup.WithContext(ctx)
 
-	return server.Serve(l)
+	mux := http.NewServeMux()
+	mux.Handle(p.config.PrefixPath, p)
+	server.Handler = mux
+
+	g.Go(func() error {
+		return server.Serve(l)
+	})
+	p.logger.Info(fmt.Sprintf("MQTT websocket proxy server started at %s%s %s", p.config.Address, p.config.PrefixPath, secure.String()))
+
+	g.Go(func() error {
+		<-ctx.Done()
+		return server.Close()
+	})
+	if err := g.Wait(); err != nil {
+		p.logger.Info(fmt.Sprintf("MQTT websocket proxy server at %s%s %s exiting with errors", p.config.Address, p.config.PrefixPath, secure.String()), slog.String("error", err.Error()))
+	} else {
+		p.logger.Info(fmt.Sprintf("MQTT websocket proxy server at %s%s %s exiting...", p.config.Address, p.config.PrefixPath, secure.String()))
+	}
+	return nil
 }
