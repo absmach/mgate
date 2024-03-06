@@ -157,7 +157,7 @@ type Config struct {
 	ClientCAFile                        string           `env:"CLIENT_CA_FILE"                             envDefault:""`
 	ClientCertValidationMethods         []ValidateMethod `env:"CLIENT_CERT_VALIDATION_METHODS"             envDefault:""`
 	OCSPDepth                           uint             `env:"OCSP_DEPTH"                                 envDefault:"0"`
-	OCSPResponderURL                    url.URL          `env:"OCSP_RESPONDER_URL"                          envDefault:""`
+	OCSPResponderURL                    url.URL          `env:"OCSP_RESPONDER_URL"                         envDefault:""`
 	CRLDepth                            uint             `env:"CRL_DEPTH"                                  envDefault:"1"`
 	OfflineCRLFile                      string           `env:"OFFLINE_CRL_FILE"                           envDefault:""`
 	CRLDistributionPoints               url.URL          `env:"CRL_DISTRIBUTION_POINTS"                    envDefault:""`

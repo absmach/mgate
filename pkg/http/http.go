@@ -98,10 +98,8 @@ type Proxy struct {
 func NewProxy(config mproxy.Config, handler session.Handler, logger *slog.Logger) (Proxy, error) {
 	config.PrefixPath = strings.TrimSpace(config.PrefixPath)
 	switch {
-	case config.PrefixPath != "":
-		if config.PrefixPath[0] != '/' {
-			config.PrefixPath = "/" + config.PrefixPath
-		}
+	case config.PrefixPath != "" && config.PrefixPath[0] != '/':
+		config.PrefixPath = "/" + config.PrefixPath
 	case config.PrefixPath == "":
 		config.PrefixPath = "/"
 	}

@@ -68,7 +68,7 @@ func main() {
 		pubClientNoCerts.Disconnect(250)
 		panic("some thing went wrong")
 	}
-	fmt.Printf("Failed to connect Publisher without Server certs,error : %s\n", err.Error())
+	fmt.Printf("Failed to connect without Server certs,error : %s\n", err.Error())
 
 }
 

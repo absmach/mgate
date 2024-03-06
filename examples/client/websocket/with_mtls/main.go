@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	brokerAddress = "wss://localhost:8085"
+	brokerAddress = "wss://localhost:8085/mqtt"
 	topic         = "test/topic"
 	payload       = "Hello mProxy"
 	certFile      = "ssl/certs/thing.crt"
@@ -77,12 +77,12 @@ func main() {
 		pubClient.Disconnect(250)
 		panic("some thing went wrong")
 	}
-	fmt.Printf("Failed to connect Publisher with unknown client certs,error : %s\n", err.Error())
+	fmt.Printf("Failed to connect with unknown client certs,error : %s\n", err.Error())
 
 	//Publisher with no client certs
 	certFile = ""
 	keyFile = ""
-	fmt.Printf("Publishing to topic %s with mTLS, with ca certificate %s and without client certificate %s %s \n", topic, serverCAFile, certFile, keyFile)
+	fmt.Printf("Publishing to topic %s with mTLS, with ca certificate %s and without client certificate\n", topic, serverCAFile)
 	tlsCfg1, err := websocket.LoadTLS(certFile, keyFile, serverCAFile, clientCAFile)
 	if err != nil {
 		panic(err)
@@ -93,13 +93,13 @@ func main() {
 		pubClient.Disconnect(250)
 		panic("some thing went wrong")
 	}
-	fmt.Printf("Failed to connect Publisher without client certs,error : %s\n", err.Error())
+	fmt.Printf("Failed to connect without client certs,error : %s\n", err.Error())
 
 	//Publisher with no client certs
 	serverCAFile = ""
 	certFile = ""
 	keyFile = ""
-	fmt.Printf("Publishing to topic %s with mTLS, without ca certificate %s and without client certificate %s %s \n", topic, serverCAFile, certFile, keyFile)
+	fmt.Printf("Publishing to topic %s with mTLS, without ca certificate and without client certificate %s %s \n", topic)
 	tlsCfg, err = websocket.LoadTLS(certFile, keyFile, serverCAFile, clientCAFile)
 	if err != nil {
 		panic(err)
@@ -110,7 +110,7 @@ func main() {
 		pubClient.Disconnect(250)
 		panic("some thing went wrong")
 	}
-	fmt.Printf("Failed to connect Publisher without client certs,error : %s\n", err.Error())
+	fmt.Printf("Failed to connect without client certs,error : %s\n", err.Error())
 
 }
 

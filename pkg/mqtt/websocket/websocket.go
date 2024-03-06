@@ -32,10 +32,8 @@ type Proxy struct {
 func New(config mproxy.Config, handler session.Handler, interceptor session.Interceptor, logger *slog.Logger) *Proxy {
 	config.PrefixPath = strings.TrimSpace(config.PrefixPath)
 	switch {
-	case config.PrefixPath != "":
-		if config.PrefixPath[0] != '/' {
-			config.PrefixPath = "/" + config.PrefixPath
-		}
+	case config.PrefixPath != "" && config.PrefixPath[0] != '/':
+		config.PrefixPath = "/" + config.PrefixPath
 	case config.PrefixPath == "":
 		config.PrefixPath = "/"
 	}
