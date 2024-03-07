@@ -6,19 +6,13 @@ package tls
 import (
 	"bytes"
 	"crypto"
-	"bytes"
-	"crypto"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"errors"
 	"fmt"
 	"io"
-	"fmt"
-	"io"
 	"net"
-	"net/http"
-	"net/url"
 	"net/http"
 	"net/url"
 	"os"
@@ -74,45 +68,6 @@ func (s Security) String() string {
 		return "with mTLS"
 	case WithmTLSVerify:
 		return "with mTLS and validation of client certificate revocation status"
-	case WithoutTLS:
-		fallthrough
-	default:
-		return "without TLS"
-	}
-}
-	errTLSdetails           = errors.New("failed to get TLS details of connection")
-	errParseRoot            = errors.New("failed to parse root certificate")
-	errLoadCerts            = errors.New("failed to load certificates")
-	errLoadServerCA         = errors.New("failed to load Server CA")
-	errLoadClientCA         = errors.New("failed to load Client CA")
-	errAppendCA             = errors.New("failed to append root ca tls.Config")
-	errClientCrt            = errors.New("client certificate not received")
-	errRetrieveIssuerCrt    = errors.New("failed to retrieve issuer certificate")
-	errReadIssuerCrt        = errors.New("failed to read issuer certificate")
-	errParseIssuerCrt       = errors.New("failed to parse issuer certificate")
-	errCreateOCSPReq        = errors.New("failed to create OCSP Request")
-	errCreateOCSPHTTPReq    = errors.New("failed to create OCSP HTTP Request")
-	errParseOCSPUrl         = errors.New("failed to parse OCSP server URL")
-	errOCSPReq              = errors.New("OCSP request failed")
-	errOCSPReadResp         = errors.New("failed to read OCSP response")
-	errParseOCSPRespForCert = errors.New("failed to parse OCSP Response for Certificate")
-	errParseCert            = errors.New("failed to parse Certificate")
-)
-
-type Security int
-
-const (
-	WithoutTLS Security = iota
-	WithTLS
-	WithmTLS
-)
-
-func (s Security) String() string {
-	switch s {
-	case WithTLS:
-		return "with TLS"
-	case WithmTLS:
-		return "with mTLS"
 	case WithoutTLS:
 		fallthrough
 	default:
