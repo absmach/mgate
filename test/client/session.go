@@ -1,3 +1,6 @@
+// Copyright (c) Abstract Machines
+// SPDX-License-Identifier: Apache-2.0
+
 package main
 
 import (
@@ -73,11 +76,11 @@ func (c conn) New(cfg config) (*conn, error) {
 	opts.SetUsername(newConn.username)
 	opts.SetPassword(newConn.token)
 
-	mqtt := mqtt.NewClient(opts)
+	mqttClient := mqtt.NewClient(opts)
 
 	// Try to connect with retry
 	for i := 0; i <= c.retry; i++ {
-		if token := mqtt.Connect(); token.Wait() && token.Error() == nil {
+		if token := mqttClient.Connect(); token.Wait() && token.Error() == nil {
 			break
 		} else {
 			fmt.Println(token.Error())
@@ -85,7 +88,7 @@ func (c conn) New(cfg config) (*conn, error) {
 		}
 	}
 
-	newConn.client = mqtt
+	newConn.client = mqttClient
 
 	return newConn, nil
 }
@@ -99,13 +102,13 @@ func (c conn) id() (string, error) {
 }
 
 func (cfg config) load() (config, error) {
-	//TODO Add loading from toml
 	c := config{
 		url:      defURL,
 		username: defUsername,
-		token:    defToken, scheme: defScheme,
-		retry: defRetry,
-		mode:  defMode,
+		token:    defToken,
+		scheme:   defScheme,
+		retry:    defRetry,
+		mode:     defMode,
 	}
 	return c, nil
 }

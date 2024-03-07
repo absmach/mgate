@@ -1,3 +1,6 @@
+// Copyright (c) Abstract Machines
+// SPDX-License-Identifier: Apache-2.0
+
 package main
 
 import (
@@ -22,7 +25,6 @@ import (
 )
 
 const (
-	// WS - MQTT
 	defMQTTWSHost         = "0.0.0.0"
 	defMQTTWSPath         = "/mqtt"
 	defMQTTWSPort         = "8080"
@@ -43,7 +45,6 @@ const (
 	envMQTTWSTargetPort   = "MPROXY_MQTT_WS_TARGET_PORT"
 	envMQTTWSTargetPath   = "MPROXY_MQTT_WS_TARGET_PATH"
 
-	// MQTT
 	defMQTTHost       = "0.0.0.0"
 	defMQTTPort       = "1883"
 	defMQTTSPort      = "8883"
@@ -62,7 +63,6 @@ const (
 	envServerCert     = "MPROXY_SERVER_CERT"
 	envServerKey      = "MPROXY_SERVER_KEY"
 
-	// WS
 	defWSHost       = "0.0.0.0"
 	defWSPort       = "8081"
 	defWSTargetHost = "ws://localhost"
@@ -210,7 +210,7 @@ func env(key, fallback string) string {
 }
 
 func loadConfig() config {
-	tls, err := strconv.ParseBool(env(envClientTLS, defClientTLS))
+	clientTLS, err := strconv.ParseBool(env(envClientTLS, defClientTLS))
 	if err != nil {
 		log.Fatalf("Invalid value passed for %s\n", envClientTLS)
 	}
@@ -242,7 +242,7 @@ func loadConfig() config {
 			targetHost: env(envMQTTTargetHost, defMQTTTargetHost),
 			targetPort: env(envMQTTTargetPort, defMQTTTargetPort),
 		},
-		clientTLS:  tls,
+		clientTLS:  clientTLS,
 		caCerts:    env(envCACerts, defCACerts),
 		serverCert: env(envServerCert, defServerCert),
 		serverKey:  env(envServerKey, defServerKey),

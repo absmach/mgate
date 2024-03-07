@@ -1,3 +1,6 @@
+// Copyright (c) Abstract Machines
+// SPDX-License-Identifier: Apache-2.0
+
 package websocket
 
 import (
@@ -18,13 +21,12 @@ type wsWrapper struct {
 }
 
 func newConn(ws *websocket.Conn) net.Conn {
-	wrapper := &wsWrapper{
+	return &wsWrapper{
 		Conn: ws,
 	}
-	return wrapper
 }
 
-// SetDeadline sets both the read and write deadlines
+// SetDeadline sets both the read and write deadlines.
 func (c *wsWrapper) SetDeadline(t time.Time) error {
 	if err := c.SetReadDeadline(t); err != nil {
 		return err
@@ -33,7 +35,7 @@ func (c *wsWrapper) SetDeadline(t time.Time) error {
 	return err
 }
 
-// Write writes data to the websocket
+// Write writes data to the websocket.
 func (c *wsWrapper) Write(p []byte) (int, error) {
 	c.wio.Lock()
 	defer c.wio.Unlock()
@@ -45,7 +47,7 @@ func (c *wsWrapper) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-// Read reads the current websocket frame
+// Read reads the current websocket frame.
 func (c *wsWrapper) Read(p []byte) (int, error) {
 	c.rio.Lock()
 	defer c.rio.Unlock()

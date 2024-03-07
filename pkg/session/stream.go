@@ -1,8 +1,12 @@
+// Copyright (c) Abstract Machines
+// SPDX-License-Identifier: Apache-2.0
+
 package session
 
 import (
 	"context"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -40,8 +44,9 @@ func Stream(ctx context.Context, in, out net.Conn, h Handler, ic Interceptor, ce
 	// to the errors channel because it is buffered.
 	err := <-errs
 
-	h.Disconnect(ctx)
-	return err
+	disconnectErr := h.Disconnect(ctx)
+
+	return errors.Join(err, disconnectErr)
 }
 
 func stream(ctx context.Context, dir Direction, r, w net.Conn, h Handler, ic Interceptor, errs chan error) {
