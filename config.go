@@ -1,3 +1,6 @@
+// Copyright (c) Abstract Machines
+// SPDX-License-Identifier: Apache-2.0
+
 package mproxy
 
 import (
@@ -5,7 +8,6 @@ import (
 	"strings"
 
 	mptls "github.com/absmach/mproxy/pkg/tls"
-
 	"github.com/caarlos0/env/v10"
 )
 
@@ -42,6 +44,7 @@ func parseSliceValidateMethod(v string) (interface{}, error) {
 	}
 	return vms, nil
 }
+
 func parseValidateMethod(v string) (interface{}, error) {
 	return mptls.ParseValidateMethod(v)
 }

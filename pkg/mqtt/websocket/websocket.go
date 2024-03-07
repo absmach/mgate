@@ -28,7 +28,7 @@ type Proxy struct {
 	logger      *slog.Logger
 }
 
-// New - creates new WS proxy
+// New - creates new WS proxy.
 func New(config mproxy.Config, handler session.Handler, interceptor session.Interceptor, logger *slog.Logger) *Proxy {
 	config.PrefixPath = strings.TrimSpace(config.PrefixPath)
 	switch {

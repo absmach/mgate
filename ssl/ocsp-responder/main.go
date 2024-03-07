@@ -1,9 +1,11 @@
+// Copyright (c) Abstract Machines
+// SPDX-License-Identifier: Apache-2.0
+
 package main
 
 import (
 	"crypto"
 	"crypto/x509"
-	"encoding/hex"
 	"encoding/pem"
 	"fmt"
 	"io"
@@ -70,7 +72,9 @@ func main() {
 
 	// Start the HTTP server
 	fmt.Println("OCSP responder listening on :8080")
-	http.ListenAndServe(":8080", nil)
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		panic(err)
+	}
 }
 
 func loadCertificate(file string) (*x509.Certificate, error) {
@@ -100,7 +104,7 @@ func loadPrivateKey(file string) (interface{}, error) {
 	return x509.ParsePKCS8PrivateKey(block.Bytes)
 }
 
-func ocspHandler(w http.ResponseWriter, r *http.Request, cert *x509.Certificate, issuerCert *x509.Certificate, privateKey interface{}, goodCerts []*big.Int, revokedCerts []*big.Int, logger slog.Logger) {
+func ocspHandler(w http.ResponseWriter, r *http.Request, cert, issuerCert *x509.Certificate, privateKey interface{}, goodCerts, revokedCerts []*big.Int, logger slog.Logger) {
 	ocspStatus := ocsp.Unknown
 
 	body, err := io.ReadAll(r.Body)
@@ -167,34 +171,14 @@ func ocspHandler(w http.ResponseWriter, r *http.Request, cert *x509.Certificate,
 		slog.String("ocsp_status", getOCSPStatus(ocspStatus)),
 		slog.String("request_certificate_serial_number", fmt.Sprintf("%x", req.SerialNumber)),
 	}
-	logger.Info("Request complete successfully", args...)
 
 	w.Header().Set("Content-Type", "application/ocsp-response")
-	w.Write(response)
-}
-
-func bigIntStringToBigInt(certSerials []string) ([]*big.Int, error) {
-	sns := make([]*big.Int, 0)
-	for _, certSerial := range certSerials {
-		sn, ok := big.NewInt(0).SetString(certSerial, 10)
-		if !ok {
-			return nil, fmt.Errorf("failed to convert to big.Int %s", certSerial)
-		}
-		sns = append(sns, sn)
+	if _, err := w.Write(response); err != nil {
+		args = append(args, slog.String("error", err.Error()))
+		logger.Info("Request complete with errors ", args...)
+		return
 	}
-	return sns, nil
-}
-
-func hexStringToBigInt(certSerials []string) ([]*big.Int, error) {
-	sns := make([]*big.Int, 0)
-	for _, certSerial := range certSerials {
-		snBytes, err := hex.DecodeString(certSerial)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert to cert serial number - %s string to hex ", certSerial)
-		}
-		sns = append(sns, big.NewInt(0).SetBytes(snBytes))
-	}
-	return sns, nil
+	logger.Info("Request complete successfully ", args...)
 }
 
 func serialNumbersFromCertsPath(certsPath []string) ([]*big.Int, error) {

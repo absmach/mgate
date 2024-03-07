@@ -95,7 +95,7 @@ func main() {
 		return mqttMTlsProxy.Listen(ctx)
 	})
 
-	//Websocket MQTT Configuration without TLS
+	// Websocket MQTT Configuration without TLS
 	wsConfig := mproxy.Config{}
 	wsConfigEnv := map[string]string{
 		"ADDRESS": ":8083",
