@@ -18,7 +18,6 @@ var (
 )
 
 func main() {
-
 	fmt.Printf("Subscribing to topic %s with mTLS, with ca certificate %s and with client certificate %s %s \n", topic, serverCAFile, certFile, keyFile)
 
 	tlsCfg, err := websocket.LoadTLS(certFile, keyFile, serverCAFile, clientCAFile)
@@ -79,7 +78,7 @@ func main() {
 	}
 	fmt.Printf("Failed to connect with unknown client certs,error : %s\n", err.Error())
 
-	//Publisher with no client certs
+	// Publisher with no client certs
 	certFile = ""
 	keyFile = ""
 	fmt.Printf("Publishing to topic %s with mTLS, with ca certificate %s and without client certificate\n", topic, serverCAFile)
@@ -95,11 +94,11 @@ func main() {
 	}
 	fmt.Printf("Failed to connect without client certs,error : %s\n", err.Error())
 
-	//Publisher with no client certs
+	// Publisher with no client certs
 	serverCAFile = ""
 	certFile = ""
 	keyFile = ""
-	fmt.Printf("Publishing to topic %s with mTLS, without ca certificate and without client certificate %s %s \n", topic)
+	fmt.Printf("Publishing to topic %s with mTLS, without ca certificate and without client certificate\n", topic)
 	tlsCfg, err = websocket.LoadTLS(certFile, keyFile, serverCAFile, clientCAFile)
 	if err != nil {
 		panic(err)
@@ -114,7 +113,7 @@ func main() {
 
 }
 
-func onMessage(c mqtt.Client, m mqtt.Message, done chan struct{}) {
+func onMessage(_ mqtt.Client, m mqtt.Message, done chan struct{}) {
 	fmt.Printf("Subscription Message Received, Topic : %s, Payload %s\n", m.Topic(), string(m.Payload()))
 	done <- struct{}{}
 }

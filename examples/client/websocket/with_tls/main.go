@@ -72,7 +72,7 @@ func main() {
 
 }
 
-func onMessage(c mqtt.Client, m mqtt.Message, done chan struct{}) {
+func onMessage(_ mqtt.Client, m mqtt.Message, done chan struct{}) {
 	fmt.Printf("Subscription Message Received, Topic : %s, Payload %s\n", m.Topic(), string(m.Payload()))
 	done <- struct{}{}
 }

@@ -19,13 +19,14 @@ type Config struct {
 }
 
 func (c *Config) EnvParse(opts env.Options) error {
-	if len(opts.FuncMap) == 0 {
+	switch {
+	case len(opts.FuncMap) == 0:
 		opts.FuncMap = map[reflect.Type]env.ParserFunc{
-			reflect.TypeOf(c.TLSConfig.ClientCertValidationMethods): parseSliceValidateMethod,
-			reflect.TypeOf(mptls.OCSP):                              parseValidateMethod,
+			reflect.TypeOf(c.TLSConfig.ClientValidation.ValidationMethods): parseSliceValidateMethod,
+			reflect.TypeOf(mptls.OCSP):                                     parseValidateMethod,
 		}
-	} else {
-		opts.FuncMap[reflect.TypeOf(c.TLSConfig.ClientCertValidationMethods)] = parseSliceValidateMethod
+	default:
+		opts.FuncMap[reflect.TypeOf(c.TLSConfig.ClientValidation.ValidationMethods)] = parseSliceValidateMethod
 		opts.FuncMap[reflect.TypeOf(mptls.OCSP)] = parseValidateMethod
 	}
 	return env.ParseWithOptions(c, opts)
