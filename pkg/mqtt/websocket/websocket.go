@@ -102,7 +102,7 @@ func (p Proxy) pass(ctx context.Context, in *websocket.Conn) {
 }
 
 func (p Proxy) Listen(ctx context.Context) error {
-	tlsCfg, secure, err := p.config.TLSConfig.Load()
+	tlsCfg, err := p.config.TLSConfig.Load()
 	if err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ func (p Proxy) Listen(ctx context.Context) error {
 		return err
 	}
 
-	if secure > mptls.WithoutTLS {
+	if tlsCfg != nil {
 		l = tls.NewListener(l, tlsCfg)
 	}
 
@@ -126,16 +126,16 @@ func (p Proxy) Listen(ctx context.Context) error {
 	g.Go(func() error {
 		return server.Serve(l)
 	})
-	p.logger.Info(fmt.Sprintf("MQTT websocket proxy server started at %s%s %s", p.config.Address, p.config.PrefixPath, secure.String()))
+	p.logger.Info(fmt.Sprintf("MQTT websocket proxy server started at %s%s %s", p.config.Address, p.config.PrefixPath, p.config.TLSConfig.Security()))
 
 	g.Go(func() error {
 		<-ctx.Done()
 		return server.Close()
 	})
 	if err := g.Wait(); err != nil {
-		p.logger.Info(fmt.Sprintf("MQTT websocket proxy server at %s%s %s exiting with errors", p.config.Address, p.config.PrefixPath, secure.String()), slog.String("error", err.Error()))
+		p.logger.Info(fmt.Sprintf("MQTT websocket proxy server at %s%s %s exiting with errors", p.config.Address, p.config.PrefixPath, p.config.TLSConfig.Security()), slog.String("error", err.Error()))
 	} else {
-		p.logger.Info(fmt.Sprintf("MQTT websocket proxy server at %s%s %s exiting...", p.config.Address, p.config.PrefixPath, secure.String()))
+		p.logger.Info(fmt.Sprintf("MQTT websocket proxy server at %s%s %s exiting...", p.config.Address, p.config.PrefixPath, p.config.TLSConfig.Security()))
 	}
 	return nil
 }

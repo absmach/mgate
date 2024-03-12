@@ -58,54 +58,68 @@ func (c *Config) EnvParse(opts env.Options) error {
 }
 
 // Load return a TLS configuration that can be used in TLS servers.
-func (c *Config) Load() (*tls.Config, Security, error) {
+func (c *Config) Load() (*tls.Config, error) {
+	if c.CertFile == "" || c.KeyFile == "" {
+		return nil, nil
+	}
+
 	tlsConfig := &tls.Config{}
-	secure := WithoutTLS
-	if c.CertFile != "" || c.KeyFile != "" {
-		certificate, err := tls.LoadX509KeyPair(c.CertFile, c.KeyFile)
-		if err != nil {
-			return nil, secure, errors.Join(errLoadCerts, err)
-		}
-		tlsConfig = &tls.Config{
-			Certificates: []tls.Certificate{certificate},
-		}
-		secure = WithTLS
 
-		// Loading Server CA file
-		rootCA, err := loadCertFile(c.ServerCAFile)
-		if err != nil {
-			return nil, secure, errors.Join(errLoadServerCA, err)
-		}
-		if len(rootCA) > 0 {
-			if tlsConfig.RootCAs == nil {
-				tlsConfig.RootCAs = x509.NewCertPool()
-			}
-			if !tlsConfig.RootCAs.AppendCertsFromPEM(rootCA) {
-				return nil, secure, errAppendCA
-			}
-		}
+	certificate, err := tls.LoadX509KeyPair(c.CertFile, c.KeyFile)
+	if err != nil {
+		return nil, errors.Join(errLoadCerts, err)
+	}
+	tlsConfig = &tls.Config{
+		Certificates: []tls.Certificate{certificate},
+	}
 
-		// Loading Client CA File
-		clientCA, err := loadCertFile(c.ClientCAFile)
-		if err != nil {
-			return nil, secure, errors.Join(errLoadClientCA, err)
+	// Loading Server CA file
+	rootCA, err := loadCertFile(c.ServerCAFile)
+	if err != nil {
+		return nil, errors.Join(errLoadServerCA, err)
+	}
+	if len(rootCA) > 0 {
+		if tlsConfig.RootCAs == nil {
+			tlsConfig.RootCAs = x509.NewCertPool()
 		}
-		if len(clientCA) > 0 {
-			if tlsConfig.ClientCAs == nil {
-				tlsConfig.ClientCAs = x509.NewCertPool()
-			}
-			if !tlsConfig.ClientCAs.AppendCertsFromPEM(clientCA) {
-				return nil, secure, errAppendCA
-			}
-			secure = WithmTLS
-			tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
-			if len(c.ClientValidation.ValidationMethods) > 0 {
-				tlsConfig.VerifyPeerCertificate = c.verifyPeerCertificate
-				secure = WithmTLSVerify
-			}
+		if !tlsConfig.RootCAs.AppendCertsFromPEM(rootCA) {
+			return nil, errAppendCA
 		}
 	}
-	return tlsConfig, secure, nil
+
+	// Loading Client CA File
+	clientCA, err := loadCertFile(c.ClientCAFile)
+	if err != nil {
+		return nil, errors.Join(errLoadClientCA, err)
+	}
+	if len(clientCA) > 0 {
+		if tlsConfig.ClientCAs == nil {
+			tlsConfig.ClientCAs = x509.NewCertPool()
+		}
+		if !tlsConfig.ClientCAs.AppendCertsFromPEM(clientCA) {
+			return nil, errAppendCA
+		}
+		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+		if len(c.ClientValidation.ValidationMethods) > 0 {
+			tlsConfig.VerifyPeerCertificate = c.verifyPeerCertificate
+		}
+	}
+	return tlsConfig, nil
+}
+
+func (c *Config) Security() Security {
+	if c.CertFile != "" && c.KeyFile != "" {
+		return WithoutTLS
+	}
+
+	if c.ClientCAFile != "" {
+		if len(c.ClientValidation.ValidationMethods) > 0 {
+			return WithmTLSVerify
+		}
+		return WithmTLS
+	}
+
+	return WithTLS
 }
 
 // ClientCert returns client certificate.
