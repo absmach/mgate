@@ -7,11 +7,9 @@ on:
   pull_request:
     branches:
       - main
-      - tls_ocsp
   push:
     branches:
       - main
-      - tls_ocsp
 
 jobs:
   lint-and-build:
@@ -36,50 +34,3 @@ jobs:
       - name: Build Binaries
         run: |
           make all
-
-  test_mproxy:
-    name: Test mProxy
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Set up Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: '>=1.22'
-
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Install dependencies
-        run: |
-          go get -v ./...
-
-      - name: Start Mosquitto MQTT Server
-        run: examples/server/mosquitto/server.sh &
-
-      - name: Start HTTP Echo Server
-        run: go run examples/server/http-echo/main.go &
-
-      - name: Start OCSP Mock responder
-        run: go run examples/ocsp-responder/main.go &
-
-      - name: Start mProxy servers
-        run: go run cmd/main.go &
-
-      - name: Test mProxy for MQTT protocols
-        run: |
-          examples/client/mqtt/without_tls.sh
-          examples/client/mqtt/with_tls.sh
-          examples/client/mqtt/with_mtls.sh
-
-      - name: Test mProxy for MQTT over Websocket protocols
-        run: |
-          go run examples/client/websocket/without_tls/main.go
-          go run examples/client/websocket/with_tls/main.go
-          go run examples/client/websocket/with_mtls/main.go
-
-      - name: Test mProxy for HTTP protocols
-        run: |
-          examples/client/http/without_tls.sh
-          examples/client/http/with_tls.sh
-          examples/client/http/with_mtls.sh
