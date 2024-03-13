@@ -146,7 +146,7 @@ Bash scripts available in `examples/client/mqtt` directory helps to test the mPr
 - Script to test mProxy server running at port 8883 for MQTT with TLS
 
   ```bash
-  examples/client/mqtt/without_tls.sh
+  examples/client/mqtt/with_tls.sh
   ```
 
 - Script to test mProxy server running at port 8884 for MQTT with mTLS
@@ -190,7 +190,7 @@ Bash scripts available in `examples/client/http` directory helps to test the mPr
 - Script to test mProxy server running at port 8883 for MQTT with TLS
 
   ```bash
-  examples/client/mqtt/without_tls.sh
+  examples/client/mqtt/with_tls.sh
   ```
 
 - Script to test mProxy server running at port 8884 for MQTT with mTLS

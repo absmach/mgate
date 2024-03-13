@@ -55,89 +55,85 @@ func main() {
 		panic(err)
 	}
 
-	// MQTT Proxy Configuration without TLS
+	// mProxy server Configuration for MQTT without TLS
 	mqttConfig := mproxy.Config{}
 	if err := mqttConfig.EnvParse(env.Options{Prefix: mqttWithoutTLS}); err != nil {
 		panic(err)
 	}
 
-	// MQTT Proxy without TLS
+	// mProxy server for MQTT without TLS
 	mqttProxy := mqtt.New(mqttConfig, handler, interceptor, logger)
 	g.Go(func() error {
 		return mqttProxy.Listen(ctx)
 	})
 
-	// MQTT Proxy Configuration with TLS
+	// mProxy server Configuration for MQTT with TLS
 	mqttTLSConfig := mproxy.Config{}
 	if err := mqttTLSConfig.EnvParse(env.Options{Prefix: mqttWithTLS}); err != nil {
 		panic(err)
 	}
 
-	// MQTT Proxy with TLS
+	// mProxy server for MQTT with TLS
 	mqttTLSProxy := mqtt.New(mqttTLSConfig, handler, interceptor, logger)
 	g.Go(func() error {
 		return mqttTLSProxy.Listen(ctx)
 	})
 
-	// MQTT Proxy Configuration with mTLS
+	//  mProxy server Configuration for MQTT with mTLS
 	mqttMTLSConfig := mproxy.Config{}
 	if err := mqttMTLSConfig.EnvParse(env.Options{Prefix: mqttWithmTLS}); err != nil {
 		panic(err)
 	}
 
-	// MQTT Proxy with mTLS
+	// mProxy server for MQTT with mTLS
 	mqttMTlsProxy := mqtt.New(mqttMTLSConfig, handler, interceptor, logger)
 	g.Go(func() error {
 		return mqttMTlsProxy.Listen(ctx)
 	})
 
-	// Websocket MQTT Configuration without TLS
+	// mProxy server Configuration for MQTT over Websocket without TLS
 	wsConfig := mproxy.Config{}
 	if err := wsConfig.EnvParse(env.Options{Prefix: mqttWSWithoutTLS}); err != nil {
 		panic(err)
 	}
 
-	// Websocket MQTT Proxy without TLS
+	// mProxy server for MQTT over Websocket without TLS
 	wsProxy := websocket.New(wsConfig, handler, interceptor, logger)
 	g.Go(func() error {
 		return wsProxy.Listen(ctx)
 	})
 
-	g.Go(func() error {
-		return StopSignalHandler(ctx, cancel, logger)
-	})
-
-	// Websocket MQTT Proxy Configuration with TLS
+	// mProxy server Configuration for MQTT over Websocket with TLS
 	wsTLSConfig := mproxy.Config{}
 	if err := wsTLSConfig.EnvParse(env.Options{Prefix: mqttWSWithTLS}); err != nil {
 		panic(err)
 	}
 
-	// Websocket MQTT Proxy with TLS
+	// mProxy server for MQTT over Websocket with TLS
 	wsTLSProxy := websocket.New(wsTLSConfig, handler, interceptor, logger)
 	g.Go(func() error {
 		return wsTLSProxy.Listen(ctx)
 	})
 
-	// Websocket MQTT Proxy Configuration with mTLS
+	// mProxy server Configuration for MQTT over Websocket with mTLS
 	wsMTLSConfig := mproxy.Config{}
 	if err := wsMTLSConfig.EnvParse(env.Options{Prefix: mqttWSWithmTLS}); err != nil {
 		panic(err)
 	}
 
-	// HTTP Proxy with mTLS
+	// mProxy server for MQTT over Websocket with mTLS
 	wsMTLSProxy := websocket.New(wsMTLSConfig, handler, interceptor, logger)
 	g.Go(func() error {
 		return wsMTLSProxy.Listen(ctx)
 	})
 
-	// HTTP Configuration without TLS
+	// mProxy server Configuration for HTTP without TLS
 	httpConfig := mproxy.Config{}
 	if err := httpConfig.EnvParse(env.Options{Prefix: httpWithoutTLS}); err != nil {
 		panic(err)
 	}
 
-	// HTTP Proxy without TLS
+	// mProxy server for HTTP without TLS
 	httpProxy, err := http.NewProxy(httpConfig, handler, logger)
 	if err != nil {
 		panic(err)
@@ -146,13 +142,13 @@ func main() {
 		return httpProxy.Listen(ctx)
 	})
 
-	// Websocket MQTT Proxy Configuration with TLS
+	// mProxy server Configuration for HTTP with TLS
 	httpTLSConfig := mproxy.Config{}
 	if err := httpTLSConfig.EnvParse(env.Options{Prefix: httpWithTLS}); err != nil {
 		panic(err)
 	}
 
-	// HTTP Proxy with TLS
+	// mProxy server for HTTP with TLS
 	httpTLSProxy, err := http.NewProxy(httpTLSConfig, handler, logger)
 	if err != nil {
 		panic(err)
@@ -161,13 +157,13 @@ func main() {
 		return httpTLSProxy.Listen(ctx)
 	})
 
-	// HTTP Proxy Configuration with mTLS
+	// mProxy server Configuration for HTTP with mTLS
 	httpMTLSConfig := mproxy.Config{}
 	if err := httpMTLSConfig.EnvParse(env.Options{Prefix: httpWithmTLS}); err != nil {
 		panic(err)
 	}
 
-	// HTTP Proxy with mTLS
+	// mProxy server for HTTP with mTLS
 	httpMTLSProxy, err := http.NewProxy(httpMTLSConfig, handler, logger)
 	if err != nil {
 		panic(err)
