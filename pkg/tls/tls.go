@@ -108,7 +108,7 @@ func (c *Config) Load() (*tls.Config, error) {
 }
 
 func (c *Config) Security() Security {
-	if c.CertFile != "" && c.KeyFile != "" {
+	if c.CertFile == "" && c.KeyFile == "" {
 		return WithoutTLS
 	}
 
