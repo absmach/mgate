@@ -18,7 +18,22 @@ import (
 	"github.com/absmach/mproxy/pkg/mqtt/websocket"
 	"github.com/absmach/mproxy/pkg/session"
 	"github.com/caarlos0/env/v10"
+	"github.com/joho/godotenv"
 	"golang.org/x/sync/errgroup"
+)
+
+const (
+	mqttWithoutTLS = "MPROXY_MQTT_WITHOUT_TLS_"
+	mqttWithTLS    = "MPROXY_MQTT_WITH_TLS_"
+	mqttWithmTLS   = "MPROXY_MQTT_WITH_MTLS_"
+
+	mqttWSWithoutTLS = "MPROXY_MQTT_WS_WITHOUT_TLS_"
+	mqttWSWithTLS    = "MPROXY_MQTT_WS_WITH_TLS_"
+	mqttWSWithmTLS   = "MPROXY_MQTT_WS_WITH_MTLS_"
+
+	httpWithoutTLS = "MPROXY_HTTP_WITHOUT_TLS_"
+	httpWithTLS    = "MPROXY_HTTP_WITH_TLS_"
+	httpWithmTLS   = "MPROXY_HTTP_WITH_MTLS_"
 )
 
 func main() {
@@ -34,13 +49,15 @@ func main() {
 
 	var interceptor session.Interceptor
 
+	// Loading .env file to environment
+	err := godotenv.Load()
+	if err != nil {
+		panic(err)
+	}
+
 	// MQTT Proxy Configuration without TLS
 	mqttConfig := mproxy.Config{}
-	mqttConfigEnv := map[string]string{
-		"ADDRESS": ":1884",
-		"TARGET":  "localhost:1883",
-	}
-	if err := mqttConfig.EnvParse(env.Options{Environment: mqttConfigEnv}); err != nil {
+	if err := mqttConfig.EnvParse(env.Options{Prefix: mqttWithoutTLS}); err != nil {
 		panic(err)
 	}
 
@@ -52,17 +69,7 @@ func main() {
 
 	// MQTT Proxy Configuration with TLS
 	mqttTLSConfig := mproxy.Config{}
-	mqttTLSConfigEnv := map[string]string{
-		"ADDRESS":                        ":8883",
-		"TARGET":                         "localhost:1883",
-		"CERT_FILE":                      "ssl/certs/server.crt",
-		"KEY_FILE":                       "ssl/certs/server.key",
-		"SERVER_CA_FILE":                 "ssl/certs/ca.crt",
-		"PREFIX_PATH":                    "",
-		"CLIENT_CERT_VALIDATION_METHODS": "",
-		"OCSP_RESPONDER_URL":             "",
-	}
-	if err := mqttTLSConfig.EnvParse(env.Options{Environment: mqttTLSConfigEnv}); err != nil {
+	if err := mqttTLSConfig.EnvParse(env.Options{Prefix: mqttWithTLS}); err != nil {
 		panic(err)
 	}
 
@@ -74,18 +81,7 @@ func main() {
 
 	// MQTT Proxy Configuration with mTLS
 	mqttMTLSConfig := mproxy.Config{}
-	mqttMTLSConfigEnv := map[string]string{
-		"ADDRESS":                        ":8884",
-		"TARGET":                         "localhost:1883",
-		"CERT_FILE":                      "ssl/certs/server.crt",
-		"KEY_FILE":                       "ssl/certs/server.key",
-		"SERVER_CA_FILE":                 "ssl/certs/ca.crt",
-		"CLIENT_CA_FILE":                 "ssl/certs/ca.crt",
-		"PREFIX_PATH":                    "",
-		"CLIENT_CERT_VALIDATION_METHODS": "OCSP",
-		"OCSP_RESPONDER_URL":             "http://localhost:8080/ocsp",
-	}
-	if err := mqttMTLSConfig.EnvParse(env.Options{Environment: mqttMTLSConfigEnv}); err != nil {
+	if err := mqttMTLSConfig.EnvParse(env.Options{Prefix: mqttWithmTLS}); err != nil {
 		panic(err)
 	}
 
@@ -97,11 +93,7 @@ func main() {
 
 	// Websocket MQTT Configuration without TLS
 	wsConfig := mproxy.Config{}
-	wsConfigEnv := map[string]string{
-		"ADDRESS": ":8083",
-		"TARGET":  "ws://localhost:8000/",
-	}
-	if err := wsConfig.EnvParse(env.Options{Environment: wsConfigEnv}); err != nil {
+	if err := wsConfig.EnvParse(env.Options{Prefix: mqttWSWithoutTLS}); err != nil {
 		panic(err)
 	}
 
@@ -117,17 +109,7 @@ func main() {
 
 	// Websocket MQTT Proxy Configuration with TLS
 	wsTLSConfig := mproxy.Config{}
-	wsTLSConfigEnv := map[string]string{
-		"ADDRESS":                        ":8084",
-		"TARGET":                         "ws://localhost:8000/",
-		"CERT_FILE":                      "ssl/certs/server.crt",
-		"KEY_FILE":                       "ssl/certs/server.key",
-		"SERVER_CA_FILE":                 "ssl/certs/ca.crt",
-		"PREFIX_PATH":                    "",
-		"CLIENT_CERT_VALIDATION_METHODS": "",
-		"OCSP_RESPONDER_URL":             "",
-	}
-	if err := wsTLSConfig.EnvParse(env.Options{Environment: wsTLSConfigEnv}); err != nil {
+	if err := wsTLSConfig.EnvParse(env.Options{Prefix: mqttWSWithTLS}); err != nil {
 		panic(err)
 	}
 
@@ -139,18 +121,7 @@ func main() {
 
 	// Websocket MQTT Proxy Configuration with mTLS
 	wsMTLSConfig := mproxy.Config{}
-	wsMTLSConfigEnv := map[string]string{
-		"ADDRESS":                        ":8085",
-		"TARGET":                         "ws://localhost:8000/",
-		"CERT_FILE":                      "ssl/certs/server.crt",
-		"KEY_FILE":                       "ssl/certs/server.key",
-		"SERVER_CA_FILE":                 "ssl/certs/ca.crt",
-		"CLIENT_CA_FILE":                 "ssl/certs/ca.crt",
-		"PREFIX_PATH":                    "/mqtt",
-		"CLIENT_CERT_VALIDATION_METHODS": "OCSP",
-		"OCSP_RESPONDER_URL":             "http://localhost:8080/ocsp",
-	}
-	if err := wsMTLSConfig.EnvParse(env.Options{Environment: wsMTLSConfigEnv}); err != nil {
+	if err := wsMTLSConfig.EnvParse(env.Options{Prefix: mqttWSWithmTLS}); err != nil {
 		panic(err)
 	}
 
@@ -162,12 +133,7 @@ func main() {
 
 	// HTTP Configuration without TLS
 	httpConfig := mproxy.Config{}
-	httpConfigEnv := map[string]string{
-		"ADDRESS":     ":8086",
-		"TARGET":      "http://localhost:8888/",
-		"PREFIX_PATH": "/messages",
-	}
-	if err := httpConfig.EnvParse(env.Options{Environment: httpConfigEnv}); err != nil {
+	if err := httpConfig.EnvParse(env.Options{Prefix: httpWithoutTLS}); err != nil {
 		panic(err)
 	}
 
@@ -182,17 +148,7 @@ func main() {
 
 	// Websocket MQTT Proxy Configuration with TLS
 	httpTLSConfig := mproxy.Config{}
-	httpTLSConfigEnv := map[string]string{
-		"ADDRESS":                        ":8087",
-		"TARGET":                         "http://localhost:8888/",
-		"CERT_FILE":                      "ssl/certs/server.crt",
-		"KEY_FILE":                       "ssl/certs/server.key",
-		"SERVER_CA_FILE":                 "ssl/certs/ca.crt",
-		"PREFIX_PATH":                    "/messages",
-		"CLIENT_CERT_VALIDATION_METHODS": "",
-		"OCSP_RESPONDER_URL":             "",
-	}
-	if err := httpTLSConfig.EnvParse(env.Options{Environment: httpTLSConfigEnv}); err != nil {
+	if err := httpTLSConfig.EnvParse(env.Options{Prefix: httpWithTLS}); err != nil {
 		panic(err)
 	}
 
@@ -207,18 +163,7 @@ func main() {
 
 	// HTTP Proxy Configuration with mTLS
 	httpMTLSConfig := mproxy.Config{}
-	httpMTLSConfigEnv := map[string]string{
-		"ADDRESS":                        ":8088",
-		"TARGET":                         "http://localhost:8888/",
-		"CERT_FILE":                      "ssl/certs/server.crt",
-		"KEY_FILE":                       "ssl/certs/server.key",
-		"SERVER_CA_FILE":                 "ssl/certs/ca.crt",
-		"CLIENT_CA_FILE":                 "ssl/certs/ca.crt",
-		"PREFIX_PATH":                    "/messages",
-		"CLIENT_CERT_VALIDATION_METHODS": "OCSP",
-		"OCSP_RESPONDER_URL":             "http://localhost:8080/ocsp",
-	}
-	if err := httpMTLSConfig.EnvParse(env.Options{Environment: httpMTLSConfigEnv}); err != nil {
+	if err := httpMTLSConfig.EnvParse(env.Options{Prefix: httpWithmTLS}); err != nil {
 		panic(err)
 	}
 

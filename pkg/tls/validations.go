@@ -65,7 +65,7 @@ func (v ValidateMethod) String() string {
 }
 
 func ParseValidateMethod(v string) (ValidateMethod, error) {
-	v = strings.TrimSpace(v)
+	v = strings.ToUpper(strings.TrimSpace(v))
 	switch v {
 	case "OCSP":
 		return OCSP, nil
