@@ -28,8 +28,8 @@ var (
 )
 
 var (
-	goodCertsPath    = []string{"ssl/certs/thing.crt", "ssl/certs/ca.crt"}
-	revokedCertsPath = []string{"ssl/certs/thing_revoked.crt"}
+	goodCertsPath    = []string{"ssl/certs/client.crt", "ssl/certs/ca.crt"}
+	revokedCertsPath = []string{"ssl/certs/client_revoked.crt"}
 )
 
 func main() {

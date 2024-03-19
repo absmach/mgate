@@ -27,7 +27,7 @@ var (
 	errOfflineCRLIssuerPEM = errors.New("failed to decode PEM block in offline CRL issuer cert file")
 	errCRLDistIssuer       = errors.New("failed to load CRL distribution points issuer cert file")
 	errCRLDistIssuerPEM    = errors.New("failed to decode PEM block in CRL distribution points issuer cert file")
-	errNoCRL               = errors.New("neither offline crl file nor crl distribution points in certificate doesn't exists")
+	errNoCRL               = errors.New("neither offline crl file nor crl distribution points in certificate / environmental variable CRL_DISTRIBUTION_POINTS & CRL_DISTRIBUTION_POINTS_ISSUER_CERT_FILE have values")
 	errCertRevoked         = errors.New("certificate revoked")
 )
 
@@ -133,16 +133,15 @@ func (c *Config) getCRLFromDistributionPoint(cert, issuer *x509.Certificate) (*x
 	switch {
 	case len(cert.CRLDistributionPoints) > 0:
 		return retrieveCRL(cert.CRLDistributionPoints[0], issuer, true)
-	default:
-		if c.CRLDistributionPoints.String() == "" {
-			return nil, nil
-		}
+	case c.CRLDistributionPoints.String() != "" && c.CRLDistributionPointsIssuerCertFile != "":
 		var crlIssuerCrt *x509.Certificate
 		var err error
 		if crlIssuerCrt, err = c.loadDistPointCRLIssuerCert(); err != nil {
 			return nil, err
 		}
 		return retrieveCRL(c.CRLDistributionPoints.String(), crlIssuerCrt, true)
+	default:
+		return nil, nil
 	}
 }
 

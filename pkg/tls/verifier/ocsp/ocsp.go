@@ -27,7 +27,7 @@ var (
 	errOCSPReadResp         = errors.New("failed to read OCSP response")
 	errParseOCSPRespForCert = errors.New("failed to parse OCSP Response for Certificate")
 	errIssuerCert           = errors.New("neither the issuer certificate is present in the chain nor is the issuer certificate URL present in AIA")
-	errNoOCSPURL            = errors.New("OCSP Server/Responder URL is not present AIA of certificate")
+	errNoOCSPURL            = errors.New("neither OCSP Server/Responder URL is not present AIA of certificate nor environmental variable OCSP_RESPONDER_URL have value")
 	errOCSPServerFailed     = errors.New("OCSP Server Failed")
 	errOCSPUnknown          = errors.New("OCSP status unknown")
 	errCertRevoked          = errors.New("certificate revoked")

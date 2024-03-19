@@ -5,12 +5,12 @@ message="Hello mProxy"
 port=8884
 host=localhost
 cafile=ssl/certs/ca.crt
-certfile=ssl/certs/thing.crt
-keyfile=ssl/certs/thing.key
-reovokedcertfile=ssl/certs/thing_revoked.crt
-reovokedkeyfile=ssl/certs/thing_revoked.key
-unknowncertfile=ssl/certs/thing_unknown.crt
-unknownkeyfile=ssl/certs/thing_unknown.key
+certfile=ssl/certs/client.crt
+keyfile=ssl/certs/client.key
+reovokedcertfile=ssl/certs/client_revoked.crt
+reovokedkeyfile=ssl/certs/client_revoked.key
+unknowncertfile=ssl/certs/client_unknown.crt
+unknownkeyfile=ssl/certs/client_unknown.key
 
 echo "Subscribing to topic ${topic} with mTLS certificate ${cafile} ${certfile} ${keyfile}..."
 mosquitto_sub -h $host -p $port -t $topic --cafile $cafile --cert $certfile --key $keyfile &

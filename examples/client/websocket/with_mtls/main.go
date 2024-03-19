@@ -11,8 +11,8 @@ var (
 	brokerAddress = "wss://localhost:8085/mqtt"
 	topic         = "test/topic"
 	payload       = "Hello mProxy"
-	certFile      = "ssl/certs/thing.crt"
-	keyFile       = "ssl/certs/thing.key"
+	certFile      = "ssl/certs/client.crt"
+	keyFile       = "ssl/certs/client.key"
 	serverCAFile  = "ssl/certs/ca.crt"
 	clientCAFile  = ""
 )
@@ -47,8 +47,8 @@ func main() {
 	<-done
 
 	// Publisher with revoked certs
-	certFile = "ssl/certs/thing_revoked.crt"
-	keyFile = "ssl/certs/thing_revoked.key"
+	certFile = "ssl/certs/client_revoked.crt"
+	keyFile = "ssl/certs/client_revoked.key"
 	fmt.Printf("Publishing to topic %s with mTLS, with ca certificate %s and with revoked client certificate %s %s \n", topic, serverCAFile, certFile, keyFile)
 	tlsCfg, err = websocket.LoadTLS(certFile, keyFile, serverCAFile, clientCAFile)
 	if err != nil {
@@ -63,8 +63,8 @@ func main() {
 	fmt.Printf("Failed to connect Publisher with revoked client certs,error : %s\n", err.Error())
 
 	// Publisher with unknown certs
-	certFile = "ssl/certs/thing_unknown.crt"
-	keyFile = "ssl/certs/thing_unknown.key"
+	certFile = "ssl/certs/client_unknown.crt"
+	keyFile = "ssl/certs/client_unknown.key"
 	fmt.Printf("Publishing to topic %s with mTLS, with ca certificate %s and with unknown client certificate %s %s \n", topic, serverCAFile, certFile, keyFile)
 	tlsCfg, err = websocket.LoadTLS(certFile, keyFile, serverCAFile, clientCAFile)
 	if err != nil {
