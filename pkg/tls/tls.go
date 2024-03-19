@@ -7,9 +7,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"fmt"
 	"net"
 	"os"
+	"strings"
 
+	"github.com/absmach/mproxy/pkg/tls/verifier"
 	"github.com/caarlos0/env/v10"
 )
 
@@ -46,11 +49,30 @@ func (s Security) String() string {
 }
 
 type Config struct {
-	CertFile         string `env:"CERT_FILE"                                  envDefault:""`
-	KeyFile          string `env:"KEY_FILE"                                   envDefault:""`
-	ServerCAFile     string `env:"SERVER_CA_FILE"                             envDefault:""`
-	ClientCAFile     string `env:"CLIENT_CA_FILE"                             envDefault:""`
-	ClientValidation Validation
+	CertFile     string `env:"CERT_FILE"                                  envDefault:""`
+	KeyFile      string `env:"KEY_FILE"                                   envDefault:""`
+	ServerCAFile string `env:"SERVER_CA_FILE"                             envDefault:""`
+	ClientCAFile string `env:"CLIENT_CA_FILE"                             envDefault:""`
+	Verifier     verifier.Config
+}
+
+func (c *Config) SecurityStatus() string {
+	if c.CertFile == "" && c.KeyFile == "" {
+		return "TLS"
+	}
+
+	if c.ClientCAFile != "" {
+		if len(c.Verifier.ValidationMethods) > 0 {
+			validations := []string{}
+			for _, v := range c.Verifier.ValidationMethods {
+				validations = append(validations, v.String())
+			}
+			return fmt.Sprintf("mTLS with client verification %s", strings.Join(validations, ", "))
+		}
+		return "mTLS"
+	}
+
+	return "no TLS"
 }
 
 func (c *Config) EnvParse(opts env.Options) error {
@@ -100,8 +122,8 @@ func (c *Config) Load() (*tls.Config, error) {
 			return nil, errAppendCA
 		}
 		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
-		if len(c.ClientValidation.ValidationMethods) > 0 {
-			tlsConfig.VerifyPeerCertificate = c.verifyPeerCertificate
+		if len(c.Verifier.ValidationMethods) > 0 {
+			tlsConfig.VerifyPeerCertificate = c.Verifier.VerifyPeerCertificate
 		}
 	}
 	return tlsConfig, nil
@@ -113,7 +135,7 @@ func (c *Config) Security() Security {
 	}
 
 	if c.ClientCAFile != "" {
-		if len(c.ClientValidation.ValidationMethods) > 0 {
+		if len(c.Verifier.ValidationMethods) > 0 {
 			return WithmTLSVerify
 		}
 		return WithmTLS
