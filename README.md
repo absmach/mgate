@@ -255,6 +255,77 @@ The service is configured using the environment variables presented in the follo
 | MPROXY_HTTP_WITH_MTLS_CLIENT_CERT_VALIDATION_METHODS    | HTTP with mTLS client certificate validation methods, if no value or unset then mProxy server will not do client validation                | ocsp                       |
 | MPROXY_HTTP_WITH_MTLS_OCSP_RESPONDER_URL                | HTTP with mTLS OCSP responder URL, it is used if OCSP responder URL is not available in client certificate AIA                             | http://localhost:8080/ocsp |
 
+## mProxy Configuration Environment Variables
+
+### Server Configuration Environment Variables
+
+- `ADDRESS` : Specifies the address at which mProxy will listen. Supports MQTT, MQTT over WebSocket, and HTTP proxy connections.
+- `PREFIX_PATH` : Defines the path prefix when listening for MQTT over WebSocket or HTTP connections.
+- `TARGET` : Specifies the address of the target server, including any prefix path if available. The target server can be an MQTT server, MQTT over WebSocket, or an HTTP server.
+
+### TLS Configuration Environment Variables
+
+- `CERT_FILE` : Path to the TLS certificate file.
+- `KEY_FILE` : Path to the TLS certificate key file.
+- `SERVER_CA_FILE` : Path to the Server CA certificate file.
+- `CLIENT_CA_FILE` : Path to the Client CA certificate file.
+- `CLIENT_CERT_VALIDATION_METHODS` : Methods for validating client certificates. Accepted values are `ocsp` or `crl`.
+For the `ocsp` value, the `tls.Config` attempts to retrieve the OCSP responder/server URL from the Authority Information Access (AIA) section of the client certificate. If the client certificate lacks an OCSP responder URL or if an alternative URL is preferred, you can override it using the environmental variable `OCSP_RESPONDER_URL`.  
+For the `crl` value, the `tls.Config` attempts to obtain the Certificate Revocation List (CRL) file from the CRL Distribution Point section in the client certificate. If the client certificate lacks a CRL distribution point section, or if you prefer to override it, you can use the environmental variables `CRL_DISTRIBUTION_POINTS` and `CRL_DISTRIBUTION_POINTS_ISSUER_CERT_FILE`. If no CRL distribution point server is available, you can specify an offline CRL file using the environmental variables `OFFLINE_CRL_FILE` and `OFFLINE_CRL_ISSUER_CERT_FILE`.
+
+#### OCSP Configuration Environment Variables
+
+- `OCSP_DEPTH` : Depth of client certificate verification in the OCSP method. The default value is 0, meaning there is no limit, and all certificates are verified.
+- `OCSP_RESPONDER_URL` : Override value for the OCSP responder URL present in the Authority Information Access (AIA) section of the client certificate. If left empty, it expects the OCSP responder URL from the AIA section of the client certificate.
+
+#### CRL Configuration Environment Variables
+
+- `CRL_DEPTH`: Depth of client certificate verification in the CRL method. The default value is 1, meaning only the leaf certificate is verified.
+- `CRL_DISTRIBUTION_POINTS` : Override for the CRL Distribution Point value present in the certificate's CRL Distribution Point section.
+- `CRL_DISTRIBUTION_POINTS_ISSUER_CERT_FILE` : Path to the issuer certificate file for verifying the CRL retrieved from `CRL_DISTRIBUTION_POINTS`.
+- `OFFLINE_CRL_FILE` : Path to th offline CRL file, which can be used if the CRL Distribution point is not available in either the environmental variable or the certificate's CRL Distribution Point section.
+- `OFFLINE_CRL_ISSUER_CERT_FILE` : Location of the issuer certificate file for verifying the offline CRL file specified in `OFFLINE_CRL_FILE`.
+
+## Adding Prefix to Environmental Variables
+
+mProxy relies on the [caarlos0/env](https://github.com/caarlos0/env) package to load environmental variables into its [configuration](https://github.com/arvindh123/mproxy/blob/main/config.go#L15). 
+You can control how these variables are loaded by passing `env.Options` to the `config.EnvParse` function.
+
+To add a prefix to environmental variables, use `env.Options{Prefix: "MPROXY_"}` from the [caarlos0/env](https://github.com/caarlos0/env) package. For example:
+
+```go
+package main 
+import (
+  "github.com/caarlos0/env/v10"
+  "github.com/absmach/mproxy"
+)
+
+mqttConfig := mproxy.Config{}
+if err := mqttConfig.EnvParse(env.Options{Prefix:  "MPROXY_" }); err != nil {
+    panic(err)
+}
+fmt.Printf("%+v\n")
+```
+
+In the above snippet, `mqttConfig.EnvParse` expects all environmental variables with the prefix `MPROXY_`.
+For instance:
+
+- MPROXY_ADDRESS
+- MPROXY_PREFIX_PATH
+- MPROXY_TARGET
+- MPROXY_CERT_FILE
+- MPROXY_KEY_FILE
+- MPROXY_SERVER_CA_FILE
+- MPROXY_CLIENT_CA_FILE
+- MPROXY_CLIENT_CERT_VALIDATION_METHODS
+- MPROXY_OCSP_DEPTH
+- MPROXY_OCSP_RESPONDER_URL
+- MPROXY_CRL_DEPTH
+- MPROXY_CRL_DISTRIBUTION_POINTS
+- MPROXY_CRL_DISTRIBUTION_POINTS_ISSUER_CERT_FILE
+- MPROXY_OFFLINE_CRL_FILE
+- MPROXY_OFFLINE_CRL_ISSUER_CERT_FILE
+
 ## License
 
 [Apache-2.0](LICENSE)

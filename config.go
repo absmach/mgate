@@ -14,8 +14,8 @@ import (
 
 type Config struct {
 	Address    string `env:"ADDRESS"                        envDefault:""`
-	Target     string `env:"TARGET"                         envDefault:""`
 	PrefixPath string `env:"PREFIX_PATH"                    envDefault:""`
+	Target     string `env:"TARGET"                         envDefault:""`
 	TLSConfig  mptls.Config
 }
 
