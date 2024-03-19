@@ -24,6 +24,7 @@ var (
 	certFile       = "ssl/certs/ca.crt"
 	issuerCertFile = "ssl/certs/ca.crt"
 	keyFile        = "ssl/certs/ca.key"
+	crlFile        = "ssl/certs/revoked_certs.crl"
 )
 
 var (
@@ -70,8 +71,16 @@ func main() {
 		ocspHandler(w, r, cert, issuerCert, privateKey, goodCerts, revokedCerts, *logger)
 	})
 
+	http.HandleFunc("/crl.pem", func(w http.ResponseWriter, r *http.Request) {
+		fileHandler(w, r, crlFile, "crl.pem", *logger)
+	})
+
+	http.HandleFunc("/ca.pem", func(w http.ResponseWriter, r *http.Request) {
+		fileHandler(w, r, issuerCertFile, "ca.pem", *logger)
+	})
+
 	// Start the HTTP server
-	fmt.Println("OCSP responder listening on :8080")
+	fmt.Println("OCSP/CRL responder listening on :8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		panic(err)
 	}
@@ -104,6 +113,28 @@ func loadPrivateKey(file string) (interface{}, error) {
 	return x509.ParsePKCS8PrivateKey(block.Bytes)
 }
 
+func fileHandler(w http.ResponseWriter, r *http.Request, crlFile, fileName string, logger slog.Logger) {
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))
+	files, err := os.ReadFile(crlFile)
+	args := []any{
+		slog.String("request", r.URL.String()),
+	}
+	if err != nil {
+		http.Error(w, "Server Error", http.StatusInternalServerError)
+		args = append(args, slog.String("error", err.Error()))
+		logger.Info("Request failed ", args...)
+		return
+	}
+	if _, err := w.Write(files); err != nil {
+		http.Error(w, "Server Error", http.StatusInternalServerError)
+		args = append(args, slog.String("error", err.Error()))
+		logger.Info("Request failed ", args...)
+		return
+	}
+
+	logger.Info("Request complete successfully ", args...)
+
+}
 func ocspHandler(w http.ResponseWriter, r *http.Request, cert, issuerCert *x509.Certificate, privateKey interface{}, goodCerts, revokedCerts []*big.Int, logger slog.Logger) {
 	ocspStatus := ocsp.Unknown
 

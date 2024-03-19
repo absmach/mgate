@@ -107,10 +107,10 @@ mProxy is used to proxy requests to a backend server. For the example setup, we 
    go run examples/server/http-echo/main.go  
    ```
 
-3. Start the OCSP Mock responder:
+3. Start the OCSP/CRL Mock responder:
 
    ```bash
-    go run examples/ocsp-responder/main.go  
+    go run examples/ocsp-crl-responder/main.go  
    ```
 
 4. Start the example mProxy servers for various protocols:
