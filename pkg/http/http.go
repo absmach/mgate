@@ -20,6 +20,7 @@ import (
 
 	"github.com/absmach/mproxy"
 	"github.com/absmach/mproxy/pkg/session"
+	"github.com/absmach/mproxy/pkg/utils"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -131,7 +132,7 @@ func (p Proxy) Listen(ctx context.Context) error {
 		l = tls.NewListener(l, tlsCfg)
 	}
 
-	p.logger.Info(fmt.Sprintf("HTTP proxy server started at %s%s %s", p.config.Address, p.config.PrefixPath, p.config.TLSConfig.Security()))
+	p.logger.Info(fmt.Sprintf("HTTP proxy server started at %s%s %s", p.config.Address, p.config.PrefixPath, utils.SecurityStatus(p.config.TLSConfig)))
 
 	var server http.Server
 	g, ctx := errgroup.WithContext(ctx)
@@ -149,9 +150,9 @@ func (p Proxy) Listen(ctx context.Context) error {
 		return server.Close()
 	})
 	if err := g.Wait(); err != nil {
-		p.logger.Info(fmt.Sprintf("HTTP proxy server at %s%s %s exiting with errors", p.config.Address, p.config.PrefixPath, p.config.TLSConfig.Security()), slog.String("error", err.Error()))
+		p.logger.Info(fmt.Sprintf("HTTP proxy server at %s%s %s exiting with errors", p.config.Address, p.config.PrefixPath, utils.SecurityStatus(p.config.TLSConfig)), slog.String("error", err.Error()))
 	} else {
-		p.logger.Info(fmt.Sprintf("HTTP proxy server at %s%s %s exiting...", p.config.Address, p.config.PrefixPath, p.config.TLSConfig.Security()))
+		p.logger.Info(fmt.Sprintf("HTTP proxy server at %s%s %s exiting...", p.config.Address, p.config.PrefixPath, utils.SecurityStatus(p.config.TLSConfig)))
 	}
 	return nil
 }

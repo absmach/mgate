@@ -7,10 +7,8 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
-	"fmt"
 	"net"
 	"os"
-	"strings"
 
 	"github.com/absmach/mproxy/pkg/tls/verifier"
 	"github.com/caarlos0/env/v10"
@@ -24,55 +22,12 @@ var (
 	errAppendCA     = errors.New("failed to append root ca tls.Config")
 )
 
-type Security int
-
-const (
-	WithoutTLS Security = iota + 1
-	WithTLS
-	WithmTLS
-	WithmTLSVerify
-)
-
-func (s Security) String() string {
-	switch s {
-	case WithTLS:
-		return "with TLS"
-	case WithmTLS:
-		return "with mTLS"
-	case WithmTLSVerify:
-		return "with mTLS and validation of client certificate revocation status"
-	case WithoutTLS:
-		fallthrough
-	default:
-		return "without TLS"
-	}
-}
-
 type Config struct {
 	CertFile     string `env:"CERT_FILE"                                  envDefault:""`
 	KeyFile      string `env:"KEY_FILE"                                   envDefault:""`
 	ServerCAFile string `env:"SERVER_CA_FILE"                             envDefault:""`
 	ClientCAFile string `env:"CLIENT_CA_FILE"                             envDefault:""`
 	Verifier     verifier.Config
-}
-
-func (c *Config) SecurityStatus() string {
-	if c.CertFile == "" && c.KeyFile == "" {
-		return "TLS"
-	}
-
-	if c.ClientCAFile != "" {
-		if len(c.Verifier.ValidationMethods) > 0 {
-			validations := []string{}
-			for _, v := range c.Verifier.ValidationMethods {
-				validations = append(validations, v.String())
-			}
-			return fmt.Sprintf("mTLS with client verification %s", strings.Join(validations, ", "))
-		}
-		return "mTLS"
-	}
-
-	return "no TLS"
 }
 
 func (c *Config) EnvParse(opts env.Options) error {
@@ -127,21 +82,6 @@ func (c *Config) Load() (*tls.Config, error) {
 		}
 	}
 	return tlsConfig, nil
-}
-
-func (c *Config) Security() Security {
-	if c.CertFile == "" && c.KeyFile == "" {
-		return WithoutTLS
-	}
-
-	if c.ClientCAFile != "" {
-		if len(c.Verifier.ValidationMethods) > 0 {
-			return WithmTLSVerify
-		}
-		return WithmTLS
-	}
-
-	return WithTLS
 }
 
 // ClientCert returns client certificate.
