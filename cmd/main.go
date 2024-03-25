@@ -56,8 +56,8 @@ func main() {
 	}
 
 	// mProxy server Configuration for MQTT without TLS
-	mqttConfig := mproxy.Config{}
-	if err := mqttConfig.EnvParse(env.Options{Prefix: mqttWithoutTLS}); err != nil {
+	mqttConfig, err := mproxy.NewConfig(env.Options{Prefix: mqttWithoutTLS})
+	if err != nil {
 		panic(err)
 	}
 
@@ -68,8 +68,8 @@ func main() {
 	})
 
 	// mProxy server Configuration for MQTT with TLS
-	mqttTLSConfig := mproxy.Config{}
-	if err := mqttTLSConfig.EnvParse(env.Options{Prefix: mqttWithTLS}); err != nil {
+	mqttTLSConfig, err := mproxy.NewConfig(env.Options{Prefix: mqttWithTLS})
+	if err != nil {
 		panic(err)
 	}
 
@@ -80,8 +80,8 @@ func main() {
 	})
 
 	//  mProxy server Configuration for MQTT with mTLS
-	mqttMTLSConfig := mproxy.Config{}
-	if err := mqttMTLSConfig.EnvParse(env.Options{Prefix: mqttWithmTLS}); err != nil {
+	mqttMTLSConfig, err := mproxy.NewConfig(env.Options{Prefix: mqttWithmTLS})
+	if err != nil {
 		panic(err)
 	}
 
@@ -92,8 +92,8 @@ func main() {
 	})
 
 	// mProxy server Configuration for MQTT over Websocket without TLS
-	wsConfig := mproxy.Config{}
-	if err := wsConfig.EnvParse(env.Options{Prefix: mqttWSWithoutTLS}); err != nil {
+	wsConfig, err := mproxy.NewConfig(env.Options{Prefix: mqttWSWithoutTLS})
+	if err != nil {
 		panic(err)
 	}
 
@@ -104,8 +104,8 @@ func main() {
 	})
 
 	// mProxy server Configuration for MQTT over Websocket with TLS
-	wsTLSConfig := mproxy.Config{}
-	if err := wsTLSConfig.EnvParse(env.Options{Prefix: mqttWSWithTLS}); err != nil {
+	wsTLSConfig, err := mproxy.NewConfig(env.Options{Prefix: mqttWSWithTLS})
+	if err != nil {
 		panic(err)
 	}
 
@@ -116,8 +116,8 @@ func main() {
 	})
 
 	// mProxy server Configuration for MQTT over Websocket with mTLS
-	wsMTLSConfig := mproxy.Config{}
-	if err := wsMTLSConfig.EnvParse(env.Options{Prefix: mqttWSWithmTLS}); err != nil {
+	wsMTLSConfig, err := mproxy.NewConfig(env.Options{Prefix: mqttWSWithmTLS})
+	if err != nil {
 		panic(err)
 	}
 
@@ -128,8 +128,8 @@ func main() {
 	})
 
 	// mProxy server Configuration for HTTP without TLS
-	httpConfig := mproxy.Config{}
-	if err := httpConfig.EnvParse(env.Options{Prefix: httpWithoutTLS}); err != nil {
+	httpConfig, err := mproxy.NewConfig(env.Options{Prefix: httpWithoutTLS})
+	if err != nil {
 		panic(err)
 	}
 
@@ -143,8 +143,8 @@ func main() {
 	})
 
 	// mProxy server Configuration for HTTP with TLS
-	httpTLSConfig := mproxy.Config{}
-	if err := httpTLSConfig.EnvParse(env.Options{Prefix: httpWithTLS}); err != nil {
+	httpTLSConfig, err := mproxy.NewConfig(env.Options{Prefix: httpWithTLS})
+	if err != nil {
 		panic(err)
 	}
 
@@ -158,8 +158,8 @@ func main() {
 	})
 
 	// mProxy server Configuration for HTTP with mTLS
-	httpMTLSConfig := mproxy.Config{}
-	if err := httpMTLSConfig.EnvParse(env.Options{Prefix: httpWithmTLS}); err != nil {
+	httpMTLSConfig, err := mproxy.NewConfig(env.Options{Prefix: httpWithmTLS})
+	if err != nil {
 		panic(err)
 	}
 

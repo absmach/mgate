@@ -4,11 +4,10 @@
 package mproxy
 
 import (
-	"reflect"
-	"strings"
+	"crypto/tls"
 
 	mptls "github.com/absmach/mproxy/pkg/tls"
-	"github.com/absmach/mproxy/pkg/tls/verifier"
+	"github.com/absmach/mproxy/pkg/utils"
 	"github.com/caarlos0/env/v10"
 )
 
@@ -16,33 +15,25 @@ type Config struct {
 	Address    string `env:"ADDRESS"                        envDefault:""`
 	PrefixPath string `env:"PREFIX_PATH"                    envDefault:""`
 	Target     string `env:"TARGET"                         envDefault:""`
-	TLSConfig  mptls.Config
+	TLSConfig  *tls.Config
+	Security   string
 }
 
-func (c *Config) EnvParse(opts env.Options) error {
-	if opts.FuncMap == nil {
-		opts.FuncMap = make(map[reflect.Type]env.ParserFunc)
+func NewConfig(opts env.Options) (Config, error) {
+	c := Config{}
+	if err := env.ParseWithOptions(&c, opts); err != nil {
+		return Config{}, err
 	}
-	opts.FuncMap[reflect.TypeOf(c.TLSConfig.Verifier.ValidationMethods)] = parseSliceValidateMethod
-	opts.FuncMap[reflect.TypeOf(verifier.OCSP)] = parseValidateMethod
-
-	return env.ParseWithOptions(c, opts)
-}
-
-func parseSliceValidateMethod(v string) (interface{}, error) {
-	var vms []verifier.ValidateMethod
-	v = strings.TrimSpace(v)
-	vmss := strings.Split(v, ",")
-	for _, vm := range vmss {
-		v, err := verifier.ParseValidateMethod(vm)
-		if err != nil {
-			return nil, err
-		}
-		vms = append(vms, v)
+	mptlsConfig, err := mptls.NewConfig(opts)
+	if err != nil {
+		return Config{}, err
 	}
-	return vms, nil
-}
 
-func parseValidateMethod(v string) (interface{}, error) {
-	return verifier.ParseValidateMethod(v)
+	c.TLSConfig, err = mptlsConfig.Load()
+	if err != nil {
+		return Config{}, err
+	}
+	c.Security = utils.SecurityStatus(mptlsConfig)
+	return c, nil
+
 }

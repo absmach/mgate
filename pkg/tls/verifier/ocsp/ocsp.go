@@ -15,6 +15,8 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/absmach/mproxy/pkg/tls/verifier/types"
+	"github.com/caarlos0/env/v10"
 	"golang.org/x/crypto/ocsp"
 )
 
@@ -36,12 +38,26 @@ var (
 	errIssuerCrtPEM         = errors.New("failed to decode issuer certificate PEM")
 )
 
-type Config struct {
+type config struct {
 	OCSPDepth        uint    `env:"OCSP_DEPTH"                                 envDefault:"0"`
 	OCSPResponderURL url.URL `env:"OCSP_RESPONDER_URL"                         envDefault:""`
 }
 
-func (c *Config) VerificationRawCerts(peerCertificates []*x509.Certificate) error {
+var _ types.ValidationMethod = (*config)(nil)
+
+func NewValidationMethod(opts env.Options) (types.ValidationMethod, error) {
+	var c config
+	if err := env.ParseWithOptions(&c, opts); err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
+func (c *config) String() string {
+	return types.OCSP.String()
+}
+
+func (c *config) VerifyRawPeerCertificates(peerCertificates []*x509.Certificate) error {
 	for i, peerCertificate := range peerCertificates {
 		issuer := retrieveIssuerCert(peerCertificate.Issuer, peerCertificates)
 		if err := c.ocspVerify(peerCertificate, issuer); err != nil {
@@ -54,7 +70,7 @@ func (c *Config) VerificationRawCerts(peerCertificates []*x509.Certificate) erro
 	return nil
 }
 
-func (c *Config) VerificationVerifiedCerts(verifiedPeerCertificateChains [][]*x509.Certificate) error {
+func (c *config) VerifyVerifiedPeerCertificates(verifiedPeerCertificateChains [][]*x509.Certificate) error {
 	for _, verifiedChain := range verifiedPeerCertificateChains {
 		for i := range verifiedChain {
 			cert := verifiedChain[i]
@@ -70,7 +86,7 @@ func (c *Config) VerificationVerifiedCerts(verifiedPeerCertificateChains [][]*x5
 	return nil
 }
 
-func (c *Config) ocspVerify(peerCertificate, issuerCert *x509.Certificate) error {
+func (c *config) ocspVerify(peerCertificate, issuerCert *x509.Certificate) error {
 	opts := &ocsp.RequestOptions{Hash: crypto.SHA256}
 	var err error
 

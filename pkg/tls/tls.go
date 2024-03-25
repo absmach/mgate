@@ -27,11 +27,20 @@ type Config struct {
 	KeyFile      string `env:"KEY_FILE"                                   envDefault:""`
 	ServerCAFile string `env:"SERVER_CA_FILE"                             envDefault:""`
 	ClientCAFile string `env:"CLIENT_CA_FILE"                             envDefault:""`
-	Verifier     verifier.Config
+	Verifier     verifier.Verifier
 }
 
-func (c *Config) EnvParse(opts env.Options) error {
-	return env.ParseWithOptions(c, opts)
+func NewConfig(opts env.Options) (Config, error) {
+	c := Config{}
+	var err error
+	if err = env.ParseWithOptions(&c, opts); err != nil {
+		return Config{}, err
+	}
+	c.Verifier, err = verifier.New(opts)
+	if err != nil {
+		return Config{}, err
+	}
+	return c, nil
 }
 
 // Load return a TLS configuration that can be used in TLS servers.
@@ -77,7 +86,7 @@ func (c *Config) Load() (*tls.Config, error) {
 			return nil, errAppendCA
 		}
 		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
-		if len(c.Verifier.ValidationMethods) > 0 {
+		if c.Verifier.IsThereVerifiers() {
 			tlsConfig.VerifyPeerCertificate = c.Verifier.VerifyPeerCertificate
 		}
 	}

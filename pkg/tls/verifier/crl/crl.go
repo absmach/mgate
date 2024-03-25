@@ -14,6 +14,9 @@ import (
 	"net/url"
 	"os"
 	"time"
+
+	"github.com/absmach/mproxy/pkg/tls/verifier/types"
+	"github.com/caarlos0/env/v10"
 )
 
 var (
@@ -31,7 +34,7 @@ var (
 	errCertRevoked         = errors.New("certificate revoked")
 )
 
-type Config struct {
+type config struct {
 	CRLDepth                            uint    `env:"CRL_DEPTH"                                  envDefault:"1"`
 	OfflineCRLFile                      string  `env:"OFFLINE_CRL_FILE"                           envDefault:""`
 	OfflineCRLIssuerCertFile            string  `env:"OFFLINE_CRL_ISSUER_CERT_FILE"               envDefault:""`
@@ -39,7 +42,21 @@ type Config struct {
 	CRLDistributionPointsIssuerCertFile string  `env:"CRL_DISTRIBUTION_POINTS_ISSUER_CERT_FILE "  envDefault:""`
 }
 
-func (c *Config) VerificationVerifiedCerts(verifiedPeerCertificateChains [][]*x509.Certificate) error {
+var _ types.ValidationMethod = (*config)(nil)
+
+func NewValidationMethod(opts env.Options) (types.ValidationMethod, error) {
+	var c config
+	if err := env.ParseWithOptions(&c, opts); err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
+func (c *config) String() string {
+	return types.CRL.String()
+}
+
+func (c *config) VerifyVerifiedPeerCertificates(verifiedPeerCertificateChains [][]*x509.Certificate) error {
 	offlineCRL, err := c.loadOfflineCRL()
 	if err != nil {
 		return err
@@ -71,7 +88,7 @@ func (c *Config) VerificationVerifiedCerts(verifiedPeerCertificateChains [][]*x5
 	return nil
 }
 
-func (c *Config) VerificationRawCerts(peerCertificates []*x509.Certificate) error {
+func (c *config) VerifyRawPeerCertificates(peerCertificates []*x509.Certificate) error {
 	offlineCRL, err := c.loadOfflineCRL()
 	if err != nil {
 		return err
@@ -99,7 +116,7 @@ func (c *Config) VerificationRawCerts(peerCertificates []*x509.Certificate) erro
 	return nil
 }
 
-func (c *Config) crlVerify(peerCertificate *x509.Certificate, crl *x509.RevocationList) error {
+func (c *config) crlVerify(peerCertificate *x509.Certificate, crl *x509.RevocationList) error {
 	for _, revokedCertificate := range crl.RevokedCertificateEntries {
 		if revokedCertificate.SerialNumber.Cmp(peerCertificate.SerialNumber) == 0 {
 			return errCertRevoked
@@ -108,7 +125,7 @@ func (c *Config) crlVerify(peerCertificate *x509.Certificate, crl *x509.Revocati
 	return nil
 }
 
-func (c *Config) loadOfflineCRL() (*x509.RevocationList, error) {
+func (c *config) loadOfflineCRL() (*x509.RevocationList, error) {
 	offlineCRLBytes, err := loadCertFile(c.OfflineCRLFile)
 	if err != nil {
 		return nil, errors.Join(errOfflineCRLLoad, err)
@@ -129,7 +146,7 @@ func (c *Config) loadOfflineCRL() (*x509.RevocationList, error) {
 	return offlineCRL, nil
 }
 
-func (c *Config) getCRLFromDistributionPoint(cert, issuer *x509.Certificate) (*x509.RevocationList, error) {
+func (c *config) getCRLFromDistributionPoint(cert, issuer *x509.Certificate) (*x509.RevocationList, error) {
 	switch {
 	case len(cert.CRLDistributionPoints) > 0:
 		return retrieveCRL(cert.CRLDistributionPoints[0], issuer, true)
@@ -145,7 +162,7 @@ func (c *Config) getCRLFromDistributionPoint(cert, issuer *x509.Certificate) (*x
 	}
 }
 
-func (c *Config) loadDistPointCRLIssuerCert() (*x509.Certificate, error) {
+func (c *config) loadDistPointCRLIssuerCert() (*x509.Certificate, error) {
 	crlIssuerCertBytes, err := loadCertFile(c.CRLDistributionPointsIssuerCertFile)
 	if err != nil {
 		return nil, errors.Join(errCRLDistIssuer, err)
@@ -164,7 +181,7 @@ func (c *Config) loadDistPointCRLIssuerCert() (*x509.Certificate, error) {
 	return crlIssuerCert, nil
 }
 
-func (c *Config) loadOfflineCRLIssuerCert() (*x509.Certificate, error) {
+func (c *config) loadOfflineCRLIssuerCert() (*x509.Certificate, error) {
 	offlineCrlIssuerCertBytes, err := loadCertFile(c.OfflineCRLIssuerCertFile)
 	if err != nil {
 		return nil, errors.Join(errOfflineCRLIssuer, err)

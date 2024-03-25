@@ -14,7 +14,6 @@ import (
 	"github.com/absmach/mproxy"
 	"github.com/absmach/mproxy/pkg/session"
 	mptls "github.com/absmach/mproxy/pkg/tls"
-	"github.com/absmach/mproxy/pkg/utils"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -76,21 +75,16 @@ func (p Proxy) handle(ctx context.Context, inbound net.Conn) {
 
 // Listen of the server, this will block.
 func (p Proxy) Listen(ctx context.Context) error {
-	tlsCfg, err := p.config.TLSConfig.Load()
-	if err != nil {
-		return err
-	}
-
 	l, err := net.Listen("tcp", p.config.Address)
 	if err != nil {
 		return err
 	}
 
-	if tlsCfg != nil {
-		l = tls.NewListener(l, tlsCfg)
+	if p.config.TLSConfig != nil {
+		l = tls.NewListener(l, p.config.TLSConfig)
 	}
 
-	p.logger.Info(fmt.Sprintf("MQTT proxy server started at %s  %s", p.config.Address, utils.SecurityStatus(p.config.TLSConfig)))
+	p.logger.Info(fmt.Sprintf("MQTT proxy server started at %s  %s", p.config.Address, p.config.Security))
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Acceptor loop
@@ -104,9 +98,9 @@ func (p Proxy) Listen(ctx context.Context) error {
 		return l.Close()
 	})
 	if err := g.Wait(); err != nil {
-		p.logger.Info(fmt.Sprintf("MQTT proxy server at %s  %s exiting with errors", p.config.Address, utils.SecurityStatus(p.config.TLSConfig)), slog.String("error", err.Error()))
+		p.logger.Info(fmt.Sprintf("MQTT proxy server at %s  %s exiting with errors", p.config.Address, p.config.Security), slog.String("error", err.Error()))
 	} else {
-		p.logger.Info(fmt.Sprintf("MQTT proxy server at %s  %s exiting...", p.config.Address, utils.SecurityStatus(p.config.TLSConfig)))
+		p.logger.Info(fmt.Sprintf("MQTT proxy server at %s  %s exiting...", p.config.Address, p.config.Security))
 	}
 	return nil
 }
