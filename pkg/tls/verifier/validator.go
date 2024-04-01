@@ -18,20 +18,20 @@ var (
 	errClientCrt = errors.New("client certificate not received")
 )
 
-type Verifier interface {
+type Validator interface {
 	// VerifyPeerCertificate...
 	VerifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error
-	IsThereVerifiers() bool
-	Methods() string
+	// IsThereVerifiers() bool
+	// Methods() string
 }
 
 type config struct {
 	validationMethods []types.ValidationMethod
 }
 
-var _ Verifier = (*config)(nil)
+var _ Validator = (*config)(nil)
 
-func New(opts env.Options) (Verifier, error) {
+func New(opts env.Options) (Validator, error) {
 	vms, err := validation.NewValidationMethods(opts)
 	if err != nil {
 		return nil, err

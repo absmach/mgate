@@ -7,7 +7,6 @@ import (
 	"crypto/tls"
 
 	mptls "github.com/absmach/mproxy/pkg/tls"
-	"github.com/absmach/mproxy/pkg/utils"
 	"github.com/caarlos0/env/v10"
 )
 
@@ -16,7 +15,7 @@ type Config struct {
 	PrefixPath string `env:"PREFIX_PATH"                    envDefault:""`
 	Target     string `env:"TARGET"                         envDefault:""`
 	TLSConfig  *tls.Config
-	Security   string
+	// Security   string
 }
 
 func NewConfig(opts env.Options) (Config, error) {
@@ -33,7 +32,6 @@ func NewConfig(opts env.Options) (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	c.Security = utils.SecurityStatus(mptlsConfig)
+	// c.Security = utils.SecurityStatus(mptlsConfig)
 	return c, nil
-
 }

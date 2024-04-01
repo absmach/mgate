@@ -27,7 +27,7 @@ type Config struct {
 	KeyFile      string `env:"KEY_FILE"                                   envDefault:""`
 	ServerCAFile string `env:"SERVER_CA_FILE"                             envDefault:""`
 	ClientCAFile string `env:"CLIENT_CA_FILE"                             envDefault:""`
-	Verifier     verifier.Verifier
+	Validator    verifier.Validator
 }
 
 func NewConfig(opts env.Options) (Config, error) {
@@ -36,7 +36,7 @@ func NewConfig(opts env.Options) (Config, error) {
 	if err = env.ParseWithOptions(&c, opts); err != nil {
 		return Config{}, err
 	}
-	c.Verifier, err = verifier.New(opts)
+	c.Validator, err = verifier.New(opts)
 	if err != nil {
 		return Config{}, err
 	}
@@ -86,8 +86,8 @@ func (c *Config) Load() (*tls.Config, error) {
 			return nil, errAppendCA
 		}
 		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
-		if c.Verifier.IsThereVerifiers() {
-			tlsConfig.VerifyPeerCertificate = c.Verifier.VerifyPeerCertificate
+		if c.Validator != nil {
+			tlsConfig.VerifyPeerCertificate = c.Validator.VerifyPeerCertificate
 		}
 	}
 	return tlsConfig, nil
