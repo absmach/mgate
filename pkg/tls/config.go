@@ -13,15 +13,14 @@ type Config struct {
 	Validator    verifier.Validator
 }
 
-func NewConfig(opts env.Options) (Config, error) {
+func NewConfig(opts env.Options, verifiers []verifier.Verifier) (Config, error) {
 	c := Config{}
 	var err error
 	if err = env.ParseWithOptions(&c, opts); err != nil {
 		return Config{}, err
 	}
-	c.Validator, err = verifier.New(opts)
-	if err != nil {
-		return Config{}, err
-	}
+
+	c.Validator = verifier.NewValidator(verifiers)
+
 	return c, nil
 }

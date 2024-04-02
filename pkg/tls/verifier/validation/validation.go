@@ -1,26 +1,48 @@
 package validation
 
 import (
+	"errors"
 	"reflect"
 	"strings"
 
+	"github.com/absmach/mproxy/pkg/tls/verifier"
 	"github.com/absmach/mproxy/pkg/tls/verifier/crl"
 	"github.com/absmach/mproxy/pkg/tls/verifier/ocsp"
-	"github.com/absmach/mproxy/pkg/tls/verifier/types"
 	"github.com/caarlos0/env/v10"
 )
 
-type config struct {
-	Validations []types.Validation `env:"CLIENT_CERT_VALIDATION_METHODS"             envDefault:""`
+var ErrInvalidClientValidation = errors.New("invalid client validation method")
+
+type validation int
+
+const (
+	OCSP validation = iota + 1
+	CRL
+)
+
+func parseValidation(v string) (validation, error) {
+	v = strings.ToUpper(strings.TrimSpace(v))
+	switch v {
+	case "OCSP":
+		return OCSP, nil
+	case "CRL":
+		return CRL, nil
+	default:
+		return 0, ErrInvalidClientValidation
+	}
 }
 
-func NewValidationMethods(opts env.Options) ([]types.ValidationMethod, error) {
+type config struct {
+	Validations []validation `env:"CLIENT_CERT_VALIDATION_METHODS"             envDefault:""`
+}
+
+func NewVerifiers(opts env.Options) ([]verifier.Verifier, error) {
 	var c config
 	if opts.FuncMap == nil {
 		opts.FuncMap = make(map[reflect.Type]env.ParserFunc)
 	}
-	opts.FuncMap[reflect.TypeOf(make([]types.Validation, 0))] = envParseSliceValidate
-	opts.FuncMap[reflect.TypeOf(new(types.Validation))] = envParseValidation
+	opts.FuncMap[reflect.TypeOf(make([]validation, 0))] = envParseSliceValidate
+	opts.FuncMap[reflect.TypeOf(new(validation))] = envParseValidation
 	if err := env.ParseWithOptions(&c, opts); err != nil {
 		return nil, err
 	}
@@ -30,35 +52,35 @@ func NewValidationMethods(opts env.Options) ([]types.ValidationMethod, error) {
 	return c.newValidationMethods(opts)
 }
 
-func (c *config) newValidationMethods(opts env.Options) ([]types.ValidationMethod, error) {
-	var vms []types.ValidationMethod
+func (c *config) newValidationMethods(opts env.Options) ([]verifier.Verifier, error) {
+	var vms []verifier.Verifier
 	for _, v := range c.Validations {
 		switch v {
-		case types.OCSP:
-			vm, err := ocsp.NewValidationMethod(opts)
+		case OCSP:
+			vm, err := ocsp.New(opts)
 			if err != nil {
 				return nil, err
 			}
 			vms = append(vms, vm)
-		case types.CRL:
-			vm, err := crl.NewValidationMethod(opts)
+		case CRL:
+			vm, err := crl.New(opts)
 			if err != nil {
 				return nil, err
 			}
 			vms = append(vms, vm)
 		default:
-			return nil, types.ErrInvalidClientValidation
+			return nil, ErrInvalidClientValidation
 		}
 	}
 	return vms, nil
 }
 
 func envParseSliceValidate(v string) (interface{}, error) {
-	var vms []types.Validation
+	var vms []validation
 	v = strings.TrimSpace(v)
 	vmss := strings.Split(v, ",")
 	for _, vm := range vmss {
-		v, err := types.ParseValidation(vm)
+		v, err := parseValidation(vm)
 		if err != nil {
 			return nil, err
 		}
@@ -68,5 +90,5 @@ func envParseSliceValidate(v string) (interface{}, error) {
 }
 
 func envParseValidation(v string) (interface{}, error) {
-	return types.ParseValidation(v)
+	return parseValidation(v)
 }

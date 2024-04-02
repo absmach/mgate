@@ -7,6 +7,8 @@ import (
 	"crypto/tls"
 
 	mptls "github.com/absmach/mproxy/pkg/tls"
+	"github.com/absmach/mproxy/pkg/tls/verifier"
+	"github.com/absmach/mproxy/pkg/tls/verifier/validation"
 	"github.com/caarlos0/env/v10"
 )
 
@@ -15,15 +17,18 @@ type Config struct {
 	PrefixPath string `env:"PREFIX_PATH"                    envDefault:""`
 	Target     string `env:"TARGET"                         envDefault:""`
 	TLSConfig  *tls.Config
-	// Security   string
 }
 
-func NewConfig(opts env.Options) (Config, error) {
+func NewConfig(opts env.Options, verifiers []verifier.Verifier) (Config, error) {
 	c := Config{}
 	if err := env.ParseWithOptions(&c, opts); err != nil {
 		return Config{}, err
 	}
-	mptlsConfig, err := mptls.NewConfig(opts)
+	vfs, err := validation.NewVerifiers(opts)
+	if err != nil {
+		return Config{}, err
+	}
+	mptlsConfig, err := mptls.NewConfig(opts, vfs)
 	if err != nil {
 		return Config{}, err
 	}
@@ -32,6 +37,5 @@ func NewConfig(opts env.Options) (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	// c.Security = utils.SecurityStatus(mptlsConfig)
 	return c, nil
 }

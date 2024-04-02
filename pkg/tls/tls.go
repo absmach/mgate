@@ -63,7 +63,7 @@ func Load(c *Config) (*tls.Config, error) {
 		}
 		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 		if c.Validator != nil {
-			tlsConfig.VerifyPeerCertificate = c.Validator.VerifyPeerCertificate
+			tlsConfig.VerifyPeerCertificate = c.Validator
 		}
 	}
 	return tlsConfig, nil

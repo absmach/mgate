@@ -15,7 +15,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/absmach/mproxy/pkg/tls/verifier/types"
+	"github.com/absmach/mproxy/pkg/tls/verifier"
 	"github.com/caarlos0/env/v10"
 	"golang.org/x/crypto/ocsp"
 )
@@ -43,9 +43,9 @@ type config struct {
 	OCSPResponderURL url.URL `env:"OCSP_RESPONDER_URL"                         envDefault:""`
 }
 
-var _ types.ValidationMethod = (*config)(nil)
+var _ verifier.Verifier = (*config)(nil)
 
-func NewValidationMethod(opts env.Options) (types.ValidationMethod, error) {
+func New(opts env.Options) (verifier.Verifier, error) {
 	var c config
 	if err := env.ParseWithOptions(&c, opts); err != nil {
 		return nil, err

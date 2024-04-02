@@ -15,7 +15,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/absmach/mproxy/pkg/tls/verifier/types"
+	"github.com/absmach/mproxy/pkg/tls/verifier"
 	"github.com/caarlos0/env/v10"
 )
 
@@ -42,9 +42,9 @@ type config struct {
 	CRLDistributionPointsIssuerCertFile string  `env:"CRL_DISTRIBUTION_POINTS_ISSUER_CERT_FILE "  envDefault:""`
 }
 
-var _ types.ValidationMethod = (*config)(nil)
+var _ verifier.Verifier = (*config)(nil)
 
-func NewValidationMethod(opts env.Options) (types.ValidationMethod, error) {
+func New(opts env.Options) (verifier.Verifier, error) {
 	var c config
 	if err := env.ParseWithOptions(&c, opts); err != nil {
 		return nil, err
