@@ -16,7 +16,6 @@ import (
 	"github.com/absmach/mproxy"
 	"github.com/absmach/mproxy/pkg/session"
 	mptls "github.com/absmach/mproxy/pkg/tls"
-	"github.com/absmach/mproxy/pkg/utils"
 	"github.com/gorilla/websocket"
 	"golang.org/x/sync/errgroup"
 )
@@ -122,7 +121,7 @@ func (p Proxy) Listen(ctx context.Context) error {
 	g.Go(func() error {
 		return server.Serve(l)
 	})
-	status := utils.SecurityStatus(p.config.TLSConfig)
+	status := mptls.SecurityStatus(p.config.TLSConfig)
 
 	p.logger.Info(fmt.Sprintf("MQTT websocket proxy server started at %s%s with %s", p.config.Address, p.config.PrefixPath, status))
 

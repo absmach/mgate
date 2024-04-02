@@ -14,7 +14,6 @@ import (
 	"github.com/absmach/mproxy"
 	"github.com/absmach/mproxy/pkg/session"
 	mptls "github.com/absmach/mproxy/pkg/tls"
-	"github.com/absmach/mproxy/pkg/utils"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -84,7 +83,7 @@ func (p Proxy) Listen(ctx context.Context) error {
 	if p.config.TLSConfig != nil {
 		l = tls.NewListener(l, p.config.TLSConfig)
 	}
-	status := utils.SecurityStatus(p.config.TLSConfig)
+	status := mptls.SecurityStatus(p.config.TLSConfig)
 	p.logger.Info(fmt.Sprintf("MQTT proxy server started at %s  with %s", p.config.Address, status))
 	g, ctx := errgroup.WithContext(ctx)
 
