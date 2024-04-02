@@ -11,11 +11,16 @@ type ValidationMethod interface {
 }
 
 func SecurityStatus(c *tls.Config) string {
-	if c == nil || c.Certificates == nil || len(c.Certificates) == 0 {
+	if c == nil {
 		return "no TLS"
 	}
-	if c.ClientCAs != nil {
-		return c.ClientAuth.String()
+	ret := "TLS"
+	// It is possible to establish TLS with client certificates only.
+	if c.Certificates == nil || len(c.Certificates) == 0 {
+		ret = "no server certificates"
 	}
-	return "TLS"
+	if c.ClientCAs != nil {
+		ret += " and " + c.ClientAuth.String()
+	}
+	return ret
 }
