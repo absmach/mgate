@@ -52,10 +52,6 @@ func NewValidationMethod(opts env.Options) (types.ValidationMethod, error) {
 	return &c, nil
 }
 
-func (c *config) String() string {
-	return types.CRL.String()
-}
-
 func (c *config) VerifyVerifiedPeerCertificates(verifiedPeerCertificateChains [][]*x509.Certificate) error {
 	offlineCRL, err := c.loadOfflineCRL()
 	if err != nil {

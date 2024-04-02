@@ -6,7 +6,6 @@ package verifier
 import (
 	"crypto/x509"
 	"errors"
-	"strings"
 
 	"github.com/absmach/mproxy/pkg/tls/verifier/types"
 	"github.com/absmach/mproxy/pkg/tls/verifier/validation"
@@ -19,10 +18,8 @@ var (
 )
 
 type Validator interface {
-	// VerifyPeerCertificate...
+	// VerifyPeerCertificate is used to verify certificate using verifiers.
 	VerifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error
-	// IsThereVerifiers() bool
-	// Methods() string
 }
 
 type config struct {
@@ -39,14 +36,6 @@ func New(opts env.Options) (Validator, error) {
 	return &config{vms}, nil
 }
 
-func (c *config) Methods() string {
-	methods := []string{}
-	for _, vm := range c.validationMethods {
-		methods = append(methods, vm.String())
-	}
-	return strings.Join(methods, ",")
-}
-
 // Client certificate verification fails when there is partial certificates of either verifiedChains or rawCerts.
 func (c *config) VerifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	switch {
@@ -57,10 +46,6 @@ func (c *config) VerifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x5
 	default:
 		return errClientCrt
 	}
-}
-
-func (c *config) IsThereVerifiers() bool {
-	return len(c.validationMethods) > 0
 }
 
 func (c *config) verifyVerifiedPeerCertificates(verifiedChains [][]*x509.Certificate) error {

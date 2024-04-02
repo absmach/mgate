@@ -53,10 +53,6 @@ func NewValidationMethod(opts env.Options) (types.ValidationMethod, error) {
 	return &c, nil
 }
 
-func (c *config) String() string {
-	return types.OCSP.String()
-}
-
 func (c *config) VerifyRawPeerCertificates(peerCertificates []*x509.Certificate) error {
 	for i, peerCertificate := range peerCertificates {
 		issuer := retrieveIssuerCert(peerCertificate.Issuer, peerCertificates)
