@@ -20,7 +20,7 @@ const (
 	CRL
 )
 
-func NewVerification(opts env.Options) ([]verifier.Verifier, error) {
+func newVerifiers(opts env.Options) ([]verifier.Verifier, error) {
 	if opts.FuncMap == nil {
 		opts.FuncMap = make(map[reflect.Type]env.ParserFunc)
 	}
@@ -37,12 +37,8 @@ func NewVerification(opts env.Options) ([]verifier.Verifier, error) {
 		return nil, nil
 	}
 
-	return newVerifiers(c.Verifications, opts)
-}
-
-func newVerifiers(vfs []verification, opts env.Options) ([]verifier.Verifier, error) {
 	var vms []verifier.Verifier
-	for _, v := range vfs {
+	for _, v := range c.Verifications {
 		switch v {
 		case OCSP:
 			vm, err := ocsp.New(opts)
@@ -60,6 +56,7 @@ func newVerifiers(vfs []verification, opts env.Options) ([]verifier.Verifier, er
 			return nil, ErrInvalidClientValidation
 		}
 	}
+
 	return vms, nil
 }
 

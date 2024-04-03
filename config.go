@@ -22,16 +22,13 @@ func NewConfig(opts env.Options) (Config, error) {
 	if err := env.ParseWithOptions(&c, opts); err != nil {
 		return Config{}, err
 	}
-	vfs, err := mptls.NewVerification(opts)
-	if err != nil {
-		return Config{}, err
-	}
-	mptlsConfig, err := mptls.NewConfig(opts, vfs)
+
+	cfg, err := mptls.NewConfig(opts)
 	if err != nil {
 		return Config{}, err
 	}
 
-	c.TLSConfig, err = mptls.Load(&mptlsConfig)
+	c.TLSConfig, err = mptls.Load(&cfg)
 	if err != nil {
 		return Config{}, err
 	}
