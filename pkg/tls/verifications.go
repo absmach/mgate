@@ -30,7 +30,7 @@ func newVerifiers(opts env.Options) ([]verifier.Verifier, error) {
 	opts.FuncMap[reflect.TypeOf(new(verification))] = envParseValidation
 
 	var c struct {
-		Verifications []verification `env:"_CERT_VERIFICATION_METHODS"             envDefault:""`
+		Verifications []verification `env:"CERT_VERIFICATION_METHODS"             envDefault:""`
 	}
 	if err := env.ParseWithOptions(&c, opts); err != nil {
 		return nil, err
