@@ -15,7 +15,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/absmach/mproxy/pkg/tls/verifier/types"
+	"github.com/absmach/mproxy/pkg/tls/verifier"
 	"github.com/caarlos0/env/v10"
 	"golang.org/x/crypto/ocsp"
 )
@@ -36,6 +36,9 @@ var (
 	errRetrieveIssuerCrt    = errors.New("failed to retrieve issuer certificate")
 	errReadIssuerCrt        = errors.New("failed to read issuer certificate")
 	errIssuerCrtPEM         = errors.New("failed to decode issuer certificate PEM")
+
+	errParseCert = errors.New("failed to parse Certificate")
+	errClientCrt = errors.New("client certificate not received")
 )
 
 type config struct {
@@ -43,9 +46,9 @@ type config struct {
 	OCSPResponderURL url.URL `env:"OCSP_RESPONDER_URL"                         envDefault:""`
 }
 
-var _ types.ValidationMethod = (*config)(nil)
+var _ verifier.Verifier = (*config)(nil)
 
-func NewValidationMethod(opts env.Options) (types.ValidationMethod, error) {
+func New(opts env.Options) (verifier.Verifier, error) {
 	var c config
 	if err := env.ParseWithOptions(&c, opts); err != nil {
 		return nil, err
@@ -53,8 +56,20 @@ func NewValidationMethod(opts env.Options) (types.ValidationMethod, error) {
 	return &c, nil
 }
 
-func (c *config) String() string {
-	return types.OCSP.String()
+func (c *config) VerifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+	switch {
+	case len(verifiedChains) > 0:
+		return c.VerifyVerifiedPeerCertificates(verifiedChains)
+	case len(rawCerts) > 0:
+		var peerCertificates []*x509.Certificate
+		peerCertificates, err := parseCertificates(rawCerts)
+		if err != nil {
+			return err
+		}
+		return c.VerifyRawPeerCertificates(peerCertificates)
+	default:
+		return errClientCrt
+	}
 }
 
 func (c *config) VerifyRawPeerCertificates(peerCertificates []*x509.Certificate) error {
@@ -209,4 +224,16 @@ func isRootCA(cert *x509.Certificate) bool {
 		}
 	}
 	return false
+}
+
+func parseCertificates(rawCerts [][]byte) ([]*x509.Certificate, error) {
+	var certs []*x509.Certificate
+	for _, rawCert := range rawCerts {
+		cert, err := x509.ParseCertificate(rawCert)
+		if err != nil {
+			return nil, errors.Join(errParseCert, err)
+		}
+		certs = append(certs, cert)
+	}
+	return certs, nil
 }

@@ -9,9 +9,6 @@ import (
 	"errors"
 	"net"
 	"os"
-
-	"github.com/absmach/mproxy/pkg/tls/verifier"
-	"github.com/caarlos0/env/v10"
 )
 
 var (
@@ -22,29 +19,8 @@ var (
 	errAppendCA     = errors.New("failed to append root ca tls.Config")
 )
 
-type Config struct {
-	CertFile     string `env:"CERT_FILE"                                  envDefault:""`
-	KeyFile      string `env:"KEY_FILE"                                   envDefault:""`
-	ServerCAFile string `env:"SERVER_CA_FILE"                             envDefault:""`
-	ClientCAFile string `env:"CLIENT_CA_FILE"                             envDefault:""`
-	Verifier     verifier.Verifier
-}
-
-func NewConfig(opts env.Options) (Config, error) {
-	c := Config{}
-	var err error
-	if err = env.ParseWithOptions(&c, opts); err != nil {
-		return Config{}, err
-	}
-	c.Verifier, err = verifier.New(opts)
-	if err != nil {
-		return Config{}, err
-	}
-	return c, nil
-}
-
 // Load return a TLS configuration that can be used in TLS servers.
-func (c *Config) Load() (*tls.Config, error) {
+func Load(c *Config) (*tls.Config, error) {
 	if c.CertFile == "" || c.KeyFile == "" {
 		return nil, nil
 	}
@@ -86,8 +62,8 @@ func (c *Config) Load() (*tls.Config, error) {
 			return nil, errAppendCA
 		}
 		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
-		if c.Verifier.IsThereVerifiers() {
-			tlsConfig.VerifyPeerCertificate = c.Verifier.VerifyPeerCertificate
+		if c.Validator != nil {
+			tlsConfig.VerifyPeerCertificate = c.Validator
 		}
 	}
 	return tlsConfig, nil
@@ -112,6 +88,22 @@ func ClientCert(conn net.Conn) (x509.Certificate, error) {
 	default:
 		return x509.Certificate{}, nil
 	}
+}
+
+// SecurityStatus returns log message from TLS config.
+func SecurityStatus(c *tls.Config) string {
+	if c == nil {
+		return "no TLS"
+	}
+	ret := "TLS"
+	// It is possible to establish TLS with client certificates only.
+	if c.Certificates == nil || len(c.Certificates) == 0 {
+		ret = "no server certificates"
+	}
+	if c.ClientCAs != nil {
+		ret += " and " + c.ClientAuth.String()
+	}
+	return ret
 }
 
 func loadCertFile(certFile string) ([]byte, error) {

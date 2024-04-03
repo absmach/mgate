@@ -15,7 +15,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/absmach/mproxy/pkg/tls/verifier/types"
+	"github.com/absmach/mproxy/pkg/tls/verifier"
 	"github.com/caarlos0/env/v10"
 )
 
@@ -34,6 +34,11 @@ var (
 	errCertRevoked         = errors.New("certificate revoked")
 )
 
+var (
+	errParseCert = errors.New("failed to parse Certificate")
+	errClientCrt = errors.New("client certificate not received")
+)
+
 type config struct {
 	CRLDepth                            uint    `env:"CRL_DEPTH"                                  envDefault:"1"`
 	OfflineCRLFile                      string  `env:"OFFLINE_CRL_FILE"                           envDefault:""`
@@ -42,9 +47,9 @@ type config struct {
 	CRLDistributionPointsIssuerCertFile string  `env:"CRL_DISTRIBUTION_POINTS_ISSUER_CERT_FILE "  envDefault:""`
 }
 
-var _ types.ValidationMethod = (*config)(nil)
+var _ verifier.Verifier = (*config)(nil)
 
-func NewValidationMethod(opts env.Options) (types.ValidationMethod, error) {
+func New(opts env.Options) (verifier.Verifier, error) {
 	var c config
 	if err := env.ParseWithOptions(&c, opts); err != nil {
 		return nil, err
@@ -52,8 +57,20 @@ func NewValidationMethod(opts env.Options) (types.ValidationMethod, error) {
 	return &c, nil
 }
 
-func (c *config) String() string {
-	return types.CRL.String()
+func (c *config) VerifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+	switch {
+	case len(verifiedChains) > 0:
+		return c.VerifyVerifiedPeerCertificates(verifiedChains)
+	case len(rawCerts) > 0:
+		var peerCertificates []*x509.Certificate
+		peerCertificates, err := parseCertificates(rawCerts)
+		if err != nil {
+			return err
+		}
+		return c.VerifyRawPeerCertificates(peerCertificates)
+	default:
+		return errClientCrt
+	}
 }
 
 func (c *config) VerifyVerifiedPeerCertificates(verifiedPeerCertificateChains [][]*x509.Certificate) error {
@@ -253,4 +270,16 @@ func retrieveIssuerCert(issuerSubject pkix.Name, certs []*x509.Certificate) *x50
 		}
 	}
 	return nil
+}
+
+func parseCertificates(rawCerts [][]byte) ([]*x509.Certificate, error) {
+	var certs []*x509.Certificate
+	for _, rawCert := range rawCerts {
+		cert, err := x509.ParseCertificate(rawCert)
+		if err != nil {
+			return nil, errors.Join(errParseCert, err)
+		}
+		certs = append(certs, cert)
+	}
+	return certs, nil
 }

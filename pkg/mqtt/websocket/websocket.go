@@ -121,16 +121,18 @@ func (p Proxy) Listen(ctx context.Context) error {
 	g.Go(func() error {
 		return server.Serve(l)
 	})
-	p.logger.Info(fmt.Sprintf("MQTT websocket proxy server started at %s%s %s", p.config.Address, p.config.PrefixPath, p.config.Security))
+	status := mptls.SecurityStatus(p.config.TLSConfig)
+
+	p.logger.Info(fmt.Sprintf("MQTT websocket proxy server started at %s%s with %s", p.config.Address, p.config.PrefixPath, status))
 
 	g.Go(func() error {
 		<-ctx.Done()
 		return server.Close()
 	})
 	if err := g.Wait(); err != nil {
-		p.logger.Info(fmt.Sprintf("MQTT websocket proxy server at %s%s %s exiting with errors", p.config.Address, p.config.PrefixPath, p.config.Security), slog.String("error", err.Error()))
+		p.logger.Info(fmt.Sprintf("MQTT websocket proxy server at %s%s with %s exiting with errors", p.config.Address, p.config.PrefixPath, status), slog.String("error", err.Error()))
 	} else {
-		p.logger.Info(fmt.Sprintf("MQTT websocket proxy server at %s%s %s exiting...", p.config.Address, p.config.PrefixPath, p.config.Security))
+		p.logger.Info(fmt.Sprintf("MQTT websocket proxy server at %s%s with %s exiting...", p.config.Address, p.config.PrefixPath, status))
 	}
 	return nil
 }
