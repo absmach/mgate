@@ -36,6 +36,9 @@ var (
 	errRetrieveIssuerCrt    = errors.New("failed to retrieve issuer certificate")
 	errReadIssuerCrt        = errors.New("failed to read issuer certificate")
 	errIssuerCrtPEM         = errors.New("failed to decode issuer certificate PEM")
+
+	errParseCert = errors.New("failed to parse Certificate")
+	errClientCrt = errors.New("client certificate not received")
 )
 
 type config struct {
@@ -51,6 +54,22 @@ func New(opts env.Options) (verifier.Verifier, error) {
 		return nil, err
 	}
 	return &c, nil
+}
+
+func (c *config) VerifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+	switch {
+	case len(verifiedChains) > 0:
+		return c.VerifyVerifiedPeerCertificates(verifiedChains)
+	case len(rawCerts) > 0:
+		var peerCertificates []*x509.Certificate
+		peerCertificates, err := parseCertificates(rawCerts)
+		if err != nil {
+			return err
+		}
+		return c.VerifyRawPeerCertificates(peerCertificates)
+	default:
+		return errClientCrt
+	}
 }
 
 func (c *config) VerifyRawPeerCertificates(peerCertificates []*x509.Certificate) error {
@@ -205,4 +224,16 @@ func isRootCA(cert *x509.Certificate) bool {
 		}
 	}
 	return false
+}
+
+func parseCertificates(rawCerts [][]byte) ([]*x509.Certificate, error) {
+	var certs []*x509.Certificate
+	for _, rawCert := range rawCerts {
+		cert, err := x509.ParseCertificate(rawCert)
+		if err != nil {
+			return nil, errors.Join(errParseCert, err)
+		}
+		certs = append(certs, cert)
+	}
+	return certs, nil
 }

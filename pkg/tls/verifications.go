@@ -1,4 +1,4 @@
-package validation
+package tls
 
 import (
 	"errors"
@@ -13,48 +13,36 @@ import (
 
 var ErrInvalidClientValidation = errors.New("invalid client validation method")
 
-type validation int
+type verification int
 
 const (
-	OCSP validation = iota + 1
+	OCSP verification = iota + 1
 	CRL
 )
 
-func parseValidation(v string) (validation, error) {
-	v = strings.ToUpper(strings.TrimSpace(v))
-	switch v {
-	case "OCSP":
-		return OCSP, nil
-	case "CRL":
-		return CRL, nil
-	default:
-		return 0, ErrInvalidClientValidation
-	}
-}
-
-type config struct {
-	Validations []validation `env:"CLIENT_CERT_VALIDATION_METHODS"             envDefault:""`
-}
-
-func NewVerifiers(opts env.Options) ([]verifier.Verifier, error) {
-	var c config
+func NewVerification(opts env.Options) ([]verifier.Verifier, error) {
 	if opts.FuncMap == nil {
 		opts.FuncMap = make(map[reflect.Type]env.ParserFunc)
 	}
-	opts.FuncMap[reflect.TypeOf(make([]validation, 0))] = envParseSliceValidate
-	opts.FuncMap[reflect.TypeOf(new(validation))] = envParseValidation
+	opts.FuncMap[reflect.TypeOf(make([]verification, 0))] = envParseSliceValidate
+	opts.FuncMap[reflect.TypeOf(new(verification))] = envParseValidation
+
+	var c struct {
+		Verifications []verification `env:"_CERT_VERIFICATION_METHODS"             envDefault:""`
+	}
 	if err := env.ParseWithOptions(&c, opts); err != nil {
 		return nil, err
 	}
-	if len(c.Validations) == 0 {
+	if len(c.Verifications) == 0 {
 		return nil, nil
 	}
-	return c.newValidationMethods(opts)
+
+	return newVerifiers(c.Verifications, opts)
 }
 
-func (c *config) newValidationMethods(opts env.Options) ([]verifier.Verifier, error) {
+func newVerifiers(vfs []verification, opts env.Options) ([]verifier.Verifier, error) {
 	var vms []verifier.Verifier
-	for _, v := range c.Validations {
+	for _, v := range vfs {
 		switch v {
 		case OCSP:
 			vm, err := ocsp.New(opts)
@@ -75,8 +63,20 @@ func (c *config) newValidationMethods(opts env.Options) ([]verifier.Verifier, er
 	return vms, nil
 }
 
+func parseValidation(v string) (verification, error) {
+	v = strings.ToUpper(strings.TrimSpace(v))
+	switch v {
+	case "OCSP":
+		return OCSP, nil
+	case "CRL":
+		return CRL, nil
+	default:
+		return 0, ErrInvalidClientValidation
+	}
+}
+
 func envParseSliceValidate(v string) (interface{}, error) {
-	var vms []validation
+	var vms []verification
 	v = strings.TrimSpace(v)
 	vmss := strings.Split(v, ",")
 	for _, vm := range vmss {

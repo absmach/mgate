@@ -34,6 +34,11 @@ var (
 	errCertRevoked         = errors.New("certificate revoked")
 )
 
+var (
+	errParseCert = errors.New("failed to parse Certificate")
+	errClientCrt = errors.New("client certificate not received")
+)
+
 type config struct {
 	CRLDepth                            uint    `env:"CRL_DEPTH"                                  envDefault:"1"`
 	OfflineCRLFile                      string  `env:"OFFLINE_CRL_FILE"                           envDefault:""`
@@ -50,6 +55,22 @@ func New(opts env.Options) (verifier.Verifier, error) {
 		return nil, err
 	}
 	return &c, nil
+}
+
+func (c *config) VerifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+	switch {
+	case len(verifiedChains) > 0:
+		return c.VerifyVerifiedPeerCertificates(verifiedChains)
+	case len(rawCerts) > 0:
+		var peerCertificates []*x509.Certificate
+		peerCertificates, err := parseCertificates(rawCerts)
+		if err != nil {
+			return err
+		}
+		return c.VerifyRawPeerCertificates(peerCertificates)
+	default:
+		return errClientCrt
+	}
 }
 
 func (c *config) VerifyVerifiedPeerCertificates(verifiedPeerCertificateChains [][]*x509.Certificate) error {
@@ -249,4 +270,16 @@ func retrieveIssuerCert(issuerSubject pkix.Name, certs []*x509.Certificate) *x50
 		}
 	}
 	return nil
+}
+
+func parseCertificates(rawCerts [][]byte) ([]*x509.Certificate, error) {
+	var certs []*x509.Certificate
+	for _, rawCert := range rawCerts {
+		cert, err := x509.ParseCertificate(rawCert)
+		if err != nil {
+			return nil, errors.Join(errParseCert, err)
+		}
+		certs = append(certs, cert)
+	}
+	return certs, nil
 }

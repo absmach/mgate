@@ -7,8 +7,6 @@ import (
 	"crypto/tls"
 
 	mptls "github.com/absmach/mproxy/pkg/tls"
-	"github.com/absmach/mproxy/pkg/tls/verifier"
-	"github.com/absmach/mproxy/pkg/tls/verifier/validation"
 	"github.com/caarlos0/env/v10"
 )
 
@@ -19,12 +17,12 @@ type Config struct {
 	TLSConfig  *tls.Config
 }
 
-func NewConfig(opts env.Options, verifiers []verifier.Verifier) (Config, error) {
+func NewConfig(opts env.Options) (Config, error) {
 	c := Config{}
 	if err := env.ParseWithOptions(&c, opts); err != nil {
 		return Config{}, err
 	}
-	vfs, err := validation.NewVerifiers(opts)
+	vfs, err := mptls.NewVerification(opts)
 	if err != nil {
 		return Config{}, err
 	}
