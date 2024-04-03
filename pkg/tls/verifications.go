@@ -1,3 +1,6 @@
+// Copyright (c) Abstract Machines
+// SPDX-License-Identifier: Apache-2.0
+
 package tls
 
 import (
@@ -11,7 +14,7 @@ import (
 	"github.com/caarlos0/env/v10"
 )
 
-// ErrInvalidCertVerification represents an error during the the cert verification
+// ErrInvalidCertVerification represents an error during the cert verification
 // method loading. Supported are OCSP and CRL verification methods.
 var ErrInvalidCertVerification = errors.New("invalid certificate verification method")
 
