@@ -1,7 +1,7 @@
 #!/bin/bash
 protocol=https
 host=localhost
-port=8008
+port=8088
 path="messages"
 content="application/json"
 message="{\"message\": \"Hello mProxy\"}"
