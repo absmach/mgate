@@ -104,13 +104,13 @@ mProxy is used to proxy requests to a backend server. For the example setup, we 
 2. Start the HTTP Echo Server:
 
    ```bash
-   go run examples/server/http-echo/main.go  
+   go run examples/server/http-echo/main.go
    ```
 
 3. Start the OCSP/CRL Mock responder:
 
    ```bash
-    go run examples/ocsp-crl-responder/main.go  
+    go run examples/ocsp-crl-responder/main.go
    ```
 
 4. Start the example mProxy servers for various protocols:
@@ -203,57 +203,57 @@ Bash scripts available in `examples/client/http` directory helps to test the mPr
 
 The service is configured using the environment variables presented in the following table. Note that any unset variables will be replaced with their default values.
 
-| Variable                                                | Description                                                                                                                                | Default                    |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------- |
-| MPROXY_MQTT_WITHOUT_TLS_ADDRESS                         | MQTT without TLS inbound (IN) connection listening address                                                                                 | :1884                      |
-| MPROXY_MQTT_WITHOUT_TLS_TARGET                          | MQTT without TLS outbound (OUT) connection address                                                                                         | localhost:1883             |
-| MPROXY_MQTT_WITH_TLS_ADDRESS                            | MQTT with TLS inbound (IN) connection listening address                                                                                    | :8883                      |
-| MPROXY_MQTT_WITH_TLS_TARGET                             | MQTT with TLS outbound (OUT) connection address                                                                                            | localhost:1883             |
-| MPROXY_MQTT_WITH_TLS_CERT_FILE                          | MQTT with TLS certificate file path                                                                                                        | ssl/certs/server.crt       |
-| MPROXY_MQTT_WITH_TLS_KEY_FILE                           | MQTT with TLS key file path                                                                                                                | ssl/certs/server.key       |
-| MPROXY_MQTT_WITH_TLS_SERVER_CA_FILE                     | MQTT with TLS server CA file path                                                                                                          | ssl/certs/ca.crt           |
-| MPROXY_MQTT_WITH_MTLS_ADDRESS                           | MQTT with mTLS inbound (IN) connection listening address                                                                                   | :8884                      |
-| MPROXY_MQTT_WITH_MTLS_TARGET                            | MQTT with mTLS outbound (OUT) connection address                                                                                           | localhost:1883             |
-| MPROXY_MQTT_WITH_MTLS_CERT_FILE                         | MQTT with mTLS certificate file path                                                                                                       | ssl/certs/server.crt       |
-| MPROXY_MQTT_WITH_MTLS_KEY_FILE                          | MQTT with mTLS key file path                                                                                                               | ssl/certs/server.key       |
-| MPROXY_MQTT_WITH_MTLS_SERVER_CA_FILE                    | MQTT with mTLS server CA file path                                                                                                         | ssl/certs/ca.crt           |
-| MPROXY_MQTT_WITH_MTLS_CLIENT_CA_FILE                    | MQTT with mTLS client CA file path                                                                                                         | ssl/certs/ca.crt           |
-| MPROXY_MQTT_WITH_MTLS_CLIENT_CERT_VALIDATION_METHODS    | MQTT with mTLS client certificate validation methods, if no value or unset then mProxy server will not do client validation                | ocsp                       |
-| MPROXY_MQTT_WITH_MTLS_OCSP_RESPONDER_URL                | MQTT with mTLS OCSP responder URL, it is used if OCSP responder URL is not available in client certificate AIA                             | http://localhost:8080/ocsp |
-| MPROXY_MQTT_WS_WITHOUT_TLS_ADDRESS                      | MQTT over Websocket without TLS inbound (IN) connection listening address                                                                  | :8083                      |
-| MPROXY_MQTT_WS_WITHOUT_TLS_TARGET                       | MQTT over Websocket without TLS outbound (OUT) connection address                                                                          | ws://localhost:8000/       |
-| MPROXY_MQTT_WS_WITH_TLS_ADDRESS                         | MQTT over Websocket with TLS inbound (IN) connection listening address                                                                     | :8084                      |
-| MPROXY_MQTT_WS_WITH_TLS_TARGET                          | MQTT over Websocket with TLS outbound (OUT) connection address                                                                             | ws://localhost:8000/       |
-| MPROXY_MQTT_WS_WITH_TLS_CERT_FILE                       | MQTT over Websocket with TLS certificate file path                                                                                         | ssl/certs/server.crt       |
-| MPROXY_MQTT_WS_WITH_TLS_KEY_FILE                        | MQTT over Websocket with TLS key file path                                                                                                 | ssl/certs/server.key       |
-| MPROXY_MQTT_WS_WITH_TLS_SERVER_CA_FILE                  | MQTT over Websocket with TLS server CA file path                                                                                           | ssl/certs/ca.crt           |
-| MPROXY_MQTT_WS_WITH_MTLS_ADDRESS                        | MQTT over Websocket with mTLS inbound (IN) connection listening address                                                                    | :8085                      |
-| MPROXY_MQTT_WS_WITH_MTLS_PREFIX_PATH                    | MQTT over Websocket with mTLS inbound (IN) connection path                                                                                 | /mqtt                      |
-| MPROXY_MQTT_WS_WITH_MTLS_TARGET                         | MQTT over Websocket with mTLS outbound (OUT) connection address                                                                            | ws://localhost:8000/       |
-| MPROXY_MQTT_WS_WITH_MTLS_CERT_FILE                      | MQTT over Websocket with mTLS certificate file path                                                                                        | ssl/certs/server.crt       |
-| MPROXY_MQTT_WS_WITH_MTLS_KEY_FILE                       | MQTT over Websocket with mTLS key file path                                                                                                | ssl/certs/server.key       |
-| MPROXY_MQTT_WS_WITH_MTLS_SERVER_CA_FILE                 | MQTT over Websocket with mTLS server CA file path                                                                                          | ssl/certs/ca.crt           |
-| MPROXY_MQTT_WS_WITH_MTLS_CLIENT_CA_FILE                 | MQTT over Websocket with mTLS client CA file path                                                                                          | ssl/certs/ca.crt           |
-| MPROXY_MQTT_WS_WITH_MTLS_CLIENT_CERT_VALIDATION_METHODS | MQTT over Websocket with mTLS client certificate validation methods, if no value or unset then mProxy server will not do client validation | ocsp                       |
-| MPROXY_MQTT_WS_WITH_MTLS_OCSP_RESPONDER_URL             | MQTT over Websocket with mTLS OCSP responder URL, it is used if OCSP responder URL is not available in client certificate AIA              | http://localhost:8080/ocsp |
-| MPROXY_HTTP_WITHOUT_TLS_ADDRESS                         | HTTP without TLS inbound (IN) connection listening address                                                                                 | :8086                      |
-| MPROXY_HTTP_WITHOUT_TLS_PREFIX_PATH                     | HTTP without TLS inbound (IN) connection path                                                                                              | /messages                  |
-| MPROXY_HTTP_WITHOUT_TLS_TARGET                          | HTTP without TLS outbound (OUT) connection address                                                                                         | http://localhost:8888/     |
-| MPROXY_HTTP_WITH_TLS_ADDRESS                            | HTTP with TLS inbound (IN) connection listening address                                                                                    | :8087                      |
-| MPROXY_HTTP_WITH_TLS_PREFIX_PATH                        | HTTP with TLS inbound (IN) connection path                                                                                                 | /messages                  |
-| MPROXY_HTTP_WITH_TLS_TARGET                             | HTTP with TLS outbound (OUT) connection address                                                                                            | http://localhost:8888/     |
-| MPROXY_HTTP_WITH_TLS_CERT_FILE                          | HTTP with TLS certificate file path                                                                                                        | ssl/certs/server.crt       |
-| MPROXY_HTTP_WITH_TLS_KEY_FILE                           | HTTP with TLS key file path                                                                                                                | ssl/certs/server.key       |
-| MPROXY_HTTP_WITH_TLS_SERVER_CA_FILE                     | HTTP with TLS server CA file path                                                                                                          | ssl/certs/ca.crt           |
-| MPROXY_HTTP_WITH_MTLS_ADDRESS                           | HTTP with mTLS inbound (IN) connection listening address                                                                                   | :8088                      |
-| MPROXY_HTTP_WITH_MTLS_PREFIX_PATH                       | HTTP with mTLS inbound (IN) connection path                                                                                                | /messages                  |
-| MPROXY_HTTP_WITH_MTLS_TARGET                            | HTTP with mTLS outbound (OUT) connection address                                                                                           | http://localhost:8888/     |
-| MPROXY_HTTP_WITH_MTLS_CERT_FILE                         | HTTP with mTLS certificate file path                                                                                                       | ssl/certs/server.crt       |
-| MPROXY_HTTP_WITH_MTLS_KEY_FILE                          | HTTP with mTLS key file path                                                                                                               | ssl/certs/server.key       |
-| MPROXY_HTTP_WITH_MTLS_SERVER_CA_FILE                    | HTTP with mTLS server CA file path                                                                                                         | ssl/certs/ca.crt           |
-| MPROXY_HTTP_WITH_MTLS_CLIENT_CA_FILE                    | HTTP with mTLS client CA file path                                                                                                         | ssl/certs/ca.crt           |
-| MPROXY_HTTP_WITH_MTLS_CLIENT_CERT_VALIDATION_METHODS    | HTTP with mTLS client certificate validation methods, if no value or unset then mProxy server will not do client validation                | ocsp                       |
-| MPROXY_HTTP_WITH_MTLS_OCSP_RESPONDER_URL                | HTTP with mTLS OCSP responder URL, it is used if OCSP responder URL is not available in client certificate AIA                             | http://localhost:8080/ocsp |
+| Variable                                         | Description                                                                                                                         | Default                    |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| MPROXY_MQTT_WITHOUT_TLS_ADDRESS                  | MQTT without TLS inbound (IN) connection listening address                                                                          | :1884                      |
+| MPROXY_MQTT_WITHOUT_TLS_TARGET                   | MQTT without TLS outbound (OUT) connection address                                                                                  | localhost:1883             |
+| MPROXY_MQTT_WITH_TLS_ADDRESS                     | MQTT with TLS inbound (IN) connection listening address                                                                             | :8883                      |
+| MPROXY_MQTT_WITH_TLS_TARGET                      | MQTT with TLS outbound (OUT) connection address                                                                                     | localhost:1883             |
+| MPROXY_MQTT_WITH_TLS_CERT_FILE                   | MQTT with TLS certificate file path                                                                                                 | ssl/certs/server.crt       |
+| MPROXY_MQTT_WITH_TLS_KEY_FILE                    | MQTT with TLS key file path                                                                                                         | ssl/certs/server.key       |
+| MPROXY_MQTT_WITH_TLS_SERVER_CA_FILE              | MQTT with TLS server CA file path                                                                                                   | ssl/certs/ca.crt           |
+| MPROXY_MQTT_WITH_MTLS_ADDRESS                    | MQTT with mTLS inbound (IN) connection listening address                                                                            | :8884                      |
+| MPROXY_MQTT_WITH_MTLS_TARGET                     | MQTT with mTLS outbound (OUT) connection address                                                                                    | localhost:1883             |
+| MPROXY_MQTT_WITH_MTLS_CERT_FILE                  | MQTT with mTLS certificate file path                                                                                                | ssl/certs/server.crt       |
+| MPROXY_MQTT_WITH_MTLS_KEY_FILE                   | MQTT with mTLS key file path                                                                                                        | ssl/certs/server.key       |
+| MPROXY_MQTT_WITH_MTLS_SERVER_CA_FILE             | MQTT with mTLS server CA file path                                                                                                  | ssl/certs/ca.crt           |
+| MPROXY_MQTT_WITH_MTLS_CLIENT_CA_FILE             | MQTT with mTLS client CA file path                                                                                                  | ssl/certs/ca.crt           |
+| MPROXY_MQTT_WITH_MTLS_CERT_VALIDATION_METHODS    | MQTT with mTLS certificate validation methods, if no value or unset then mProxy server will not do client validation                | ocsp                       |
+| MPROXY_MQTT_WITH_MTLS_OCSP_RESPONDER_URL         | MQTT with mTLS OCSP responder URL, it is used if OCSP responder URL is not available in client certificate AIA                      | http://localhost:8080/ocsp |
+| MPROXY_MQTT_WS_WITHOUT_TLS_ADDRESS               | MQTT over Websocket without TLS inbound (IN) connection listening address                                                           | :8083                      |
+| MPROXY_MQTT_WS_WITHOUT_TLS_TARGET                | MQTT over Websocket without TLS outbound (OUT) connection address                                                                   | ws://localhost:8000/       |
+| MPROXY_MQTT_WS_WITH_TLS_ADDRESS                  | MQTT over Websocket with TLS inbound (IN) connection listening address                                                              | :8084                      |
+| MPROXY_MQTT_WS_WITH_TLS_TARGET                   | MQTT over Websocket with TLS outbound (OUT) connection address                                                                      | ws://localhost:8000/       |
+| MPROXY_MQTT_WS_WITH_TLS_CERT_FILE                | MQTT over Websocket with TLS certificate file path                                                                                  | ssl/certs/server.crt       |
+| MPROXY_MQTT_WS_WITH_TLS_KEY_FILE                 | MQTT over Websocket with TLS key file path                                                                                          | ssl/certs/server.key       |
+| MPROXY_MQTT_WS_WITH_TLS_SERVER_CA_FILE           | MQTT over Websocket with TLS server CA file path                                                                                    | ssl/certs/ca.crt           |
+| MPROXY_MQTT_WS_WITH_MTLS_ADDRESS                 | MQTT over Websocket with mTLS inbound (IN) connection listening address                                                             | :8085                      |
+| MPROXY_MQTT_WS_WITH_MTLS_PREFIX_PATH             | MQTT over Websocket with mTLS inbound (IN) connection path                                                                          | /mqtt                      |
+| MPROXY_MQTT_WS_WITH_MTLS_TARGET                  | MQTT over Websocket with mTLS outbound (OUT) connection address                                                                     | ws://localhost:8000/       |
+| MPROXY_MQTT_WS_WITH_MTLS_CERT_FILE               | MQTT over Websocket with mTLS certificate file path                                                                                 | ssl/certs/server.crt       |
+| MPROXY_MQTT_WS_WITH_MTLS_KEY_FILE                | MQTT over Websocket with mTLS key file path                                                                                         | ssl/certs/server.key       |
+| MPROXY_MQTT_WS_WITH_MTLS_SERVER_CA_FILE          | MQTT over Websocket with mTLS server CA file path                                                                                   | ssl/certs/ca.crt           |
+| MPROXY_MQTT_WS_WITH_MTLS_CLIENT_CA_FILE          | MQTT over Websocket with mTLS client CA file path                                                                                   | ssl/certs/ca.crt           |
+| MPROXY_MQTT_WS_WITH_MTLS_CERT_VALIDATION_METHODS | MQTT over Websocket with mTLS certificate validation methods, if no value or unset then mProxy server will not do client validation | ocsp                       |
+| MPROXY_MQTT_WS_WITH_MTLS_OCSP_RESPONDER_URL      | MQTT over Websocket with mTLS OCSP responder URL, it is used if OCSP responder URL is not available in client certificate AIA       | http://localhost:8080/ocsp |
+| MPROXY_HTTP_WITHOUT_TLS_ADDRESS                  | HTTP without TLS inbound (IN) connection listening address                                                                          | :8086                      |
+| MPROXY_HTTP_WITHOUT_TLS_PREFIX_PATH              | HTTP without TLS inbound (IN) connection path                                                                                       | /messages                  |
+| MPROXY_HTTP_WITHOUT_TLS_TARGET                   | HTTP without TLS outbound (OUT) connection address                                                                                  | http://localhost:8888/     |
+| MPROXY_HTTP_WITH_TLS_ADDRESS                     | HTTP with TLS inbound (IN) connection listening address                                                                             | :8087                      |
+| MPROXY_HTTP_WITH_TLS_PREFIX_PATH                 | HTTP with TLS inbound (IN) connection path                                                                                          | /messages                  |
+| MPROXY_HTTP_WITH_TLS_TARGET                      | HTTP with TLS outbound (OUT) connection address                                                                                     | http://localhost:8888/     |
+| MPROXY_HTTP_WITH_TLS_CERT_FILE                   | HTTP with TLS certificate file path                                                                                                 | ssl/certs/server.crt       |
+| MPROXY_HTTP_WITH_TLS_KEY_FILE                    | HTTP with TLS key file path                                                                                                         | ssl/certs/server.key       |
+| MPROXY_HTTP_WITH_TLS_SERVER_CA_FILE              | HTTP with TLS server CA file path                                                                                                   | ssl/certs/ca.crt           |
+| MPROXY_HTTP_WITH_MTLS_ADDRESS                    | HTTP with mTLS inbound (IN) connection listening address                                                                            | :8088                      |
+| MPROXY_HTTP_WITH_MTLS_PREFIX_PATH                | HTTP with mTLS inbound (IN) connection path                                                                                         | /messages                  |
+| MPROXY_HTTP_WITH_MTLS_TARGET                     | HTTP with mTLS outbound (OUT) connection address                                                                                    | http://localhost:8888/     |
+| MPROXY_HTTP_WITH_MTLS_CERT_FILE                  | HTTP with mTLS certificate file path                                                                                                | ssl/certs/server.crt       |
+| MPROXY_HTTP_WITH_MTLS_KEY_FILE                   | HTTP with mTLS key file path                                                                                                        | ssl/certs/server.key       |
+| MPROXY_HTTP_WITH_MTLS_SERVER_CA_FILE             | HTTP with mTLS server CA file path                                                                                                  | ssl/certs/ca.crt           |
+| MPROXY_HTTP_WITH_MTLS_CLIENT_CA_FILE             | HTTP with mTLS client CA file path                                                                                                  | ssl/certs/ca.crt           |
+| MPROXY_HTTP_WITH_MTLS_CERT_VALIDATION_METHODS    | HTTP with mTLS certificate validation methods, if no value or unset then mProxy server will not do client validation                | ocsp                       |
+| MPROXY_HTTP_WITH_MTLS_OCSP_RESPONDER_URL         | HTTP with mTLS OCSP responder URL, it is used if OCSP responder URL is not available in client certificate AIA                      | http://localhost:8080/ocsp |
 
 ## mProxy Configuration Environment Variables
 
@@ -269,9 +269,9 @@ The service is configured using the environment variables presented in the follo
 - `KEY_FILE` : Path to the TLS certificate key file.
 - `SERVER_CA_FILE` : Path to the Server CA certificate file.
 - `CLIENT_CA_FILE` : Path to the Client CA certificate file.
-- `CLIENT_CERT_VALIDATION_METHODS` : Methods for validating client certificates. Accepted values are `ocsp` or `crl`.
-For the `ocsp` value, the `tls.Config` attempts to retrieve the OCSP responder/server URL from the Authority Information Access (AIA) section of the client certificate. If the client certificate lacks an OCSP responder URL or if an alternative URL is preferred, you can override it using the environmental variable `OCSP_RESPONDER_URL`.  
-For the `crl` value, the `tls.Config` attempts to obtain the Certificate Revocation List (CRL) file from the CRL Distribution Point section in the client certificate. If the client certificate lacks a CRL distribution point section, or if you prefer to override it, you can use the environmental variables `CRL_DISTRIBUTION_POINTS` and `CRL_DISTRIBUTION_POINTS_ISSUER_CERT_FILE`. If no CRL distribution point server is available, you can specify an offline CRL file using the environmental variables `OFFLINE_CRL_FILE` and `OFFLINE_CRL_ISSUER_CERT_FILE`.
+- `CERT_VALIDATION_METHODS` : Methods for validating certificates. Accepted values are `ocsp` or `crl`.
+  For the `ocsp` value, the `tls.Config` attempts to retrieve the OCSP responder/server URL from the Authority Information Access (AIA) section of the client certificate. If the client certificate lacks an OCSP responder URL or if an alternative URL is preferred, you can override it using the environmental variable `OCSP_RESPONDER_URL`.  
+  For the `crl` value, the `tls.Config` attempts to obtain the Certificate Revocation List (CRL) file from the CRL Distribution Point section in the client certificate. If the client certificate lacks a CRL distribution point section, or if you prefer to override it, you can use the environmental variables `CRL_DISTRIBUTION_POINTS` and `CRL_DISTRIBUTION_POINTS_ISSUER_CERT_FILE`. If no CRL distribution point server is available, you can specify an offline CRL file using the environmental variables `OFFLINE_CRL_FILE` and `OFFLINE_CRL_ISSUER_CERT_FILE`.
 
 #### OCSP Configuration Environment Variables
 
@@ -288,13 +288,13 @@ For the `crl` value, the `tls.Config` attempts to obtain the Certificate Revocat
 
 ## Adding Prefix to Environmental Variables
 
-mProxy relies on the [caarlos0/env](https://github.com/caarlos0/env) package to load environmental variables into its [configuration](https://github.com/arvindh123/mproxy/blob/main/config.go#L15). 
+mProxy relies on the [caarlos0/env](https://github.com/caarlos0/env) package to load environmental variables into its [configuration](https://github.com/arvindh123/mproxy/blob/main/config.go#L15).
 You can control how these variables are loaded by passing `env.Options` to the `config.EnvParse` function.
 
 To add a prefix to environmental variables, use `env.Options{Prefix: "MPROXY_"}` from the [caarlos0/env](https://github.com/caarlos0/env) package. For example:
 
 ```go
-package main 
+package main
 import (
   "github.com/caarlos0/env/v10"
   "github.com/absmach/mproxy"
@@ -317,7 +317,7 @@ For instance:
 - MPROXY_KEY_FILE
 - MPROXY_SERVER_CA_FILE
 - MPROXY_CLIENT_CA_FILE
-- MPROXY_CLIENT_CERT_VALIDATION_METHODS
+- MPROXY_CERT_VALIDATION_METHODS
 - MPROXY_OCSP_DEPTH
 - MPROXY_OCSP_RESPONDER_URL
 - MPROXY_CRL_DEPTH
