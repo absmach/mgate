@@ -11,7 +11,9 @@ import (
 	"github.com/caarlos0/env/v10"
 )
 
-var ErrInvalidClientValidation = errors.New("invalid client validation method")
+// ErrInvalidCertVerification represents an error during the the cert verification
+// method loading. Supported are OCSP and CRL verification methods.
+var ErrInvalidCertVerification = errors.New("invalid certificate verification method")
 
 type verification int
 
@@ -53,7 +55,7 @@ func newVerifiers(opts env.Options) ([]verifier.Verifier, error) {
 			}
 			vms = append(vms, vm)
 		default:
-			return nil, ErrInvalidClientValidation
+			return nil, ErrInvalidCertVerification
 		}
 	}
 
@@ -68,7 +70,7 @@ func parseValidation(v string) (verification, error) {
 	case "CRL":
 		return CRL, nil
 	default:
-		return 0, ErrInvalidClientValidation
+		return 0, ErrInvalidCertVerification
 	}
 }
 

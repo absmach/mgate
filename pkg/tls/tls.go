@@ -90,6 +90,7 @@ func ClientCert(conn net.Conn) (x509.Certificate, error) {
 	}
 }
 
+// SecurityStatus returns log message from TLS config.
 func SecurityStatus(c *tls.Config) string {
 	if c == nil {
 		return "no TLS"

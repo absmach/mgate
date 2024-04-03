@@ -1,10 +1,9 @@
 package verifier
 
-import (
-	"crypto/x509"
-)
+import "crypto/x509"
 
 type Verifier interface {
+	// VerifyPeerCertificate is used to verify certificates in TLS config.
 	VerifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error
 }
 
