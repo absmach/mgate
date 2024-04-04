@@ -181,22 +181,22 @@ Go programs available in `examples/client/websocket/*/main.go` directory helps t
 
 Bash scripts available in `examples/client/http` directory helps to test the mProxy servers running for HTTP protocols
 
-- Script to test mProxy server running at port 1884 for MQTT without TLS
+- Script to test mProxy server running at port 8086 for HTTP without TLS
 
   ```bash
-  examples/client/mqtt/without_tls.sh
+  examples/client/http/without_tls.sh
   ```
 
-- Script to test mProxy server running at port 8883 for MQTT with TLS
+- Script to test mProxy server running at port 8087 for HTTP with TLS
 
   ```bash
-  examples/client/mqtt/with_tls.sh
+  examples/client/http/with_tls.sh
   ```
 
-- Script to test mProxy server running at port 8884 for MQTT with mTLS
+- Script to test mProxy server running at port 8088 for HTTP with mTLS
 
   ```bash
-  examples/client/mqtt/with_mtls.sh
+  examples/client/http/with_mtls.sh
   ```
 
 ## Configuration
