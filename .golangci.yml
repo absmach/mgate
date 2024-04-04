@@ -12,7 +12,6 @@ linters-settings:
   importas:
     no-unaliased: true
     no-extra-aliases: false
-
   gocritic:
     enabled-checks:
       - captLocal
