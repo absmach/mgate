@@ -9,6 +9,8 @@ import (
 	"errors"
 	"net"
 	"os"
+
+	"github.com/pion/dtls/v2"
 )
 
 var (
@@ -67,6 +69,56 @@ func Load(c *Config) (*tls.Config, error) {
 		}
 	}
 	return tlsConfig, nil
+}
+
+// Load returns a DTLS configuration that can be used in DTLS servers.
+func LoadDTLS(c *Config) (*dtls.Config, error) {
+	if c.CertFile == "" || c.KeyFile == "" {
+		return nil, nil
+	}
+
+	dtlsConfig := &dtls.Config{}
+
+	certificate, err := tls.LoadX509KeyPair(c.CertFile, c.KeyFile)
+	if err != nil {
+		return nil, errors.Join(errLoadCerts, err)
+	}
+	dtlsConfig = &dtls.Config{
+		Certificates: []tls.Certificate{certificate},
+	}
+
+	// Loading Server CA file
+	rootCA, err := loadCertFile(c.ServerCAFile)
+	if err != nil {
+		return nil, errors.Join(errLoadServerCA, err)
+	}
+	if len(rootCA) > 0 {
+		if dtlsConfig.RootCAs == nil {
+			dtlsConfig.RootCAs = x509.NewCertPool()
+		}
+		if !dtlsConfig.RootCAs.AppendCertsFromPEM(rootCA) {
+			return nil, errAppendCA
+		}
+	}
+
+	// Loading Client CA File
+	clientCA, err := loadCertFile(c.ClientCAFile)
+	if err != nil {
+		return nil, errors.Join(errLoadClientCA, err)
+	}
+	if len(clientCA) > 0 {
+		if dtlsConfig.ClientCAs == nil {
+			dtlsConfig.ClientCAs = x509.NewCertPool()
+		}
+		if !dtlsConfig.ClientCAs.AppendCertsFromPEM(clientCA) {
+			return nil, errAppendCA
+		}
+		dtlsConfig.ClientAuth = dtls.RequireAndVerifyClientCert
+		if c.Validator != nil {
+			dtlsConfig.VerifyPeerCertificate = c.Validator
+		}
+	}
+	return dtlsConfig, nil
 }
 
 // ClientCert returns client certificate.
