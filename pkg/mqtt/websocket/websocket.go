@@ -68,7 +68,7 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go p.pass(r.Context(), cconn)
+	go p.pass(context.WithoutCancel(r.Context()), cconn)
 }
 
 func (p Proxy) pass(ctx context.Context, in *websocket.Conn) {
