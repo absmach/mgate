@@ -10,8 +10,8 @@ require (
 	github.com/google/uuid v1.5.0
 	github.com/gorilla/websocket v1.5.1
 	github.com/joho/godotenv v1.5.1
-	golang.org/x/crypto v0.20.0
+	golang.org/x/crypto v0.21.0
 	golang.org/x/sync v0.6.0
 )
 
-require golang.org/x/net v0.21.0 // indirect
+require golang.org/x/net v0.23.0 // indirect
