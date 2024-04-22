@@ -22,16 +22,16 @@ import (
 )
 
 type Proxy struct {
-	config mproxy.Config
-	event  session.Handler
-	logger *slog.Logger
+	config  mproxy.Config
+	session session.Handler
+	logger  *slog.Logger
 }
 
-func New(config mproxy.Config, handler session.Handler, logger *slog.Logger) *Proxy {
+func NewProxy(config mproxy.Config, handler session.Handler, logger *slog.Logger) *Proxy {
 	return &Proxy{
-		config: config,
-		event:  handler,
-		logger: logger,
+		config:  config,
+		session: handler,
+		logger:  logger,
 	}
 }
 
@@ -134,7 +134,7 @@ func (p *Proxy) handler(w mux.ResponseWriter, r *mux.Message) {
 		return
 	}
 	ctx := session.NewContext(r.Context(), &session.Session{Password: tok})
-	if err := p.event.AuthConnect(ctx); err != nil {
+	if err := p.session.AuthConnect(ctx); err != nil {
 		if err := sendErrorMessage(w.Conn(), r.Token(), err, codes.Unauthorized); err != nil {
 			p.logger.Error(err.Error())
 		}
@@ -154,6 +154,7 @@ func (p *Proxy) handler(w mux.ResponseWriter, r *mux.Message) {
 			if err := sendErrorMessage(w.Conn(), r.Token(), err, codes.BadRequest); err != nil {
 				p.logger.Error(err.Error())
 			}
+			return
 		}
 		p.handleGet(ctx, path, w.Conn(), r.Token(), obs, r)
 
@@ -170,13 +171,13 @@ func (p *Proxy) handler(w mux.ResponseWriter, r *mux.Message) {
 }
 
 func (p *Proxy) handleGet(ctx context.Context, path string, con mux.Conn, token []byte, obs uint32, r *mux.Message) {
-	if err := p.event.AuthSubscribe(ctx, &[]string{path}); err != nil {
+	if err := p.session.AuthSubscribe(ctx, &[]string{path}); err != nil {
 		if err := sendErrorMessage(con, token, err, codes.Unauthorized); err != nil {
 			p.logger.Error(err.Error())
 		}
 		return
 	}
-	if err := p.event.Subscribe(ctx, &[]string{path}); err != nil {
+	if err := p.session.Subscribe(ctx, &[]string{path}); err != nil {
 		if err := sendErrorMessage(con, token, err, codes.Unauthorized); err != nil {
 			p.logger.Error(err.Error())
 		}
@@ -199,13 +200,13 @@ func (p *Proxy) handleGet(ctx context.Context, path string, con mux.Conn, token 
 }
 
 func (p *Proxy) handlePost(ctx context.Context, con mux.Conn, body, token []byte, path string, r *mux.Message) {
-	if err := p.event.AuthPublish(ctx, &path, &body); err != nil {
+	if err := p.session.AuthPublish(ctx, &path, &body); err != nil {
 		if err := sendErrorMessage(con, token, err, codes.Unauthorized); err != nil {
 			p.logger.Error(err.Error())
 		}
 		return
 	}
-	if err := p.event.Publish(ctx, &path, &body); err != nil {
+	if err := p.session.Publish(ctx, &path, &body); err != nil {
 		if err := sendErrorMessage(con, token, err, codes.BadRequest); err != nil {
 			p.logger.Error(err.Error())
 		}

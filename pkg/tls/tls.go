@@ -14,109 +14,77 @@ import (
 )
 
 var (
-	errTLSdetails   = errors.New("failed to get TLS details of connection")
-	errLoadCerts    = errors.New("failed to load certificates")
-	errLoadServerCA = errors.New("failed to load Server CA")
-	errLoadClientCA = errors.New("failed to load Client CA")
-	errAppendCA     = errors.New("failed to append root ca tls.Config")
+	errTLSdetails     = errors.New("failed to get TLS details of connection")
+	errLoadCerts      = errors.New("failed to load certificates")
+	errLoadCA         = errors.New("failed to load CA file")
+	errAppendClientCA = errors.New("failed to append client root ca tls.Config")
+	errAppendServerCA = errors.New("failed to append server root ca tls.Config")
 )
 
-// Load return a TLS configuration that can be used in TLS servers.
-func Load(c *Config) (*tls.Config, error) {
-	if c.CertFile == "" || c.KeyFile == "" {
+// LoadTLS returns a TLS configuration that can be used in TLS servers.
+func LoadTLS(c *Config) (*tls.Config, error) {
+	certificate, err := loadCertificates(c.CertFile, c.KeyFile)
+	if err != nil {
+		return nil, err
+	}
+	if certificate == nil {
 		return nil, nil
 	}
 
-	tlsConfig := &tls.Config{}
-
-	certificate, err := tls.LoadX509KeyPair(c.CertFile, c.KeyFile)
-	if err != nil {
-		return nil, errors.Join(errLoadCerts, err)
-	}
-	tlsConfig = &tls.Config{
-		Certificates: []tls.Certificate{certificate},
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{*certificate},
 	}
 
 	// Loading Server CA file
-	rootCA, err := loadCertFile(c.ServerCAFile)
-	if err != nil {
-		return nil, errors.Join(errLoadServerCA, err)
-	}
-	if len(rootCA) > 0 {
-		if tlsConfig.RootCAs == nil {
-			tlsConfig.RootCAs = x509.NewCertPool()
-		}
-		if !tlsConfig.RootCAs.AppendCertsFromPEM(rootCA) {
-			return nil, errAppendCA
-		}
+	if _, err = appendCAs(&tlsConfig.RootCAs, c.ServerCAFile); err != nil {
+		return nil, errors.Join(errAppendServerCA, err)
 	}
 
 	// Loading Client CA File
-	clientCA, err := loadCertFile(c.ClientCAFile)
+	appended, err := appendCAs(&tlsConfig.ClientCAs, c.ClientCAFile)
 	if err != nil {
-		return nil, errors.Join(errLoadClientCA, err)
+		return nil, errors.Join(errAppendClientCA, err)
 	}
-	if len(clientCA) > 0 {
-		if tlsConfig.ClientCAs == nil {
-			tlsConfig.ClientCAs = x509.NewCertPool()
-		}
-		if !tlsConfig.ClientCAs.AppendCertsFromPEM(clientCA) {
-			return nil, errAppendCA
-		}
+
+	if appended {
 		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
-		if c.Validator != nil {
-			tlsConfig.VerifyPeerCertificate = c.Validator
-		}
+	}
+	if c.Validator != nil {
+		tlsConfig.VerifyPeerCertificate = c.Validator
 	}
 	return tlsConfig, nil
 }
 
-// Load returns a DTLS configuration that can be used in DTLS servers.
+// LoadDTLS returns a DTLS configuration that can be used in DTLS servers.
 func LoadDTLS(c *Config) (*dtls.Config, error) {
-	if c.CertFile == "" || c.KeyFile == "" {
+	certificate, err := loadCertificates(c.CertFile, c.KeyFile)
+	if err != nil {
+		return nil, err
+	}
+	if certificate == nil {
 		return nil, nil
 	}
 
-	dtlsConfig := &dtls.Config{}
-
-	certificate, err := tls.LoadX509KeyPair(c.CertFile, c.KeyFile)
-	if err != nil {
-		return nil, errors.Join(errLoadCerts, err)
-	}
-	dtlsConfig = &dtls.Config{
-		Certificates: []tls.Certificate{certificate},
+	dtlsConfig := &dtls.Config{
+		Certificates: []tls.Certificate{*certificate},
 	}
 
 	// Loading Server CA file
-	rootCA, err := loadCertFile(c.ServerCAFile)
-	if err != nil {
-		return nil, errors.Join(errLoadServerCA, err)
-	}
-	if len(rootCA) > 0 {
-		if dtlsConfig.RootCAs == nil {
-			dtlsConfig.RootCAs = x509.NewCertPool()
-		}
-		if !dtlsConfig.RootCAs.AppendCertsFromPEM(rootCA) {
-			return nil, errAppendCA
-		}
+	if _, err = appendCAs(&dtlsConfig.RootCAs, c.ServerCAFile); err != nil {
+		return nil, errors.Join(errAppendServerCA, err)
 	}
 
 	// Loading Client CA File
-	clientCA, err := loadCertFile(c.ClientCAFile)
+	appended, err := appendCAs(&dtlsConfig.ClientCAs, c.ClientCAFile)
 	if err != nil {
-		return nil, errors.Join(errLoadClientCA, err)
+		return nil, errors.Join(errAppendClientCA, err)
 	}
-	if len(clientCA) > 0 {
-		if dtlsConfig.ClientCAs == nil {
-			dtlsConfig.ClientCAs = x509.NewCertPool()
-		}
-		if !dtlsConfig.ClientCAs.AppendCertsFromPEM(clientCA) {
-			return nil, errAppendCA
-		}
+
+	if appended {
 		dtlsConfig.ClientAuth = dtls.RequireAndVerifyClientCert
-		if c.Validator != nil {
-			dtlsConfig.VerifyPeerCertificate = c.Validator
-		}
+	}
+	if c.Validator != nil {
+		dtlsConfig.VerifyPeerCertificate = c.Validator
 	}
 	return dtlsConfig, nil
 }
@@ -163,4 +131,32 @@ func loadCertFile(certFile string) ([]byte, error) {
 		return os.ReadFile(certFile)
 	}
 	return []byte{}, nil
+}
+
+func loadCertificates(certFile, keyFile string) (*tls.Certificate, error) {
+	if certFile == "" || keyFile == "" {
+		return nil, nil
+	}
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		return nil, errors.Join(errLoadCerts, err)
+	}
+	return &cert, err
+}
+
+func appendCAs(certPool **x509.CertPool, caFile string) (bool, error) {
+	ca, err := loadCertFile(caFile)
+	if err != nil {
+		return false, errors.Join(errLoadCA, err)
+	}
+	if len(ca) > 0 {
+		if *certPool == nil {
+			*certPool = x509.NewCertPool()
+		}
+		if !(*certPool).AppendCertsFromPEM(ca) {
+			return false, errors.New("failed to append CA certificates")
+		}
+		return true, nil
+	}
+	return false, nil
 }

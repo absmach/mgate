@@ -33,7 +33,7 @@ func NewConfig(opts env.Options) (Config, error) {
 		return Config{}, err
 	}
 
-	c.TLSConfig, err = mptls.Load(&cfg)
+	c.TLSConfig, err = mptls.LoadTLS(&cfg)
 	if err != nil {
 		return Config{}, err
 	}
