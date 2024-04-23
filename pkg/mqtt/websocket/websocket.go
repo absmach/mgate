@@ -68,12 +68,15 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go p.pass(r.Context(), cconn)
+	go p.pass(cconn)
 }
 
-func (p Proxy) pass(ctx context.Context, in *websocket.Conn) {
+func (p Proxy) pass(in *websocket.Conn) {
 	defer in.Close()
-
+	// Using a new context so as to avoiding infinitely long traces.
+	// And also avoiding proxy cancellation due to parent context cancellation.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	dialer := &websocket.Dialer{
 		Subprotocols: []string{"mqtt"},
 	}
