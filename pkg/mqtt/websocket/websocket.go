@@ -73,6 +73,7 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (p Proxy) pass(in *websocket.Conn) {
 	defer in.Close()
+	// Using a new context so as to avoiding infinitely long traces.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	dialer := &websocket.Dialer{
