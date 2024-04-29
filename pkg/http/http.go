@@ -33,6 +33,11 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	// Metrics and health endpoints are served directly.
+	if r.URL.Path == "/metrics" || r.URL.Path == "/health" {
+		p.target.ServeHTTP(w, r)
+		return
+	}
 
 	username, password, ok := r.BasicAuth()
 	switch {
