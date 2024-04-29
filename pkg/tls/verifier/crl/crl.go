@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/absmach/mproxy/pkg/tls/verifier"
-	"github.com/caarlos0/env/v10"
+	"github.com/caarlos0/env/v11"
 )
 
 var (
@@ -40,11 +40,11 @@ var (
 )
 
 type config struct {
-	CRLDepth                            uint    `env:"CRL_DEPTH"                                  envDefault:"1"`
-	OfflineCRLFile                      string  `env:"OFFLINE_CRL_FILE"                           envDefault:""`
-	OfflineCRLIssuerCertFile            string  `env:"OFFLINE_CRL_ISSUER_CERT_FILE"               envDefault:""`
-	CRLDistributionPoints               url.URL `env:"CRL_DISTRIBUTION_POINTS"                    envDefault:""`
-	CRLDistributionPointsIssuerCertFile string  `env:"CRL_DISTRIBUTION_POINTS_ISSUER_CERT_FILE "  envDefault:""`
+	CRLDepth                            uint    `env:"CRL_DEPTH"                                envDefault:"1"`
+	OfflineCRLFile                      string  `env:"OFFLINE_CRL_FILE"                         envDefault:""`
+	OfflineCRLIssuerCertFile            string  `env:"OFFLINE_CRL_ISSUER_CERT_FILE"             envDefault:""`
+	CRLDistributionPoints               url.URL `env:"CRL_DISTRIBUTION_POINTS"                  envDefault:""`
+	CRLDistributionPointsIssuerCertFile string  `env:"CRL_DISTRIBUTION_POINTS_ISSUER_CERT_FILE" envDefault:""`
 }
 
 var _ verifier.Verifier = (*config)(nil)
