@@ -10,7 +10,6 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/absmach/mproxy"
@@ -30,13 +29,8 @@ type Proxy struct {
 
 // New - creates new WS proxy.
 func New(config mproxy.Config, handler session.Handler, interceptor session.Interceptor, logger *slog.Logger) *Proxy {
-	config.PrefixPath = strings.TrimSpace(config.PrefixPath)
-	switch {
-	case config.PrefixPath != "" && config.PrefixPath[0] != '/':
-		config.PrefixPath = "/" + config.PrefixPath
-	case config.PrefixPath == "":
-		config.PrefixPath = "/"
-	}
+	config.PathPrefix = mproxy.CleanPathPrefix(config.PathPrefix)
+
 	return &Proxy{
 		config:      config,
 		handler:     handler,
@@ -57,7 +51,7 @@ var upgrader = websocket.Upgrader{
 }
 
 func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != p.config.PrefixPath {
+	if r.URL.Path != p.config.PathPrefix {
 		http.NotFound(w, r)
 		return
 	}
@@ -118,7 +112,7 @@ func (p Proxy) Listen(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
 
 	mux := http.NewServeMux()
-	mux.Handle(p.config.PrefixPath, p)
+	mux.Handle(p.config.PathPrefix, p)
 	server.Handler = mux
 
 	g.Go(func() error {
@@ -126,16 +120,16 @@ func (p Proxy) Listen(ctx context.Context) error {
 	})
 	status := mptls.SecurityStatus(p.config.TLSConfig)
 
-	p.logger.Info(fmt.Sprintf("MQTT websocket proxy server started at %s%s with %s", p.config.Address, p.config.PrefixPath, status))
+	p.logger.Info(fmt.Sprintf("MQTT websocket proxy server started at %s%s with %s", p.config.Address, p.config.PathPrefix, status))
 
 	g.Go(func() error {
 		<-ctx.Done()
 		return server.Close()
 	})
 	if err := g.Wait(); err != nil {
-		p.logger.Info(fmt.Sprintf("MQTT websocket proxy server at %s%s with %s exiting with errors", p.config.Address, p.config.PrefixPath, status), slog.String("error", err.Error()))
+		p.logger.Info(fmt.Sprintf("MQTT websocket proxy server at %s%s with %s exiting with errors", p.config.Address, p.config.PathPrefix, status), slog.String("error", err.Error()))
 	} else {
-		p.logger.Info(fmt.Sprintf("MQTT websocket proxy server at %s%s with %s exiting...", p.config.Address, p.config.PrefixPath, status))
+		p.logger.Info(fmt.Sprintf("MQTT websocket proxy server at %s%s with %s exiting...", p.config.Address, p.config.PathPrefix, status))
 	}
 	return nil
 }
