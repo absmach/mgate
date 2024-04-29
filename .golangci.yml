@@ -14,9 +14,6 @@ linters-settings:
     no-extra-aliases: false
   gocritic:
     enabled-checks:
-      - captLocal
-      - singleCaseSwitch
-      - switchTrue
       - importShadow
       - httpNoBody
       - paramTypeCombine
