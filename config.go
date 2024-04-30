@@ -7,13 +7,13 @@ import (
 	"crypto/tls"
 
 	mptls "github.com/absmach/mproxy/pkg/tls"
-	"github.com/caarlos0/env/v10"
+	"github.com/caarlos0/env/v11"
 )
 
 type Config struct {
-	Address    string `env:"ADDRESS"                        envDefault:""`
-	PrefixPath string `env:"PREFIX_PATH"                    envDefault:""`
-	Target     string `env:"TARGET"                         envDefault:""`
+	Address    string `env:"ADDRESS"     envDefault:""`
+	PathPrefix string `env:"PATH_PREFIX" envDefault:""`
+	Target     string `env:"TARGET"      envDefault:""`
 	TLSConfig  *tls.Config
 }
 

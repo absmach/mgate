@@ -16,7 +16,7 @@ import (
 	"net/url"
 
 	"github.com/absmach/mproxy/pkg/tls/verifier"
-	"github.com/caarlos0/env/v10"
+	"github.com/caarlos0/env/v11"
 	"golang.org/x/crypto/ocsp"
 )
 
@@ -42,8 +42,8 @@ var (
 )
 
 type config struct {
-	OCSPDepth        uint    `env:"OCSP_DEPTH"                                 envDefault:"0"`
-	OCSPResponderURL url.URL `env:"OCSP_RESPONDER_URL"                         envDefault:""`
+	OCSPDepth        uint    `env:"OCSP_DEPTH"         envDefault:"0"`
+	OCSPResponderURL url.URL `env:"OCSP_RESPONDER_URL" envDefault:""`
 }
 
 var _ verifier.Verifier = (*config)(nil)

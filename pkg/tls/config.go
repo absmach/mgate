@@ -5,14 +5,14 @@ package tls
 
 import (
 	"github.com/absmach/mproxy/pkg/tls/verifier"
-	"github.com/caarlos0/env/v10"
+	"github.com/caarlos0/env/v11"
 )
 
 type Config struct {
-	CertFile     string `env:"CERT_FILE"                                  envDefault:""`
-	KeyFile      string `env:"KEY_FILE"                                   envDefault:""`
-	ServerCAFile string `env:"SERVER_CA_FILE"                             envDefault:""`
-	ClientCAFile string `env:"CLIENT_CA_FILE"                             envDefault:""`
+	CertFile     string `env:"CERT_FILE"      envDefault:""`
+	KeyFile      string `env:"KEY_FILE"       envDefault:""`
+	ServerCAFile string `env:"SERVER_CA_FILE" envDefault:""`
+	ClientCAFile string `env:"CLIENT_CA_FILE" envDefault:""`
 	Validator    verifier.Validator
 }
 

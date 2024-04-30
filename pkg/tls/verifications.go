@@ -11,7 +11,7 @@ import (
 	"github.com/absmach/mproxy/pkg/tls/verifier"
 	"github.com/absmach/mproxy/pkg/tls/verifier/crl"
 	"github.com/absmach/mproxy/pkg/tls/verifier/ocsp"
-	"github.com/caarlos0/env/v10"
+	"github.com/caarlos0/env/v11"
 )
 
 // ErrInvalidCertVerification represents an error during the cert verification

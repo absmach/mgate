@@ -17,7 +17,7 @@ import (
 	"github.com/absmach/mproxy/pkg/mqtt"
 	"github.com/absmach/mproxy/pkg/mqtt/websocket"
 	"github.com/absmach/mproxy/pkg/session"
-	"github.com/caarlos0/env/v10"
+	"github.com/caarlos0/env/v11"
 	"github.com/joho/godotenv"
 	"golang.org/x/sync/errgroup"
 )

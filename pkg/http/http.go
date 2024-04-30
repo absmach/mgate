@@ -30,7 +30,13 @@ const contentType = "application/json"
 var ErrMissingAuthentication = errors.New("missing authorization")
 
 func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != p.config.PrefixPath {
+	// Metrics and health endpoints are served directly.
+	if r.URL.Path == "/metrics" || r.URL.Path == "/health" {
+		p.target.ServeHTTP(w, r)
+		return
+	}
+
+	if !strings.HasPrefix(r.URL.Path, p.config.PathPrefix) {
 		http.NotFound(w, r)
 		return
 	}
@@ -96,14 +102,6 @@ type Proxy struct {
 }
 
 func NewProxy(config mproxy.Config, handler session.Handler, logger *slog.Logger) (Proxy, error) {
-	config.PrefixPath = strings.TrimSpace(config.PrefixPath)
-	switch {
-	case config.PrefixPath != "" && config.PrefixPath[0] != '/':
-		config.PrefixPath = "/" + config.PrefixPath
-	case config.PrefixPath == "":
-		config.PrefixPath = "/"
-	}
-
 	target, err := url.Parse(config.Target)
 	if err != nil {
 		return Proxy{}, err
@@ -128,13 +126,13 @@ func (p Proxy) Listen(ctx context.Context) error {
 	}
 	status := mptls.SecurityStatus(p.config.TLSConfig)
 
-	p.logger.Info(fmt.Sprintf("HTTP proxy server started at %s%s with %s", p.config.Address, p.config.PrefixPath, status))
+	p.logger.Info(fmt.Sprintf("HTTP proxy server started at %s%s with %s", p.config.Address, p.config.PathPrefix, status))
 
 	var server http.Server
 	g, ctx := errgroup.WithContext(ctx)
 
 	mux := http.NewServeMux()
-	mux.Handle(p.config.PrefixPath, p)
+	mux.Handle(p.config.PathPrefix, p)
 	server.Handler = mux
 
 	g.Go(func() error {
@@ -146,9 +144,9 @@ func (p Proxy) Listen(ctx context.Context) error {
 		return server.Close()
 	})
 	if err := g.Wait(); err != nil {
-		p.logger.Info(fmt.Sprintf("HTTP proxy server at %s%s with %s exiting with errors", p.config.Address, p.config.PrefixPath, status), slog.String("error", err.Error()))
+		p.logger.Info(fmt.Sprintf("HTTP proxy server at %s%s with %s exiting with errors", p.config.Address, p.config.PathPrefix, status), slog.String("error", err.Error()))
 	} else {
-		p.logger.Info(fmt.Sprintf("HTTP proxy server at %s%s with %s exiting...", p.config.Address, p.config.PrefixPath, status))
+		p.logger.Info(fmt.Sprintf("HTTP proxy server at %s%s with %s exiting...", p.config.Address, p.config.PathPrefix, status))
 	}
 	return nil
 }
