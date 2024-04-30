@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 
 	"github.com/absmach/mproxy"
 	"github.com/absmach/mproxy/pkg/session"
@@ -29,13 +30,14 @@ const contentType = "application/json"
 var ErrMissingAuthentication = errors.New("missing authorization")
 
 func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != p.config.PathPrefix {
-		http.NotFound(w, r)
-		return
-	}
 	// Metrics and health endpoints are served directly.
 	if r.URL.Path == "/metrics" || r.URL.Path == "/health" {
 		p.target.ServeHTTP(w, r)
+		return
+	}
+
+	if !strings.HasPrefix(r.URL.Path, p.config.PathPrefix) {
+		http.NotFound(w, r)
 		return
 	}
 
@@ -100,8 +102,6 @@ type Proxy struct {
 }
 
 func NewProxy(config mproxy.Config, handler session.Handler, logger *slog.Logger) (Proxy, error) {
-	config.PathPrefix = mproxy.CleanPathPrefix(config.PathPrefix)
-
 	target, err := url.Parse(config.Target)
 	if err != nil {
 		return Proxy{}, err

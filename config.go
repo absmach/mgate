@@ -5,7 +5,6 @@ package mproxy
 
 import (
 	"crypto/tls"
-	"strings"
 
 	mptls "github.com/absmach/mproxy/pkg/tls"
 	"github.com/caarlos0/env/v11"
@@ -23,7 +22,6 @@ func NewConfig(opts env.Options) (Config, error) {
 	if err := env.ParseWithOptions(&c, opts); err != nil {
 		return Config{}, err
 	}
-	c.PathPrefix = CleanPathPrefix(c.PathPrefix)
 
 	cfg, err := mptls.NewConfig(opts)
 	if err != nil {
@@ -35,15 +33,4 @@ func NewConfig(opts env.Options) (Config, error) {
 		return Config{}, err
 	}
 	return c, nil
-}
-
-func CleanPathPrefix(path string) string {
-	path = strings.TrimSpace(path)
-	if path == "" {
-		return "/"
-	}
-	if path[0] != '/' {
-		return "/" + path
-	}
-	return path
 }

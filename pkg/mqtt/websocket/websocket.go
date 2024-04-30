@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/absmach/mproxy"
@@ -29,8 +30,6 @@ type Proxy struct {
 
 // New - creates new WS proxy.
 func New(config mproxy.Config, handler session.Handler, interceptor session.Interceptor, logger *slog.Logger) *Proxy {
-	config.PathPrefix = mproxy.CleanPathPrefix(config.PathPrefix)
-
 	return &Proxy{
 		config:      config,
 		handler:     handler,
@@ -51,7 +50,7 @@ var upgrader = websocket.Upgrader{
 }
 
 func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != p.config.PathPrefix {
+	if !strings.HasPrefix(r.URL.Path, p.config.PathPrefix) {
 		http.NotFound(w, r)
 		return
 	}
