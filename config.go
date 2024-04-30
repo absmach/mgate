@@ -8,6 +8,7 @@ import (
 
 	mptls "github.com/absmach/mgate/pkg/tls"
 	"github.com/caarlos0/env/v11"
+	"github.com/pion/dtls/v2"
 )
 
 type Config struct {
