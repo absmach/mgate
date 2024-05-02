@@ -6,6 +6,7 @@ package coap
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -222,53 +223,56 @@ func (p *Proxy) handlePost(ctx context.Context, con mux.Conn, body, token []byte
 }
 
 func (p *Proxy) Listen(ctx context.Context) error {
-	l, err := net.NewListenUDP("udp", p.config.Address)
-	if err != nil {
-		return err
+	switch {
+	case p.config.DTLSConfig == nil:
+		l, err := net.NewListenUDP("udp", p.config.Address)
+		if err != nil {
+			return err
+		}
+		defer l.Close()
+
+		p.logger.Info(fmt.Sprintf("CoAP proxy server started at %s without DTLS", p.config.Address))
+		s := udp.NewServer(options.WithMux(mux.HandlerFunc(p.handler)))
+
+		errCh := make(chan error)
+		go func() {
+			errCh <- s.Serve(l)
+		}()
+
+		select {
+		case <-ctx.Done():
+			p.logger.Info(fmt.Sprintf("CoAP proxy server at %s without DTLS exiting ...", p.config.Address))
+			l.Close()
+		case err := <-errCh:
+			p.logger.Error(fmt.Sprintf("CoAP proxy server at %s without DTLS exiting with errors: %s", p.config.Address, err.Error()))
+			return err
+		}
+		return nil
+	case p.config.DTLSConfig != nil:
+		l, err := net.NewDTLSListener("udp", p.config.Address, p.config.DTLSConfig)
+		if err != nil {
+			return err
+		}
+		defer l.Close()
+
+		p.logger.Info(fmt.Sprintf("CoAP proxy server started at %s with DTLS", p.config.Address))
+		s := dtls.NewServer(options.WithMux(mux.HandlerFunc(p.handler)))
+
+		errCh := make(chan error)
+		go func() {
+			errCh <- s.Serve(l)
+		}()
+
+		select {
+		case <-ctx.Done():
+			p.logger.Info(fmt.Sprintf("CoAP proxy server at %s with DTLS exiting ...", p.config.Address))
+			l.Close()
+		case err := <-errCh:
+			p.logger.Error(fmt.Sprintf("CoAP proxy server at %s with DTLS exiting with errors: %s", p.config.Address, err.Error()))
+			return err
+		}
+		return nil
+	default:
+		return errors.New("unsupported CoAP configuration")
 	}
-	defer l.Close()
-
-	p.logger.Info(fmt.Sprintf("CoAP proxy server started at %s without DTLS", p.config.Address))
-	s := udp.NewServer(options.WithMux(mux.HandlerFunc(p.handler)))
-
-	errCh := make(chan error)
-	go func() {
-		errCh <- s.Serve(l)
-	}()
-
-	select {
-	case <-ctx.Done():
-		p.logger.Info(fmt.Sprintf("CoAP proxy server at %s without DTLS exiting ...", p.config.Address))
-		l.Close()
-	case err := <-errCh:
-		p.logger.Error(fmt.Sprintf("CoAP proxy server at %s without DTLS exiting with errors: %s", p.config.Address, err.Error()))
-		return err
-	}
-	return nil
-}
-
-func (p *Proxy) ListenDTLS(ctx context.Context) error {
-	l, err := net.NewDTLSListener("udp", p.config.Address, p.config.DTLSConfig)
-	if err != nil {
-		return err
-	}
-	defer l.Close()
-
-	p.logger.Info(fmt.Sprintf("CoAP proxy server started at %s with DTLS", p.config.Address))
-	s := dtls.NewServer(options.WithMux(mux.HandlerFunc(p.handler)))
-
-	errCh := make(chan error)
-	go func() {
-		errCh <- s.Serve(l)
-	}()
-
-	select {
-	case <-ctx.Done():
-		p.logger.Info(fmt.Sprintf("CoAP proxy server at %s with DTLS exiting ...", p.config.Address))
-		l.Close()
-	case err := <-errCh:
-		p.logger.Error(fmt.Sprintf("CoAP proxy server at %s with DTLS exiting with errors: %s", p.config.Address, err.Error()))
-		return err
-	}
-	return nil
 }

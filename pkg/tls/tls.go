@@ -19,15 +19,15 @@ var (
 	errLoadServerCA   = errors.New("failed to load Server CA")
 	errLoadClientCA   = errors.New("failed to load Client CA")
 	errAppendCA       = errors.New("failed to append root ca tls.Config")
-	errUnsupportedSec = errors.New("unsupported security configuration")
+	errUnsupportedTLS = errors.New("unsupported tls configuration")
 )
 
-type SecConfig interface {
+type TLSConfig interface {
 	*tls.Config | *dtls.Config
 }
 
-// LoadSecConfig returns a TLS or DTLS configuration that can be used for TLS or DTLS servers.
-func LoadSecConfig[sc SecConfig](c *Config, s sc) (sc, error) {
+// LoadTLSConfig returns a TLS or DTLS configuration that can be used for TLS or DTLS servers.
+func LoadTLSConfig[sc TLSConfig](c *Config, s sc) (sc, error) {
 	if c.CertFile == "" || c.KeyFile == "" {
 		return nil, nil
 	}
@@ -101,7 +101,7 @@ func LoadSecConfig[sc SecConfig](c *Config, s sc) (sc, error) {
 		}
 		return s, nil
 	default:
-		return nil, errUnsupportedSec
+		return nil, errUnsupportedTLS
 	}
 }
 

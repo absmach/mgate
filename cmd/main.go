@@ -197,7 +197,7 @@ func main() {
 	// mProxy server for CoAP with DTLS
 	coapDTLSProxy := coap.NewProxy(coapDTLSConfig, handler, logger)
 	g.Go(func() error {
-		return coapDTLSProxy.ListenDTLS(ctx)
+		return coapDTLSProxy.Listen(ctx)
 	})
 
 	g.Go(func() error {
