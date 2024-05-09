@@ -234,6 +234,23 @@ Bash scripts available in `examples/client/http` directory help to test the mGat
   examples/client/http/with_mtls.sh
   ```
 
+### Test mProxy server for CoAP protocols
+
+Bash scripts available in `example/client/coap` directory help to test the mProxy servers running for CoAP protocols.
+This scripts can be used after changing the `MPROXY_COAP_WITHOUT_DTLS_TARGET` and `MPROXY_COAP_WITH_DTLS_TARGET` to a public coap server such as `coap://coap.me:5683`
+
+- Script to test mProxy server running at 5682 for CoAP without DTLS
+
+  ```bash
+    examples/client/coap/without_dtls.sh
+  ```
+
+- Script to test mProxy server running at 5684 for CoAP with DTLS
+
+  ```bash
+    examples/client/coap/without_dtls.sh
+  ```
+
 ## Configuration
 
 The service is configured using the environment variables presented in the following table. Note that any unset variables will be replaced with their default values.

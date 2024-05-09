@@ -22,6 +22,11 @@ import (
 	"github.com/plgd-dev/go-coap/v3/udp"
 )
 
+var (
+	errUnsupportedConfig = errors.New("unsupported CoAP configuration")
+	errUnsupportedMethod = errors.New("unsupported CoAP method")
+)
+
 type Proxy struct {
 	config  mproxy.Config
 	session session.Handler
@@ -47,13 +52,17 @@ func sendErrorMessage(cc mux.Conn, token []byte, err error, code codes.Code) err
 }
 
 func (p *Proxy) postUpstream(cc mux.Conn, req *mux.Message, token []byte) error {
-	format, err := req.ContentFormat()
-	if err != nil {
-		return err
-	}
 	path, err := req.Options().Path()
 	if err != nil {
 		return err
+	}
+
+	format := message.TextPlain
+	if req.HasOption(message.ContentFormat) {
+		format, err = req.ContentFormat()
+		if err != nil {
+			return err
+		}
 	}
 
 	targetConn, err := udp.Dial(p.config.Target)
@@ -92,7 +101,7 @@ func (p *Proxy) observeUpstream(ctx context.Context, cc mux.Conn, opts []message
 	targetConn, err := udp.Dial(p.config.Target)
 	if err != nil {
 		if err := sendErrorMessage(cc, token, err, codes.BadGateway); err != nil {
-			p.logger.Error("cannot send error response: %v", err)
+			p.logger.Error(fmt.Sprintf("cannot send error response: %v", err))
 		}
 	}
 	defer targetConn.Close()
@@ -112,14 +121,14 @@ func (p *Proxy) observeUpstream(ctx context.Context, cc mux.Conn, opts []message
 	}, opts...)
 	if err != nil {
 		if err := sendErrorMessage(cc, token, err, codes.BadGateway); err != nil {
-			p.logger.Error("cannot send error response: %v", err)
+			p.logger.Error(fmt.Sprintf("cannot send error response: %v", err))
 		}
 	}
 
 	select {
 	case <-doneObserving:
 		if err := obs.Cancel(ctx); err != nil {
-			p.logger.Error("failed to cancel observation: %v", err)
+			p.logger.Error(fmt.Sprintf("failed to cancel observation:%v", err))
 		}
 	case <-ctx.Done():
 		return
@@ -168,6 +177,10 @@ func (p *Proxy) handler(w mux.ResponseWriter, r *mux.Message) {
 			return
 		}
 		p.handlePost(ctx, w.Conn(), body, r.Token(), path, r)
+	default:
+		if err := sendErrorMessage(w.Conn(), r.Token(), errUnsupportedMethod, codes.MethodNotAllowed); err != nil {
+			p.logger.Error(err.Error())
+		}
 	}
 }
 
@@ -273,6 +286,6 @@ func (p *Proxy) Listen(ctx context.Context) error {
 		}
 		return nil
 	default:
-		return errors.New("unsupported CoAP configuration")
+		return errUnsupportedConfig
 	}
 }
