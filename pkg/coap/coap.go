@@ -22,10 +22,7 @@ import (
 	"github.com/plgd-dev/go-coap/v3/udp"
 )
 
-var (
-	errUnsupportedConfig = errors.New("unsupported CoAP configuration")
-	errUnsupportedMethod = errors.New("unsupported CoAP method")
-)
+var errUnsupportedMethod = errors.New("unsupported CoAP method")
 
 type Proxy struct {
 	config  mproxy.Config
@@ -52,6 +49,12 @@ func sendErrorMessage(cc mux.Conn, token []byte, err error, code codes.Code) err
 }
 
 func (p *Proxy) postUpstream(cc mux.Conn, req *mux.Message, token []byte) error {
+	outbound, err := udp.Dial(p.config.Target)
+	if err != nil {
+		return err
+	}
+	defer outbound.Close()
+
 	path, err := req.Options().Path()
 	if err != nil {
 		return err
@@ -65,12 +68,7 @@ func (p *Proxy) postUpstream(cc mux.Conn, req *mux.Message, token []byte) error 
 		}
 	}
 
-	targetConn, err := udp.Dial(p.config.Target)
-	if err != nil {
-		return err
-	}
-	defer targetConn.Close()
-	pm, err := targetConn.Post(cc.Context(), path, format, req.Body(), req.Options()...)
+	pm, err := outbound.Post(cc.Context(), path, format, req.Body(), req.Options()...)
 	if err != nil {
 		return err
 	}
@@ -84,12 +82,12 @@ func (p *Proxy) getUpstream(cc mux.Conn, req *mux.Message, token []byte) error {
 		return err
 	}
 
-	targetConn, err := udp.Dial(p.config.Target)
+	outbound, err := udp.Dial(p.config.Target)
 	if err != nil {
 		return err
 	}
-	defer targetConn.Close()
-	pm, err := targetConn.Get(cc.Context(), path, req.Options()...)
+	defer outbound.Close()
+	pm, err := outbound.Get(cc.Context(), path, req.Options()...)
 	if err != nil {
 		return err
 	}
@@ -98,16 +96,16 @@ func (p *Proxy) getUpstream(cc mux.Conn, req *mux.Message, token []byte) error {
 }
 
 func (p *Proxy) observeUpstream(ctx context.Context, cc mux.Conn, opts []message.Option, token []byte, path string) {
-	targetConn, err := udp.Dial(p.config.Target)
+	outbound, err := udp.Dial(p.config.Target)
 	if err != nil {
 		if err := sendErrorMessage(cc, token, err, codes.BadGateway); err != nil {
 			p.logger.Error(fmt.Sprintf("cannot send error response: %v", err))
 		}
 	}
-	defer targetConn.Close()
+	defer outbound.Close()
 	doneObserving := make(chan struct{})
 
-	obs, err := targetConn.Observe(ctx, path, func(req *pool.Message) {
+	obs, err := outbound.Observe(ctx, path, func(req *pool.Message) {
 		req.SetToken(token)
 		if err := cc.WriteMessage(req); err != nil {
 			if err := sendErrorMessage(cc, token, err, codes.BadGateway); err != nil {
@@ -236,39 +234,14 @@ func (p *Proxy) handlePost(ctx context.Context, con mux.Conn, body, token []byte
 }
 
 func (p *Proxy) Listen(ctx context.Context) error {
-	switch {
-	case p.config.DTLSConfig == nil:
-		l, err := net.NewListenUDP("udp", p.config.Address)
-		if err != nil {
-			return err
-		}
-		defer l.Close()
-
-		p.logger.Info(fmt.Sprintf("CoAP proxy server started at %s without DTLS", p.config.Address))
-		s := udp.NewServer(options.WithMux(mux.HandlerFunc(p.handler)))
-
-		errCh := make(chan error)
-		go func() {
-			errCh <- s.Serve(l)
-		}()
-
-		select {
-		case <-ctx.Done():
-			p.logger.Info(fmt.Sprintf("CoAP proxy server at %s without DTLS exiting ...", p.config.Address))
-			l.Close()
-		case err := <-errCh:
-			p.logger.Error(fmt.Sprintf("CoAP proxy server at %s without DTLS exiting with errors: %s", p.config.Address, err.Error()))
-			return err
-		}
-		return nil
-	case p.config.DTLSConfig != nil:
+	if p.config.DTLSConfig != nil {
 		l, err := net.NewDTLSListener("udp", p.config.Address, p.config.DTLSConfig)
 		if err != nil {
 			return err
 		}
 		defer l.Close()
 
-		p.logger.Info(fmt.Sprintf("CoAP proxy server started at %s with DTLS", p.config.Address))
+		p.logger.Info(fmt.Sprintf("CoAP proxy server started on port %s with DTLS", p.config.Address))
 		s := dtls.NewServer(options.WithMux(mux.HandlerFunc(p.handler)))
 
 		errCh := make(chan error)
@@ -278,14 +251,35 @@ func (p *Proxy) Listen(ctx context.Context) error {
 
 		select {
 		case <-ctx.Done():
-			p.logger.Info(fmt.Sprintf("CoAP proxy server at %s with DTLS exiting ...", p.config.Address))
+			p.logger.Info(fmt.Sprintf("CoAP proxy server on port %s with DTLS exiting ...", p.config.Address))
 			l.Close()
 		case err := <-errCh:
-			p.logger.Error(fmt.Sprintf("CoAP proxy server at %s with DTLS exiting with errors: %s", p.config.Address, err.Error()))
+			p.logger.Error(fmt.Sprintf("CoAP proxy server on port %s with DTLS exiting with errors: %s", p.config.Address, err.Error()))
 			return err
 		}
 		return nil
-	default:
-		return errUnsupportedConfig
 	}
+	l, err := net.NewListenUDP("udp", p.config.Address)
+	if err != nil {
+		return err
+	}
+	defer l.Close()
+
+	p.logger.Info(fmt.Sprintf("CoAP proxy server started at %s without DTLS", p.config.Address))
+	s := udp.NewServer(options.WithMux(mux.HandlerFunc(p.handler)))
+
+	errCh := make(chan error)
+	go func() {
+		errCh <- s.Serve(l)
+	}()
+
+	select {
+	case <-ctx.Done():
+		p.logger.Info(fmt.Sprintf("CoAP proxy server on port %s without DTLS exiting ...", p.config.Address))
+		l.Close()
+	case err := <-errCh:
+		p.logger.Error(fmt.Sprintf("CoAP proxy server on port %s without DTLS exiting with errors: %s", p.config.Address, err.Error()))
+		return err
+	}
+	return nil
 }

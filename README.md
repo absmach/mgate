@@ -125,6 +125,7 @@ LB tasks can be offloaded to a standard ingress proxy - for example, NginX.
 - Golang
 - Mosquitto MQTT Server
 - Mosquitto Publisher and Subscriber Client
+- coap-client or Magistrala coap-cli
 
 ### Example Setup of mGate
 
@@ -236,8 +237,8 @@ Bash scripts available in `examples/client/http` directory help to test the mGat
 
 ### Test mProxy server for CoAP protocols
 
-Bash scripts available in `example/client/coap` directory help to test the mProxy servers running for CoAP protocols.
-This scripts can be used after changing the `MPROXY_COAP_WITHOUT_DTLS_TARGET` and `MPROXY_COAP_WITH_DTLS_TARGET` to a public coap server such as `coap://coap.me:5683`
+Bash scripts available in `example/client/coap` directory help to test the mProxy servers running for CoAP protocols. You will require to have either the [coap-client](https://libcoap.net/doc/reference/4.3.1/man_coap-client.html) or the [Magistrala coap-cli](https://github.com/absmach/coap-cli).
+The script can be used alongside the simple go-coap server provided at `example/server/coap`.
 
 - Script to test mProxy server running at 5682 for CoAP without DTLS
 
@@ -248,7 +249,7 @@ This scripts can be used after changing the `MPROXY_COAP_WITHOUT_DTLS_TARGET` an
 - Script to test mProxy server running at 5684 for CoAP with DTLS
 
   ```bash
-    examples/client/coap/without_dtls.sh
+    examples/client/coap/with_dtls.sh
   ```
 
 ## Configuration
