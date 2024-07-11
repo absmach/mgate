@@ -58,12 +58,23 @@ func stream(ctx context.Context, dir Direction, r, w net.Conn, h Handler, ic Int
 			return
 		}
 
-		if dir == Up {
+		switch dir {
+		case Up:
 			if err = authorize(ctx, pkt, h); err != nil {
 				errs <- wrap(ctx, err, dir)
 				return
 			}
+		default:
+			if p, ok := pkt.(*packets.PublishPacket); ok {
+				if err = h.AuthPublish(ctx, &p.TopicName, &p.Payload); err != nil {
+					pkt = packets.NewControlPacket(packets.Disconnect).(*packets.DisconnectPacket)
+					err = pkt.Write(w)
+					errs <- wrap(ctx, err, dir)
+					return
+				}
+			}
 		}
+
 		if ic != nil {
 			pkt, err = ic.Intercept(ctx, pkt, dir)
 			if err != nil {
