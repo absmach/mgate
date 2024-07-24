@@ -4,59 +4,41 @@
 package coap
 
 import (
-	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
+	"net"
+	"sync"
+	"time"
 
 	"github.com/absmach/mproxy"
 	"github.com/absmach/mproxy/pkg/session"
-	"github.com/plgd-dev/go-coap/v3/dtls"
-	dtlsServer "github.com/plgd-dev/go-coap/v3/dtls/server"
-	"github.com/plgd-dev/go-coap/v3/message"
-	"github.com/plgd-dev/go-coap/v3/message/codes"
-	"github.com/plgd-dev/go-coap/v3/message/pool"
-	"github.com/plgd-dev/go-coap/v3/mux"
-	"github.com/plgd-dev/go-coap/v3/net"
-	"github.com/plgd-dev/go-coap/v3/options"
-	"github.com/plgd-dev/go-coap/v3/udp"
-	udpServer "github.com/plgd-dev/go-coap/v3/udp/server"
+	mptls "github.com/absmach/mproxy/pkg/tls"
+	gocoap "github.com/dustin/go-coap"
+	"github.com/pion/dtls/v2"
+	"golang.org/x/sync/errgroup"
 )
 
-const startObserve uint32 = 0
+const (
+	bufferSize   uint64 = 1280
+	startObserve uint32 = 0
+)
 
-var errUnsupportedMethod = errors.New("unsupported CoAP method")
+var (
+	ConnMap = make(map[string]*Conn)
+	mutex   sync.Mutex
+)
+
+type Conn struct {
+	clientAddr *net.UDPAddr
+	serverConn *net.UDPConn
+}
 
 type Proxy struct {
 	config  mproxy.Config
 	session session.Handler
 	logger  *slog.Logger
 }
-
-type udpNilMonitor struct{}
-
-func (u *udpNilMonitor) UDPServerApply(cfg *udpServer.Config) {
-	cfg.CreateInactivityMonitor = nil
-}
-
-func NewUDPNilMonitor() udpServer.Option {
-	return &udpNilMonitor{}
-}
-
-var _ udpServer.Option = (*udpNilMonitor)(nil)
-
-type dtlsNilMonitor struct{}
-
-func (d *dtlsNilMonitor) DTLSServerApply(cfg *dtlsServer.Config) {
-	cfg.CreateInactivityMonitor = nil
-}
-
-func NewDTLSNilMonitor() dtlsServer.Option {
-	return &dtlsNilMonitor{}
-}
-
-var _ udpServer.Option = (*udpNilMonitor)(nil)
 
 func NewProxy(config mproxy.Config, handler session.Handler, logger *slog.Logger) *Proxy {
 	return &Proxy{
@@ -66,306 +48,241 @@ func NewProxy(config mproxy.Config, handler session.Handler, logger *slog.Logger
 	}
 }
 
-func sendErrorMessage(cc mux.Conn, token []byte, err error, code codes.Code) error {
-	m := cc.AcquireMessage(cc.Context())
-	defer cc.ReleaseMessage(m)
-	m.SetCode(code)
-	m.SetBody(bytes.NewReader(([]byte)(err.Error())))
-	m.SetToken(token)
-	m.SetContentFormat(message.TextPlain)
-	return cc.WriteMessage(m)
-}
-
-func (p *Proxy) postUpstream(cc mux.Conn, req *mux.Message, token []byte) error {
-	outbound, err := udp.Dial(p.config.Target)
-	if err != nil {
-		return err
-	}
-	defer outbound.Close()
-
-	path, err := req.Options().Path()
-	if err != nil {
-		return err
-	}
-
-	format := message.TextPlain
-	if req.HasOption(message.ContentFormat) {
-		format, err = req.ContentFormat()
-		if err != nil {
-			return err
-		}
-	}
-
-	pm, err := outbound.Post(cc.Context(), path, format, req.Body(), req.Options()...)
-	if err != nil {
-		return err
-	}
-	pm.SetToken(token)
-	return cc.WriteMessage(pm)
-}
-
-func (p *Proxy) getUpstream(cc mux.Conn, req *mux.Message, token []byte) error {
-	path, err := req.Options().Path()
-	if err != nil {
-		return err
-	}
-
-	outbound, err := udp.Dial(p.config.Target)
-	if err != nil {
-		return err
-	}
-	defer outbound.Close()
-	pm, err := outbound.Get(cc.Context(), path, req.Options()...)
-	if err != nil {
-		return err
-	}
-	pm.SetToken(token)
-	return cc.WriteMessage(pm)
-}
-
-func (p *Proxy) observeUpstream(ctx context.Context, cc mux.Conn, opts []message.Option, token []byte, path string) {
-	outbound, err := udp.Dial(p.config.Target)
-	if err != nil {
-		if err := sendErrorMessage(cc, token, err, codes.BadGateway); err != nil {
-			p.logger.Error(fmt.Sprintf("cannot send error response: %v", err))
-		}
-	}
-	defer outbound.Close()
-	doneObserving := make(chan struct{})
-
-	pm := outbound.AcquireMessage(outbound.Context())
-	defer outbound.ReleaseMessage(pm)
-	pm.SetToken(token)
-	pm.SetCode(codes.GET)
-	for _, opt := range opts {
-		pm.SetOptionBytes(opt.ID, opt.Value)
-	}
-	if err := pm.SetPath(path); err != nil {
-		if err := sendErrorMessage(cc, token, err, codes.BadOption); err != nil {
-			p.logger.Error(fmt.Sprintf("cannot send error response: %v", err))
-		}
-		return
-	}
-
-	obs, err := outbound.DoObserve(pm, func(req *pool.Message) {
-		req.SetToken(token)
-		if err := cc.WriteMessage(req); err != nil {
-			if err := sendErrorMessage(cc, token, err, codes.BadGateway); err != nil {
-				p.logger.Error(err.Error())
-			}
-			p.logger.Error(err.Error())
-		}
-		if req.Code() == codes.NotFound {
-			close(doneObserving)
-		}
-	})
-	if err != nil {
-		if err := sendErrorMessage(cc, token, err, codes.BadGateway); err != nil {
-			p.logger.Error(fmt.Sprintf("cannot send error response: %v", err))
-		}
-	}
-
-	select {
-	case <-doneObserving:
-		if err := obs.Cancel(ctx); err != nil {
-			p.logger.Error(fmt.Sprintf("failed to cancel observation:%v", err))
-		}
-	case <-ctx.Done():
-		return
-	}
-}
-
-func (p *Proxy) CancelObservation(cc mux.Conn, opts []message.Option, token []byte, path string) error {
-	outbound, err := udp.Dial(p.config.Target)
-	if err != nil {
-		if err := sendErrorMessage(cc, token, err, codes.BadGateway); err != nil {
-			p.logger.Error(fmt.Sprintf("cannot send error response: %v", err))
-		}
-	}
-	defer outbound.Close()
-
-	pm := outbound.AcquireMessage(outbound.Context())
-	defer outbound.ReleaseMessage(pm)
-	pm.SetToken(token)
-	pm.SetCode(codes.GET)
-	for _, opt := range opts {
-		pm.SetOptionBytes(opt.ID, opt.Value)
-	}
-	if err := pm.SetPath(path); err != nil {
-		if err := sendErrorMessage(cc, token, err, codes.BadOption); err != nil {
-			p.logger.Error(fmt.Sprintf("cannot send error response: %v", err))
-		}
-		return err
-	}
-	if err := outbound.WriteMessage(pm); err != nil {
-		return err
-	}
-	pm.SetCode(codes.Content)
-	return cc.WriteMessage(pm)
-}
-
-func (p *Proxy) handler(w mux.ResponseWriter, r *mux.Message) {
-	tok, err := r.Options().GetBytes(message.URIQuery)
-	if err != nil {
-		if err := sendErrorMessage(w.Conn(), r.Token(), err, codes.Unauthorized); err != nil {
-			p.logger.Error(err.Error())
-		}
-		return
-	}
-	ctx := session.NewContext(r.Context(), &session.Session{Password: tok})
-	if err := p.session.AuthConnect(ctx); err != nil {
-		if err := sendErrorMessage(w.Conn(), r.Token(), err, codes.Unauthorized); err != nil {
-			p.logger.Error(err.Error())
-		}
-		return
-	}
-	path, err := r.Options().Path()
-	if err != nil {
-		if err := sendErrorMessage(w.Conn(), r.Token(), err, codes.BadOption); err != nil {
-			p.logger.Error(err.Error())
-		}
-		return
-	}
-	switch r.Code() {
-	case codes.GET:
-		p.handleGet(ctx, path, w.Conn(), r.Token(), r)
-
-	case codes.POST:
-		body, err := r.ReadBody()
-		if err != nil {
-			if err := sendErrorMessage(w.Conn(), r.Token(), err, codes.BadRequest); err != nil {
-				p.logger.Error(err.Error())
-			}
+func (p *Proxy) proxyUDP(ctx context.Context, l *net.UDPConn) {
+	buffer := make([]byte, bufferSize)
+	for {
+		select {
+		case <-ctx.Done():
 			return
-		}
-		p.handlePost(ctx, w.Conn(), body, r.Token(), path, r)
-	default:
-		if err := sendErrorMessage(w.Conn(), r.Token(), errUnsupportedMethod, codes.MethodNotAllowed); err != nil {
-			p.logger.Error(err.Error())
-		}
-	}
-}
-
-func (p *Proxy) handleGet(ctx context.Context, path string, con mux.Conn, token []byte, r *mux.Message) {
-	if err := p.session.AuthSubscribe(ctx, &[]string{path}); err != nil {
-		if err := sendErrorMessage(con, token, err, codes.Unauthorized); err != nil {
-			p.logger.Error(err.Error())
-		}
-		return
-	}
-	if err := p.session.Subscribe(ctx, &[]string{path}); err != nil {
-		if err := sendErrorMessage(con, token, err, codes.Unauthorized); err != nil {
-			p.logger.Error(err.Error())
-		}
-		return
-	}
-	switch {
-	case r.HasOption(message.Observe):
-		obs, err := r.Options().Observe()
-		if err != nil {
-			if err := sendErrorMessage(con, r.Token(), err, codes.BadRequest); err != nil {
-				p.logger.Error(err.Error())
-			}
-			return
-		}
-		switch obs {
-		case startObserve:
-			go p.observeUpstream(ctx, con, r.Options(), token, path)
 		default:
-			if err := p.CancelObservation(con, r.Options(), token, path); err != nil {
-				p.logger.Error(fmt.Sprintf("error performing cancel observation: %v\n", err))
-				if err := sendErrorMessage(con, token, err, codes.BadGateway); err != nil {
-					p.logger.Error(err.Error())
-				}
+			n, clientAddr, err := l.ReadFromUDP(buffer)
+			if err != nil {
 				return
 			}
-		}
-	default:
-		if err := p.getUpstream(con, r, token); err != nil {
-			p.logger.Error(fmt.Sprintf("error performing get: %v\n", err))
-			if err := sendErrorMessage(con, token, err, codes.BadGateway); err != nil {
-				p.logger.Error(err.Error())
+			mutex.Lock()
+			conn, ok := ConnMap[clientAddr.String()]
+			if !ok {
+				conn, err = p.newConn(clientAddr)
+				if err != nil {
+					p.logger.Error("Failed to create new connection", slog.Any("error", err))
+					mutex.Unlock()
+					return
+				}
+				ConnMap[clientAddr.String()] = conn
+				go p.downUDP(l, conn)
 			}
-			return
+			mutex.Unlock()
+			p.upUDP(conn, buffer[:n])
 		}
-	}
-}
-
-func (p *Proxy) handlePost(ctx context.Context, con mux.Conn, body, token []byte, path string, r *mux.Message) {
-	if err := p.session.AuthPublish(ctx, &path, &body); err != nil {
-		if err := sendErrorMessage(con, token, err, codes.Unauthorized); err != nil {
-			p.logger.Error(err.Error())
-		}
-		return
-	}
-	if err := p.session.Publish(ctx, &path, &body); err != nil {
-		if err := sendErrorMessage(con, token, err, codes.BadRequest); err != nil {
-			p.logger.Error(err.Error())
-		}
-		return
-	}
-	if err := p.postUpstream(con, r, token); err != nil {
-		p.logger.Debug(fmt.Sprintf("error performing post: %v\n", err))
-		if err := sendErrorMessage(con, token, err, codes.BadGateway); err != nil {
-			p.logger.Error(err.Error())
-		}
-		return
 	}
 }
 
 func (p *Proxy) Listen(ctx context.Context) error {
-	if p.config.DTLSConfig != nil {
-		l, err := net.NewDTLSListener("udp", p.config.Address, p.config.DTLSConfig)
+	addr, err := net.ResolveUDPAddr("udp", p.config.Address)
+	if err != nil {
+		p.logger.Error("Failed to resolve UDP address", slog.Any("error", err))
+		return err
+	}
+	g, ctx := errgroup.WithContext(ctx)
+	switch {
+	case p.config.DTLSConfig != nil:
+		l, err := dtls.Listen("udp", addr, p.config.DTLSConfig)
 		if err != nil {
 			return err
 		}
 		defer l.Close()
 
-		p.logger.Info(fmt.Sprintf("CoAP proxy server started on port %s with DTLS", p.config.Address))
-		var dialOpts []dtlsServer.Option
-		dialOpts = append(dialOpts, options.WithMux(mux.HandlerFunc(p.handler)), NewDTLSNilMonitor())
+		g.Go(func() error {
+			p.proxyDTLS(ctx, l)
+			return nil
+		})
 
-		s := dtls.NewServer(dialOpts...)
+		g.Go(func() error {
+			<-ctx.Done()
+			return l.Close()
+		})
 
-		errCh := make(chan error)
-		go func() {
-			errCh <- s.Serve(l)
-		}()
-
-		select {
-		case <-ctx.Done():
-			p.logger.Info(fmt.Sprintf("CoAP proxy server on port %s with DTLS exiting ...", p.config.Address))
-			l.Close()
-		case err := <-errCh:
-			p.logger.Error(fmt.Sprintf("CoAP proxy server on port %s with DTLS exiting with errors: %s", p.config.Address, err.Error()))
+	default:
+		l, err := net.ListenUDP("udp", addr)
+		if err != nil {
 			return err
 		}
-		return nil
+		defer l.Close()
+
+		g.Go(func() error {
+			p.proxyUDP(ctx, l)
+			return nil
+		})
+
+		g.Go(func() error {
+			<-ctx.Done()
+			return l.Close()
+		})
 	}
-	l, err := net.NewListenUDP("udp", p.config.Address)
-	if err != nil {
-		return err
-	}
-	defer l.Close()
 
-	p.logger.Info(fmt.Sprintf("CoAP proxy server started at %s without DTLS", p.config.Address))
-	var dialOpts []udpServer.Option
-	dialOpts = append(dialOpts, options.WithMux(mux.HandlerFunc(p.handler)), NewUDPNilMonitor())
+	status := mptls.SecurityStatus(p.config.DTLSConfig)
+	p.logger.Info(fmt.Sprintf("COAP proxy server started at %s  with %s", p.config.Address, status))
 
-	s := udp.NewServer(dialOpts...)
-
-	errCh := make(chan error)
-	go func() {
-		errCh <- s.Serve(l)
-	}()
-
-	select {
-	case <-ctx.Done():
-		p.logger.Info(fmt.Sprintf("CoAP proxy server on port %s without DTLS exiting ...", p.config.Address))
-		l.Close()
-	case err := <-errCh:
-		p.logger.Error(fmt.Sprintf("CoAP proxy server on port %s without DTLS exiting with errors: %s", p.config.Address, err.Error()))
-		return err
+	if err := g.Wait(); err != nil {
+		p.logger.Info(fmt.Sprintf("COAP proxy server at %s exiting with errors", p.config.Address), slog.String("error", err.Error()))
+	} else {
+		p.logger.Info(fmt.Sprintf("COAP proxy server at %s exiting...", p.config.Address))
 	}
 	return nil
+}
+
+func (p *Proxy) newConn(clientAddr *net.UDPAddr) (*Conn, error) {
+	conn := new(Conn)
+	conn.clientAddr = clientAddr
+	addr, err := net.ResolveUDPAddr("udp", p.config.Target)
+	if err != nil {
+		return nil, err
+	}
+	t, err := net.DialUDP("udp", nil, addr)
+	if err != nil {
+		return nil, err
+	}
+	conn.serverConn = t
+	return conn, nil
+}
+
+func (p *Proxy) upUDP(conn *Conn, buffer []byte) {
+	p.handleCoAPMessage(buffer)
+	_, err := conn.serverConn.Write(buffer)
+	if err != nil {
+		return
+	}
+}
+
+func (p *Proxy) downUDP(l *net.UDPConn, conn *Conn) {
+	buffer := make([]byte, bufferSize)
+	for {
+		err := conn.serverConn.SetReadDeadline(time.Now().Add(10 * time.Second))
+		if err != nil {
+			return
+		}
+		n, err := conn.serverConn.Read(buffer)
+		if err != nil {
+			p.close(conn)
+			return
+		}
+		_, err = l.WriteToUDP(buffer[:n], conn.clientAddr)
+		if err != nil {
+			return
+		}
+	}
+}
+
+func (p *Proxy) close(conn *Conn) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	delete(ConnMap, conn.clientAddr.String())
+	conn.serverConn.Close()
+}
+
+func (p *Proxy) proxyDTLS(ctx context.Context, l net.Listener) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			conn, err := l.Accept()
+			if err != nil {
+				p.logger.Warn("Accept error " + err.Error())
+				continue
+			}
+			p.logger.Info("Accepted new client")
+			go p.handleDTLS(conn)
+		}
+	}
+}
+
+func (p *Proxy) handleDTLS(inbound net.Conn) {
+	outboundAddr, err := net.ResolveUDPAddr("udp", p.config.Address)
+	if err != nil {
+		return
+	}
+
+	outbound, err := net.DialUDP("udp", nil, outboundAddr)
+	if err != nil {
+		p.logger.Error("Cannot connect to remote broker " + p.config.Address + " due to: " + err.Error())
+		return
+	}
+
+	go p.dtlsUp(outbound, inbound)
+	go p.dtlsDown(inbound, outbound)
+}
+
+func (p *Proxy) dtlsUp(outbound *net.UDPConn, inbound net.Conn) {
+	buffer := make([]byte, bufferSize)
+	for {
+		n, err := inbound.Read(buffer)
+		if err != nil {
+			return
+		}
+		p.handleCoAPMessage(buffer[:n])
+
+		_, err = outbound.Write(buffer[:n])
+		if err != nil {
+			slog.Error("Failed to write to server", slog.Any("err", err))
+		}
+	}
+}
+
+func (p *Proxy) dtlsDown(inbound net.Conn, outbound *net.UDPConn) {
+	buffer := make([]byte, bufferSize)
+	for {
+		err := outbound.SetReadDeadline(time.Now().Add(1 * time.Minute))
+		if err != nil {
+			return
+		}
+		n, err := outbound.Read(buffer)
+		defer outbound.Close()
+		if err != nil {
+			return
+		}
+
+		_, err = inbound.Write(buffer[:n])
+		defer inbound.Close()
+		if err != nil {
+			return
+		}
+	}
+}
+
+func (p *Proxy) handleCoAPMessage(buffer []byte) {
+	msg, err := gocoap.ParseMessage(buffer)
+	if err != nil {
+		p.logger.Error("Failed to parse message", slog.Any("error", err))
+		return
+	}
+
+	token := msg.Token
+	path := msg.Path()
+	ctx := session.NewContext(context.Background(), &session.Session{Password: token})
+
+	switch msg.Code {
+	case gocoap.POST:
+		if err := p.session.AuthConnect(ctx); err != nil {
+			return
+		}
+		if err := p.session.AuthPublish(ctx, &path[0], &msg.Payload); err != nil {
+			return
+		}
+		if err := p.session.Publish(ctx, &path[0], &msg.Payload); err != nil {
+			return
+		}
+	case gocoap.GET:
+		if err := p.session.AuthConnect(ctx); err != nil {
+			return
+		}
+		if msg.Option(gocoap.Observe) == startObserve {
+			if err := p.session.AuthSubscribe(ctx, &path); err != nil {
+				return
+			}
+			if err := p.session.Subscribe(ctx, &path); err != nil {
+				return
+			}
+		}
+	}
 }
