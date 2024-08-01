@@ -38,17 +38,22 @@ type Handler interface {
 
 // Interceptor is an interface for mProxy intercept hook.
 type Interceptor interface {
-	// Intercept is called on every packet flowing through the Proxy.
+	// Intercept is called on every packet flowing through the mProxy.
 	// Packets can be modified before being sent to the broker or the client.
-	// If the interceptor returns a non-nil packet, the modified packet is sent.
 	// The error indicates unsuccessful interception and mProxy is cancelling the packet.
-	Intercept(ctx context.Context, pkt interface{}) (interface{}, error)
+	Intercept(ctx context.Context, pkt interface{}) error
 }
 
+// Streamer is used for streaming traffic.
 type Streamer interface {
-	Stream(ctx context.Context, r, w net.Conn, h Handler, ic Interceptor, errs chan error)
+	// Stream streams the traffic between conn1 and conn2 in any direction (or both)
+	// providing Handler and Interceptos.
+	Stream(ctx context.Context, conn1, conn2 net.Conn) error
 }
 
+// Passer is used for request-response protocols.
 type Passer interface {
+	// Pass forwards the HTTP request and response for HTTP and
+	// WS based protocols.
 	Pass(rw http.ResponseWriter, r *http.Request)
 }
