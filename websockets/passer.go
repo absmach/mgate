@@ -23,12 +23,11 @@ var (
 
 type Proxy struct {
 	target  string
-	address string
-	event   session.Handler
+	handler mproxy.Handler
 	logger  *slog.Logger
 }
 
-func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
+func (p *Proxy) Pass(w http.ResponseWriter, r *http.Request) {
 	var token string
 	headers := http.Header{}
 	switch {
@@ -54,15 +53,15 @@ func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 	topic := r.URL.Path
 	s := mproxy.Session{Password: []byte(token)}
 	ctx := mproxy.NewContext(context.Background(), &s)
-	if err := p.event.AuthConnect(ctx); err != nil {
+	if err := p.handler.AuthConnect(ctx); err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
-	if err := p.event.AuthSubscribe(ctx, &[]string{topic}); err != nil {
+	if err := p.handler.AuthSubscribe(ctx, &[]string{topic}); err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
-	if err := p.event.Subscribe(ctx, &[]string{topic}); err != nil {
+	if err := p.handler.Subscribe(ctx, &[]string{topic}); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -83,7 +82,7 @@ func (p *Proxy) Handler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err := g.Wait(); err != nil {
-		if err := p.event.Unsubscribe(ctx, &[]string{topic}); err != nil {
+		if err := p.handler.Unsubscribe(ctx, &[]string{topic}); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -99,10 +98,10 @@ func (p *Proxy) stream(ctx context.Context, topic string, src, dest *websocket.C
 			return err
 		}
 		if upstream {
-			if err := p.event.AuthPublish(ctx, &topic, &payload); err != nil {
+			if err := p.handler.AuthPublish(ctx, &topic, &payload); err != nil {
 				return err
 			}
-			if err := p.event.Publish(ctx, &topic, &payload); err != nil {
+			if err := p.handler.Publish(ctx, &topic, &payload); err != nil {
 				return err
 			}
 		}
@@ -112,16 +111,9 @@ func (p *Proxy) stream(ctx context.Context, topic string, src, dest *websocket.C
 	}
 }
 
-func NewProxy(address, target string, logger *slog.Logger, handler session.Handler) (*Proxy, error) {
-	return &Proxy{target: target, address: address, logger: logger, event: handler}, nil
-}
-
-// Listen - listen withrout tls.
-func (p *Proxy) Listen() error {
-	return http.ListenAndServe(p.address, http.HandlerFunc(p.Handler))
-}
-
-// ListenTLS - version of Listen with TLS encryption.
-func (p Proxy) ListenTLS(crt, key string) error {
-	return http.ListenAndServeTLS(p.address, crt, key, http.HandlerFunc(p.Handler))
+func NewProxy(target string, logger *slog.Logger, handler session.Handler) mproxy.Passer {
+	return &Proxy{
+		target:  target,
+		logger:  logger,
+		handler: handler}
 }

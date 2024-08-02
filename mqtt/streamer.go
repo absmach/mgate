@@ -34,7 +34,7 @@ type streamer struct {
 	ic mproxy.Interceptor
 }
 
-func NewStreamer(h mproxy.Handler, ic mproxy.Interceptor) mproxy.Streamer {
+func New(h mproxy.Handler, ic mproxy.Interceptor) mproxy.Streamer {
 	return &streamer{
 		h:  h,
 		ic: ic,
