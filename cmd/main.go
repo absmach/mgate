@@ -117,9 +117,9 @@ func main() {
 	}
 
 	// mProxy server for MQTT over Websocket without TLS
-	wsProxy := websocket.New(wsConfig, handler, interceptor, logger)
+	wsProxy := websocket.New(wsConfig.Target, handler, interceptor, logger)
 	g.Go(func() error {
-		return wsProxy.Listen(ctx)
+		return passer.Listen(ctx, wsConfig, wsProxy, logger)
 	})
 
 	// mProxy server Configuration for MQTT over Websocket with TLS
@@ -129,9 +129,9 @@ func main() {
 	}
 
 	// mProxy server for MQTT over Websocket with TLS
-	wsTLSProxy := websocket.New(wsTLSConfig, handler, interceptor, logger)
+	wsTLSProxy := websocket.New(wsTLSConfig.Target, handler, interceptor, logger)
 	g.Go(func() error {
-		return wsTLSProxy.Listen(ctx)
+		return passer.Listen(ctx, wsTLSConfig, wsTLSProxy, logger)
 	})
 
 	// mProxy server Configuration for MQTT over Websocket with mTLS
@@ -141,9 +141,9 @@ func main() {
 	}
 
 	// mProxy server for MQTT over Websocket with mTLS
-	wsMTLSProxy := websocket.New(wsMTLSConfig, handler, interceptor, logger)
+	wsMTLSProxy := websocket.New(wsMTLSConfig.Target, handler, interceptor, logger)
 	g.Go(func() error {
-		return wsMTLSProxy.Listen(ctx)
+		return passer.Listen(ctx, wsMTLSConfig, wsMTLSProxy, logger)
 	})
 
 	// mProxy server Configuration for HTTP without TLS

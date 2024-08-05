@@ -31,8 +31,7 @@ func (c *wsWrapper) SetDeadline(t time.Time) error {
 	if err := c.SetReadDeadline(t); err != nil {
 		return err
 	}
-	err := c.SetWriteDeadline(t)
-	return err
+	return c.SetWriteDeadline(t)
 }
 
 // Write writes data to the websocket.
