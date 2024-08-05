@@ -16,7 +16,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func Listen(ctx context.Context, config mproxy.Config, passer mproxy.Passer, logger *slog.Logger) error {
+func Listen(ctx context.Context, name string, config mproxy.Config, passer mproxy.Passer, logger *slog.Logger) error {
 	l, err := net.Listen("tcp", config.Address)
 	if err != nil {
 		return err
@@ -27,7 +27,7 @@ func Listen(ctx context.Context, config mproxy.Config, passer mproxy.Passer, log
 	}
 	status := mptls.SecurityStatus(config.TLSConfig)
 
-	logger.Info(fmt.Sprintf("HTTP proxy server started at %s%s with %s", config.Address, config.PathPrefix, status))
+	logger.Info(fmt.Sprintf("%s Proxy server started at %s%s with %s", name, config.Address, config.PathPrefix, status))
 
 	var server http.Server
 	g, ctx := errgroup.WithContext(ctx)
@@ -45,9 +45,9 @@ func Listen(ctx context.Context, config mproxy.Config, passer mproxy.Passer, log
 		return server.Close()
 	})
 	if err := g.Wait(); err != nil {
-		logger.Info(fmt.Sprintf("HTTP proxy server at %s%s with %s exiting with errors", config.Address, config.PathPrefix, status), slog.String("error", err.Error()))
+		logger.Info(fmt.Sprintf("%s Proxy server at %s%s with %s exiting with errors", name, config.Address, config.PathPrefix, status), slog.String("error", err.Error()))
 	} else {
-		logger.Info(fmt.Sprintf("HTTP proxy server at %s%s with %s exiting...", config.Address, config.PathPrefix, status))
+		logger.Info(fmt.Sprintf("%s Proxy server at %s%s with %s exiting...", name, config.Address, config.PathPrefix, status))
 	}
 	return nil
 }
