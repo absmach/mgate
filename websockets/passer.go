@@ -115,5 +115,6 @@ func NewProxy(target string, logger *slog.Logger, handler session.Handler) mprox
 	return &Proxy{
 		target:  target,
 		logger:  logger,
-		handler: handler}
+		handler: handler,
+	}
 }

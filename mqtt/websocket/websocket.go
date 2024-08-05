@@ -91,7 +91,7 @@ func (p Proxy) pass(in *websocket.Conn) {
 	// 	p.logger.Error("Failed to get client certificate", slog.Any("error", err))
 	// 	return
 	// }
-	streamer := mqtt.NewStreamer(p.handler, p.interceptor)
+	streamer := mqtt.New(p.handler, p.interceptor)
 	err = streamer.Stream(ctx, inboundConn, outboundConn)
 	errc <- err
 	p.logger.Warn("Broken connection for client", slog.Any("error", err))
