@@ -9,13 +9,17 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
+	"time"
 
 	"github.com/absmach/mproxy"
 	"github.com/absmach/mproxy/examples/simple"
-	"github.com/absmach/mproxy/pkg/mqtt"
-	"github.com/absmach/mproxy/pkg/mqtt/websocket"
-	"github.com/absmach/mproxy/pkg/session"
+	"github.com/absmach/mproxy/http"
+	"github.com/absmach/mproxy/mqtt"
+	"github.com/absmach/mproxy/mqtt/websocket"
+	"github.com/absmach/mproxy/passer"
+	"github.com/absmach/mproxy/streamer"
 	"github.com/caarlos0/env/v11"
 	"github.com/joho/godotenv"
 	"golang.org/x/sync/errgroup"
@@ -36,7 +40,19 @@ const (
 )
 
 func main() {
-	ctx, _ := context.WithCancel(context.Background())
+	go func() {
+		for {
+			time.Sleep(time.Second * 3)
+			fmt.Println("RTN", runtime.NumGoroutine())
+			var m runtime.MemStats
+			runtime.ReadMemStats(&m)
+			fmt.Printf("Alloc = %v MiB", m.Alloc/1024/1024)
+			fmt.Printf("\tTotalAlloc = %v MiB", m.TotalAlloc/1024/1024)
+			fmt.Printf("\tSys = %v MiB", m.Sys/1024/1024)
+			fmt.Printf("\tNumGC = %v\n", m.NumGC)
+		}
+	}()
+	ctx, cancel := context.WithCancel(context.Background())
 	g, ctx := errgroup.WithContext(ctx)
 
 	logHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
@@ -46,7 +62,7 @@ func main() {
 
 	handler := simple.New(logger)
 
-	var interceptor session.Interceptor
+	var interceptor mproxy.Interceptor
 
 	// Loading .env file to environment
 	err := godotenv.Load()
@@ -61,9 +77,11 @@ func main() {
 	}
 
 	// mProxy server for MQTT without TLS
-	mqttProxy := mqtt.New(mqttConfig, handler, interceptor, logger)
+	mqttProxy := mqtt.New(handler, interceptor)
+
 	g.Go(func() error {
-		return mqttProxy.Listen(ctx)
+		p := streamer.New(mqttConfig, mqttProxy, logger)
+		return p.Listen(ctx)
 	})
 
 	// mProxy server Configuration for MQTT with TLS
@@ -73,9 +91,10 @@ func main() {
 	}
 
 	// mProxy server for MQTT with TLS
-	mqttTLSProxy := mqtt.New(mqttTLSConfig, handler, interceptor, logger)
+	mqttTLSProxy := mqtt.New(handler, interceptor)
 	g.Go(func() error {
-		return mqttTLSProxy.Listen(ctx)
+		p := streamer.New(mqttTLSConfig, mqttTLSProxy, logger)
+		return p.Listen(ctx)
 	})
 
 	//  mProxy server Configuration for MQTT with mTLS
@@ -85,9 +104,10 @@ func main() {
 	}
 
 	// mProxy server for MQTT with mTLS
-	mqttMTlsProxy := mqtt.New(mqttMTLSConfig, handler, interceptor, logger)
+	mqttMTlsProxy := mqtt.New(handler, interceptor)
 	g.Go(func() error {
-		return mqttMTlsProxy.Listen(ctx)
+		p := streamer.New(mqttMTLSConfig, mqttMTlsProxy, logger)
+		return p.Listen(ctx)
 	})
 
 	// mProxy server Configuration for MQTT over Websocket without TLS
@@ -126,54 +146,54 @@ func main() {
 		return wsMTLSProxy.Listen(ctx)
 	})
 
-	// // mProxy server Configuration for HTTP without TLS
-	// httpConfig, err := mproxy.NewConfig(env.Options{Prefix: httpWithoutTLS})
-	// if err != nil {
-	// 	panic(err)
-	// }
+	// mProxy server Configuration for HTTP without TLS
+	httpConfig, err := mproxy.NewConfig(env.Options{Prefix: httpWithoutTLS})
+	if err != nil {
+		panic(err)
+	}
 
-	// // mProxy server for HTTP without TLS
-	// httpProxy, err := http.NewProxy(httpConfig, handler, logger)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// g.Go(func() error {
-	// 	return httpProxy.Listen(ctx)
-	// })
+	// mProxy server for HTTP without TLS
+	httpProxy, err := http.NewProxy(httpConfig, handler, logger)
+	if err != nil {
+		panic(err)
+	}
+	g.Go(func() error {
+		return passer.Listen(ctx, httpConfig, httpProxy, logger)
+	})
 
-	// // mProxy server Configuration for HTTP with TLS
-	// httpTLSConfig, err := mproxy.NewConfig(env.Options{Prefix: httpWithTLS})
-	// if err != nil {
-	// 	panic(err)
-	// }
+	// mProxy server Configuration for HTTP with TLS
+	httpTLSConfig, err := mproxy.NewConfig(env.Options{Prefix: httpWithTLS})
+	if err != nil {
+		panic(err)
+	}
 
-	// // mProxy server for HTTP with TLS
-	// httpTLSProxy, err := http.NewProxy(httpTLSConfig, handler, logger)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// g.Go(func() error {
-	// 	return httpTLSProxy.Listen(ctx)
-	// })
+	// mProxy server for HTTP with TLS
+	httpTLSProxy, err := http.NewProxy(httpTLSConfig, handler, logger)
+	if err != nil {
+		panic(err)
+	}
+	g.Go(func() error {
+		return passer.Listen(ctx, httpTLSConfig, httpTLSProxy, logger)
+	})
 
-	// // mProxy server Configuration for HTTP with mTLS
-	// httpMTLSConfig, err := mproxy.NewConfig(env.Options{Prefix: httpWithmTLS})
-	// if err != nil {
-	// 	panic(err)
-	// }
+	// mProxy server Configuration for HTTP with mTLS
+	httpMTLSConfig, err := mproxy.NewConfig(env.Options{Prefix: httpWithmTLS})
+	if err != nil {
+		panic(err)
+	}
 
-	// // mProxy server for HTTP with mTLS
-	// httpMTLSProxy, err := http.NewProxy(httpMTLSConfig, handler, logger)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// g.Go(func() error {
-	// 	return httpMTLSProxy.Listen(ctx)
-	// })
+	// mProxy server for HTTP with mTLS
+	httpMTLSProxy, err := http.NewProxy(httpMTLSConfig, handler, logger)
+	if err != nil {
+		panic(err)
+	}
+	g.Go(func() error {
+		return passer.Listen(ctx, httpMTLSConfig, httpMTLSProxy, logger)
+	})
 
-	// g.Go(func() error {
-	// 	return StopSignalHandler(ctx, cancel, logger)
-	// })
+	g.Go(func() error {
+		return StopSignalHandler(ctx, cancel, logger)
+	})
 
 	if err := g.Wait(); err != nil {
 		logger.Error(fmt.Sprintf("mProxy service terminated with error: %s", err))
