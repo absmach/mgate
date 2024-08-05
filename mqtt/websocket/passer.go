@@ -14,7 +14,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// proxy represents WS proxy.
 type proxy struct {
 	handler     mproxy.Handler
 	interceptor mproxy.Interceptor
@@ -22,7 +21,7 @@ type proxy struct {
 	target      string
 }
 
-// New - creates new WS proxy.
+// New - creates new WS proxy passer.
 func New(target string, handler mproxy.Handler, interceptor mproxy.Interceptor, logger *slog.Logger) mproxy.Passer {
 	return &proxy{
 		target:      target,
@@ -33,7 +32,7 @@ func New(target string, handler mproxy.Handler, interceptor mproxy.Interceptor, 
 }
 
 var upgrader = websocket.Upgrader{
-	// Timeout for WS upgrade request handshake
+	// Timeout for WS upgrade request handshake.
 	HandshakeTimeout: 10 * time.Second,
 	// Paho JS client expecting header Sec-WebSocket-Protocol:mqtt in Upgrade response during handshake.
 	Subprotocols: []string{"mqttv3.1", "mqtt"},

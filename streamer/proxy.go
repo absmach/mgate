@@ -12,7 +12,7 @@ import (
 	"net"
 
 	"github.com/absmach/mproxy"
-	mptls "github.com/absmach/mproxy/pkg/tls"
+	mptls "github.com/absmach/mproxy/tls"
 	"golang.org/x/sync/errgroup"
 )
 

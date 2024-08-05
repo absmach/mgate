@@ -11,7 +11,7 @@ import (
 	"net"
 
 	"github.com/absmach/mproxy"
-	"github.com/absmach/mproxy/pkg/tls"
+	"github.com/absmach/mproxy/tls"
 	"github.com/eclipse/paho.mqtt.golang/packets"
 )
 
