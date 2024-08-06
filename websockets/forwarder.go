@@ -27,7 +27,7 @@ type Proxy struct {
 	logger  *slog.Logger
 }
 
-func (p *Proxy) Pass(w http.ResponseWriter, r *http.Request) {
+func (p *Proxy) Forward(w http.ResponseWriter, r *http.Request) {
 	var token string
 	headers := http.Header{}
 	switch {
@@ -111,7 +111,7 @@ func (p *Proxy) stream(ctx context.Context, topic string, src, dest *websocket.C
 	}
 }
 
-func NewProxy(target string, logger *slog.Logger, handler session.Handler) mproxy.Passer {
+func NewProxy(target string, logger *slog.Logger, handler session.Handler) mproxy.Forwarder {
 	return &Proxy{
 		target:  target,
 		logger:  logger,

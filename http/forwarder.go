@@ -30,7 +30,7 @@ type proxy struct {
 	logger  *slog.Logger
 }
 
-func NewProxy(config mproxy.Config, handler mproxy.Handler, logger *slog.Logger) (mproxy.Passer, error) {
+func NewProxy(config mproxy.Config, handler mproxy.Handler, logger *slog.Logger) (mproxy.Forwarder, error) {
 	target, err := url.Parse(config.Target)
 	if err != nil {
 		return proxy{}, err
@@ -44,7 +44,7 @@ func NewProxy(config mproxy.Config, handler mproxy.Handler, logger *slog.Logger)
 	}, nil
 }
 
-func (p proxy) Pass(w http.ResponseWriter, r *http.Request) {
+func (p proxy) Forward(w http.ResponseWriter, r *http.Request) {
 	// Metrics and health endpoints are served directly.
 	if r.URL.Path == "/metrics" || r.URL.Path == "/health" {
 		p.target.ServeHTTP(w, r)

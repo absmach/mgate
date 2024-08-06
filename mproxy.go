@@ -51,9 +51,9 @@ type Streamer interface {
 	Stream(ctx context.Context, conn1, conn2 net.Conn) error
 }
 
-// Passer is used for request-response protocols.
-type Passer interface {
-	// Pass forwards the HTTP request and response for HTTP and
+// Forwarder is used for request-response protocols.
+type Forwarder interface {
+	// Forward forwards the HTTP request and response for HTTP and
 	// WS based protocols.
-	Pass(rw http.ResponseWriter, r *http.Request)
+	Forward(rw http.ResponseWriter, r *http.Request)
 }

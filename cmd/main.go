@@ -15,10 +15,10 @@ import (
 
 	"github.com/absmach/mproxy"
 	"github.com/absmach/mproxy/examples/simple"
+	"github.com/absmach/mproxy/forwarder"
 	"github.com/absmach/mproxy/http"
 	"github.com/absmach/mproxy/mqtt"
 	"github.com/absmach/mproxy/mqtt/websocket"
-	"github.com/absmach/mproxy/passer"
 	"github.com/absmach/mproxy/streamer"
 	"github.com/caarlos0/env/v11"
 	"github.com/joho/godotenv"
@@ -116,7 +116,7 @@ func main() {
 	// mProxy server for MQTT over Websocket without TLS
 	wsProxy := websocket.New(wsConfig.Target, handler, interceptor, logger)
 	g.Go(func() error {
-		return passer.Listen(ctx, "WS", wsConfig, wsProxy, logger)
+		return forwarder.Listen(ctx, "WS", wsConfig, wsProxy, logger)
 	})
 
 	// mProxy server Configuration for MQTT over Websocket with TLS
@@ -128,7 +128,7 @@ func main() {
 	// mProxy server for MQTT over Websocket with TLS
 	wsTLSProxy := websocket.New(wsTLSConfig.Target, handler, interceptor, logger)
 	g.Go(func() error {
-		return passer.Listen(ctx, "WS", wsTLSConfig, wsTLSProxy, logger)
+		return forwarder.Listen(ctx, "WS", wsTLSConfig, wsTLSProxy, logger)
 	})
 
 	// mProxy server Configuration for MQTT over Websocket with mTLS
@@ -140,7 +140,7 @@ func main() {
 	// mProxy server for MQTT over Websocket with mTLS
 	wsMTLSProxy := websocket.New(wsMTLSConfig.Target, handler, interceptor, logger)
 	g.Go(func() error {
-		return passer.Listen(ctx, "WS", wsMTLSConfig, wsMTLSProxy, logger)
+		return forwarder.Listen(ctx, "WS", wsMTLSConfig, wsMTLSProxy, logger)
 	})
 
 	// mProxy server Configuration for HTTP without TLS
@@ -155,7 +155,7 @@ func main() {
 		panic(err)
 	}
 	g.Go(func() error {
-		return passer.Listen(ctx, "HTTP", httpConfig, httpProxy, logger)
+		return forwarder.Listen(ctx, "HTTP", httpConfig, httpProxy, logger)
 	})
 
 	// mProxy server Configuration for HTTP with TLS
@@ -170,7 +170,7 @@ func main() {
 		panic(err)
 	}
 	g.Go(func() error {
-		return passer.Listen(ctx, "HTTP", httpTLSConfig, httpTLSProxy, logger)
+		return forwarder.Listen(ctx, "HTTP", httpTLSConfig, httpTLSProxy, logger)
 	})
 
 	// mProxy server Configuration for HTTP with mTLS
@@ -185,7 +185,7 @@ func main() {
 		panic(err)
 	}
 	g.Go(func() error {
-		return passer.Listen(ctx, "HTTP", httpMTLSConfig, httpMTLSProxy, logger)
+		return forwarder.Listen(ctx, "HTTP", httpMTLSConfig, httpMTLSProxy, logger)
 	})
 
 	g.Go(func() error {

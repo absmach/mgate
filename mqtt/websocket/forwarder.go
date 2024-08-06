@@ -22,7 +22,7 @@ type proxy struct {
 }
 
 // New - creates new WS proxy passer.
-func New(target string, handler mproxy.Handler, interceptor mproxy.Interceptor, logger *slog.Logger) mproxy.Passer {
+func New(target string, handler mproxy.Handler, interceptor mproxy.Interceptor, logger *slog.Logger) mproxy.Forwarder {
 	return &proxy{
 		target:      target,
 		handler:     handler,
@@ -42,7 +42,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func (p proxy) Pass(w http.ResponseWriter, r *http.Request) {
+func (p proxy) Forward(w http.ResponseWriter, r *http.Request) {
 	cconn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		p.logger.Error("Error upgrading connection", slog.Any("error", err))

@@ -1,7 +1,7 @@
 // Copyright (c) Abstract Machines
 // SPDX-License-Identifier: Apache-2.0
 
-package passer
+package forwarder
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func Listen(ctx context.Context, name string, config mproxy.Config, passer mproxy.Passer, logger *slog.Logger) error {
+func Listen(ctx context.Context, name string, config mproxy.Config, passer mproxy.Forwarder, logger *slog.Logger) error {
 	l, err := net.Listen("tcp", config.Address)
 	if err != nil {
 		return err
@@ -33,7 +33,7 @@ func Listen(ctx context.Context, name string, config mproxy.Config, passer mprox
 	g, ctx := errgroup.WithContext(ctx)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc(config.PathPrefix, passer.Pass)
+	mux.HandleFunc(config.PathPrefix, passer.Forward)
 	server.Handler = mux
 
 	g.Go(func() error {
