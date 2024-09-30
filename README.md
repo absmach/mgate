@@ -3,9 +3,54 @@
 ![Go Report Card][grc]
 [![License][LIC-BADGE]][LIC]
 
-mGate is an MQTT proxy.
 
-It is deployed in front of an MQTT broker and can be used for authorization, packet inspection and modification, logging and debugging and various other purposes.
+mGate is a lightweight, scalable, and customizable IoT API gateway designed to support seamless communication across multiple protocols. It enables real-time packet manipulation, features pluggable authentication mechanisms, and offers observability for monitoring and troubleshooting. Built for flexibility, mGate can be deployed as a sidecar or standalone service and can also function as a library for easy integration into applications.
+
+The extensible nature of mGate allows developers to customize it to fit various IoT ecosystems, ensuring optimal performance and security.
+
+## Key Features
+
+Some of the key features of mGate include multi-protocol support, real-time packet manipulation, pluggable authentication, observability, and scalability, all while being lightweight, customizable, and easily deployable as a sidecar or standalone service. 
+<p align="center"><img src="docs/img/features.png"></p>
+
+### 1. Multi-Protocol Support
+mGate is built to interface with a wide range of IoT protocols, including:
+- MQTT
+- CoAP
+- HTTP
+- WebSocket
+- Easily extendable to support additional protocols.
+
+### 2. On-the-Fly Packet Manipulation
+Allows real-time packet transformation and processing.
+Custom logic or package interceptors can be injected for modifying incoming and outgoing messages.
+
+### 3. Authentication and Authorization
+Pluggable authentication system supporting different providers like OAuth, JWT, API Keys, and more.
+Access Control for fine-grained resource authorization.
+Easily replaceable auth modules for integration with custom or enterprise identity systems.
+
+### 4. Observability
+Provides real-time metrics for monitoring system health and performance.
+Offers logging and tracing to facilitate troubleshooting and optimization and options to easily integrate with Prometheus, Grafana, and OpenTelemetry for detailed tracing and visualization.
+
+### 5. Scalable Architecture
+mGate is designed to scale horizontally, ensuring it can handle high-throughput environments.
+
+### 6. Pluggable and Extensible
+Core components are modular, making it easy to plug in custom modules or replace existing ones.
+Extendable to add new IoT protocols, middleware, and features as needed.
+
+### 7. Customizable
+Highly configurable, allowing adjustment of protocol-specific behaviors, observability, and performance optimizations.
+Minimal configuration is required for default deployment but supports deep customization.
+
+### 8. Lightweight
+Built with Go programming language, it's optimized for low resource usage, making it suitable for both high-performance data centers and resource-constrained IoT edge devices.
+
+### 9. Deployment Flexibility
+Can be deployed as a sidecar to enhance existing microservices or as a standalone service for direct IoT device interaction.
+Available as a library for integration into existing applications.
 
 ## Usage
 
@@ -18,17 +63,17 @@ make
 
 ## Architecture
 
-mGate starts TCP and WS servers, offering connections to devices. Upon the connection, it establishes a session with a remote MQTT broker. It then pipes packets from devices to the MQTT broker, inspecting or modifying them as they flow through the proxy.
+mGate starts protocol servers, offering connections to devices. Upon the connection, it establishes a session with a remote protocol server. It then pipes packets from devices to the protocol server, inspecting or modifying them as they flow through the proxy.
 
 Here is the flow in more detail:
 
-- The Device connects to mGate's TCP server
-- mGate accepts the inbound (IN) connection and establishes a new session with the remote MQTT broker (i.e. it dials out to the MQTT broker only once it accepts a new connection from a device. This way one device-mGate connection corresponds to one mGate-MQTT broker connection.)
-- mGate then spawns 2 goroutines: one that will read incoming packets from the device-mGate socket (INBOUND or UPLINK), inspect them (calling event handlers) and write them to mGate-broker socket (forwarding them towards the broker) and other that will be reading MQTT broker responses from mGate-broker socket and writing them towards device, in device-mGate socket (OUTBOUND or DOWNLINK).
+- The Device connects to mGate's server
+- mGate accepts the inbound (IN) connection and establishes a new session with the remote server (e.g. it dials out to the MQTT broker only once it accepts a new connection from a device. This way one device-mGate connection corresponds to one mGate-MQTT broker connection.)
+- mGate then spawns 2 goroutines: one that will read incoming packets from the device-mGate socket (INBOUND or UPLINK), inspect them (calling event handlers) and write them to mGate-server socket (forwarding them towards the server) and other that will be reading server responses from mGate-server socket and writing them towards device, in device-mGate socket (OUTBOUND or DOWNLINK).
 
 <p align="center"><img src="docs/img/mgate.png"></p>
 
-mGate can parse and understand MQTT packages, and upon their detection, it calls external event handlers. Event handlers should implement the following interface defined in [pkg/mqtt/events.go](pkg/mqtt/events.go):
+mGate can parse and understand protocol packages, and upon their detection, it calls external event handlers. Event handlers should implement the following interface defined in [pkg/mqtt/events.go](pkg/mqtt/events.go):
 
 ```go
 // Handler is an interface for mGate hooks
@@ -61,7 +106,7 @@ type Handler interface {
     Disconnect(ctx context.Context)
 }
 ```
-
+The Handler interface is inspired by MQTT protocol control packets; if the underlying protocol does not support some of these actions, the implementation can simply omit them.
 An example of implementation is given [here](examples/simple/simple.go), alongside with it's [`main()` function](cmd/main.go).
 
 ## Deployment
