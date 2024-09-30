@@ -4,7 +4,7 @@ host=localhost
 port=8086
 path="messages"
 content="application/json"
-message="{\"message\": \"Hello mProxy\"}"
+message="{\"message\": \"Hello mGate\"}"
 invalidPath="invalid_path"
 
 echo "Posting message to ${protocol}://${host}:${port}/${path} without tls ..."

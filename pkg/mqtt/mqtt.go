@@ -11,15 +11,15 @@ import (
 	"log/slog"
 	"net"
 
-	"github.com/absmach/mproxy"
-	"github.com/absmach/mproxy/pkg/session"
-	mptls "github.com/absmach/mproxy/pkg/tls"
+	"github.com/absmach/mgate"
+	"github.com/absmach/mgate/pkg/session"
+	mptls "github.com/absmach/mgate/pkg/tls"
 	"golang.org/x/sync/errgroup"
 )
 
 // Proxy is main MQTT proxy struct.
 type Proxy struct {
-	config      mproxy.Config
+	config      mgate.Config
 	handler     session.Handler
 	interceptor session.Interceptor
 	logger      *slog.Logger
@@ -27,7 +27,7 @@ type Proxy struct {
 }
 
 // New returns a new MQTT Proxy instance.
-func New(config mproxy.Config, handler session.Handler, interceptor session.Interceptor, logger *slog.Logger) *Proxy {
+func New(config mgate.Config, handler session.Handler, interceptor session.Interceptor, logger *slog.Logger) *Proxy {
 	return &Proxy{
 		config:      config,
 		handler:     handler,

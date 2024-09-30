@@ -13,23 +13,23 @@ import (
 	"strings"
 	"time"
 
-	"github.com/absmach/mproxy"
-	"github.com/absmach/mproxy/pkg/session"
-	mptls "github.com/absmach/mproxy/pkg/tls"
+	"github.com/absmach/mgate"
+	"github.com/absmach/mgate/pkg/session"
+	mptls "github.com/absmach/mgate/pkg/tls"
 	"github.com/gorilla/websocket"
 	"golang.org/x/sync/errgroup"
 )
 
 // Proxy represents WS Proxy.
 type Proxy struct {
-	config      mproxy.Config
+	config      mgate.Config
 	handler     session.Handler
 	interceptor session.Interceptor
 	logger      *slog.Logger
 }
 
 // New - creates new WS proxy.
-func New(config mproxy.Config, handler session.Handler, interceptor session.Interceptor, logger *slog.Logger) *Proxy {
+func New(config mgate.Config, handler session.Handler, interceptor session.Interceptor, logger *slog.Logger) *Proxy {
 	return &Proxy{
 		config:      config,
 		handler:     handler,

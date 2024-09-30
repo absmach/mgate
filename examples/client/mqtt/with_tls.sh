@@ -1,7 +1,7 @@
 #!/bin/bash
 
 topic="test/topic"
-message="Hello mProxy"
+message="Hello mGate"
 host=localhost
 port=8883
 cafile=ssl/certs/ca.crt

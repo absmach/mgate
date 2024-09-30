@@ -8,7 +8,7 @@ import (
 	"errors"
 	"log/slog"
 
-	"github.com/absmach/mproxy/pkg/session"
+	"github.com/absmach/mgate/pkg/session"
 )
 
 var errSessionMissing = errors.New("session is missing")

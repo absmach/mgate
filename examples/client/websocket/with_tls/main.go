@@ -3,14 +3,14 @@ package main
 import (
 	"fmt"
 
-	"github.com/absmach/mproxy/examples/client/websocket"
+	"github.com/absmach/mgate/examples/client/websocket"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
 var (
 	brokerAddress = "wss://localhost:8084"
 	topic         = "test/topic"
-	payload       = "Hello mProxy"
+	payload       = "Hello mGate"
 	certFile      = ""
 	keyFile       = ""
 	serverCAFile  = "ssl/certs/ca.crt"
@@ -69,7 +69,6 @@ func main() {
 		panic("some thing went wrong")
 	}
 	fmt.Printf("Failed to connect without Server certs,error : %s\n", err.Error())
-
 }
 
 func onMessage(_ mqtt.Client, m mqtt.Message, done chan struct{}) {

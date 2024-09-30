@@ -1,5 +1,5 @@
 # Aedes Test
-Aedes server instance with logging to debug mProxy
+Aedes server instance with logging to debug mGate
 
 ## Usage
 ```
