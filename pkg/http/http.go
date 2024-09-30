@@ -18,9 +18,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/absmach/mproxy"
-	"github.com/absmach/mproxy/pkg/session"
-	mptls "github.com/absmach/mproxy/pkg/tls"
+	"github.com/absmach/mgate"
+	"github.com/absmach/mgate/pkg/session"
+	mptls "github.com/absmach/mgate/pkg/tls"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -95,13 +95,13 @@ func encodeError(w http.ResponseWriter, statusCode int, err error) {
 
 // Proxy represents HTTP Proxy.
 type Proxy struct {
-	config  mproxy.Config
+	config  mgate.Config
 	target  *httputil.ReverseProxy
 	session session.Handler
 	logger  *slog.Logger
 }
 
-func NewProxy(config mproxy.Config, handler session.Handler, logger *slog.Logger) (Proxy, error) {
+func NewProxy(config mgate.Config, handler session.Handler, logger *slog.Logger) (Proxy, error) {
 	target, err := url.Parse(config.Target)
 	if err != nil {
 		return Proxy{}, err

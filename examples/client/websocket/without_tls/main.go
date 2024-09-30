@@ -3,14 +3,14 @@ package main
 import (
 	"fmt"
 
-	"github.com/absmach/mproxy/examples/client/websocket"
+	"github.com/absmach/mgate/examples/client/websocket"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
 var (
 	brokerAddress = "ws://localhost:8083"
 	topic         = "test/topic"
-	payload       = "Hello mProxy"
+	payload       = "Hello mGate"
 )
 
 func main() {
