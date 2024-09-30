@@ -13,7 +13,7 @@ The extensible nature of mGate allows developers to customize it to fit various 
 Some of the key features of mGate include multi-protocol support, real-time packet manipulation, pluggable authentication, observability, and scalability, all while being lightweight, customizable, and easily deployable as a sidecar or standalone service. 
 <p align="center"><img src="docs/img/features.png"></p>
 
-### 1. Multi-Protocol Support
+#### Multi-Protocol Support
 mGate is built to interface with a wide range of IoT protocols, including:
 - MQTT
 - CoAP
@@ -21,34 +21,34 @@ mGate is built to interface with a wide range of IoT protocols, including:
 - WebSocket
 - Easily extendable to support additional protocols.
 
-### 2. On-the-Fly Packet Manipulation
+### On-the-Fly Packet Manipulation
 Allows real-time packet transformation and processing.
 Custom logic or package interceptors can be injected for modifying incoming and outgoing messages.
 
-### 3. Authentication and Authorization
+### Authentication and Authorization
 Pluggable authentication system supporting different providers like OAuth, JWT, API Keys, and more.
 Access Control for fine-grained resource authorization.
 Easily replaceable auth modules for integration with custom or enterprise identity systems.
 
-### 4. Observability
+### Observability
 Provides real-time metrics for monitoring system health and performance.
 Offers logging and tracing to facilitate troubleshooting and optimization and options to easily integrate with Prometheus, Grafana, and OpenTelemetry for detailed tracing and visualization.
 
-### 5. Scalable Architecture
+### Scalable Architecture
 mGate is designed to scale horizontally, ensuring it can handle high-throughput environments.
 
-### 6. Pluggable and Extensible
+### Pluggable and Extensible
 Core components are modular, making it easy to plug in custom modules or replace existing ones.
 Extendable to add new IoT protocols, middleware, and features as needed.
 
-### 7. Customizable
+### Customizable
 Highly configurable, allowing adjustment of protocol-specific behaviors, observability, and performance optimizations.
 Minimal configuration is required for default deployment but supports deep customization.
 
-### 8. Lightweight
+### Lightweight
 Built with Go programming language, it's optimized for low resource usage, making it suitable for both high-performance data centers and resource-constrained IoT edge devices.
 
-### 9. Deployment Flexibility
+### Deployment Flexibility
 Can be deployed as a sidecar to enhance existing microservices or as a standalone service for direct IoT device interaction.
 Available as a library for integration into existing applications.
 
