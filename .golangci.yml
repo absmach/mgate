@@ -9,9 +9,6 @@ issues:
   max-same-issues: 100
 
 linters-settings:
-  importas:
-    no-unaliased: true
-    no-extra-aliases: false
   gocritic:
     enabled-checks:
       - importShadow
@@ -66,8 +63,7 @@ linters:
     - dogsled
     - errchkjson
     - errname
-    - execinquery
-    - exportloopref
+    - copyloopvar
     - ginkgolinter
     - gocheckcompilerdirectives
     - gofumpt

@@ -97,7 +97,7 @@ func SecurityStatus(c *tls.Config) string {
 	}
 	ret := "TLS"
 	// It is possible to establish TLS with client certificates only.
-	if c.Certificates == nil || len(c.Certificates) == 0 {
+	if len(c.Certificates) == 0 {
 		ret = "no server certificates"
 	}
 	if c.ClientCAs != nil {
