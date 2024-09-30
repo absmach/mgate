@@ -9,6 +9,8 @@ mGate is a lightweight, scalable, and customizable IoT API gateway designed to s
 The extensible nature of mGate allows developers to customize it to fit various IoT ecosystems, ensuring optimal performance and security.
 
 ## Key Features
+
+Some of the key features of mGate include multi-protocol support, real-time packet manipulation, pluggable authentication, observability, and scalability, all while being lightweight, customizable, and easily deployable as a sidecar or standalone service. 
 <p align="center"><img src="docs/img/features.png"></p>
 
 ### 1. Multi-Protocol Support
