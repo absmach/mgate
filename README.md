@@ -106,13 +106,11 @@ type Handler interface {
     Disconnect(ctx context.Context)
 }
 ```
-The Handler interface is inspired by MQTT protocol control packets; if the underlying protocol does not support some of these actions, the implementation can simply omit them.
-An example of implementation is given [here](examples/simple/simple.go), alongside with it's [`main()` function](cmd/main.go).
+The Handler interface is inspired by MQTT protocol control packets; if the underlying protocol does not support some of these actions, the implementation can simply omit them. An example of implementation is given [here](examples/simple/simple.go), alongside with it's [`main()` function](cmd/main.go).
 
 ## Deployment
 
-mGate does not do load balancing - just pure and simple proxying with TLS termination. This is why it should be deployed
-right in front of it's corresponding MQTT broker instance: one mGate for each MQTT broker instance in the MQTT cluster.
+To explain the deployment process, an MQTT broker will be used as an example, given that MQTT is one of the most widely used and feature-rich protocols. mGate does not do load balancing - just pure and simple proxying with TLS termination. This is why it should be deployed right in front of its corresponding MQTT broker instance: one mGate for each MQTT broker instance in the MQTT cluster.
 
 Usually, this is done by deploying mGate as a side-car in the same Kubernetes pod alongside with MQTT broker instance (MQTT cluster node).
 
