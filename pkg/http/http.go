@@ -87,12 +87,10 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func encodeError(w http.ResponseWriter, defStatusCode int, err error) {
 	hpe, ok := err.(HTTPProxyError)
-	switch ok {
-	case true:
-		w.WriteHeader(hpe.StatusCode())
-	default:
-		w.WriteHeader(defStatusCode)
+	if !ok {
+		hpe = NewHTTPProxyError(defStatusCode, err)
 	}
+	w.WriteHeader(hpe.StatusCode())
 	w.Header().Set("Content-Type", contentType)
 	if err := json.NewEncoder(w).Encode(err); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
