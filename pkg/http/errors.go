@@ -3,15 +3,16 @@
 
 package http
 
-import mgerrors "github.com/absmach/magistrala/pkg/errors"
+import "encoding/json"
 
 type httpProxyError struct {
 	statusCode int
-	err        mgerrors.Error
+	err        error
 }
 
 type HTTPProxyError interface {
-	mgerrors.Error
+	error
+	MarshalJSON() ([]byte, error)
 	StatusCode() int
 }
 
@@ -21,16 +22,12 @@ func (hpe *httpProxyError) Error() string {
 	return hpe.err.Error()
 }
 
-func (hpe *httpProxyError) Err() mgerrors.Error {
-	return hpe.err
-}
-
-func (hpe *httpProxyError) Msg() string {
-	return hpe.err.Msg()
-}
-
 func (hpe *httpProxyError) MarshalJSON() ([]byte, error) {
-	return hpe.err.MarshalJSON()
+	return json.Marshal(struct {
+		Error string `json:"error"`
+	}{
+		Error: hpe.err.Error(),
+	})
 }
 
 func (hpe *httpProxyError) StatusCode() int {
@@ -38,10 +35,5 @@ func (hpe *httpProxyError) StatusCode() int {
 }
 
 func NewHTTPProxyError(statusCode int, err error) HTTPProxyError {
-	var merr mgerrors.Error
-	var ok bool
-	if merr, ok = err.(mgerrors.Error); !ok {
-		merr = mgerrors.New(err.Error())
-	}
-	return &httpProxyError{statusCode: statusCode, err: merr}
+	return &httpProxyError{statusCode: statusCode, err: err}
 }

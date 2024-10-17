@@ -3,7 +3,6 @@ module github.com/absmach/mgate
 go 1.22.7
 
 require (
-	github.com/absmach/magistrala v0.14.0
 	github.com/caarlos0/env/v11 v11.2.2
 	github.com/eclipse/paho.mqtt.golang v1.5.0
 	github.com/google/uuid v1.6.0
