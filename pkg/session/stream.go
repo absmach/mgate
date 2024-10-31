@@ -36,14 +36,14 @@ func Stream(ctx context.Context, in, out net.Conn, h Handler, ic Interceptor, ce
 	}
 	ctx = NewContext(ctx, &s)
 
-	g, ctx := errgroup.WithContext(ctx)
+	g, gctx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
-		return stream(ctx, Up, in, out, h, ic)
+		return stream(gctx, Up, in, out, h, ic)
 	})
 
 	g.Go(func() error {
-		return stream(ctx, Down, out, in, h, ic)
+		return stream(gctx, Down, out, in, h, ic)
 	})
 
 	err := g.Wait()
