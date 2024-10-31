@@ -12,6 +12,7 @@ import (
 	"net"
 
 	"github.com/eclipse/paho.mqtt.golang/packets"
+	"golang.org/x/sync/errgroup"
 )
 
 type Direction int
@@ -34,43 +35,52 @@ func Stream(ctx context.Context, in, out net.Conn, h Handler, ic Interceptor, ce
 		Cert: cert,
 	}
 	ctx = NewContext(ctx, &s)
-	errs := make(chan error, 2)
 
-	go stream(ctx, Up, in, out, h, ic, errs)
-	go stream(ctx, Down, out, in, h, ic, errs)
+	g, ctx := errgroup.WithContext(ctx)
 
-	// Handle whichever error happens first.
-	// The other routine won't be blocked when writing
-	// to the errors channel because it is buffered.
-	err := <-errs
+	g.Go(func() error {
+		return stream(ctx, Up, in, out, h, ic)
+	})
+
+	g.Go(func() error {
+		return stream(ctx, Down, out, in, h, ic)
+	})
+
+	err := g.Wait()
 
 	disconnectErr := h.Disconnect(ctx)
 
 	return errors.Join(err, disconnectErr)
 }
 
-func stream(ctx context.Context, dir Direction, r, w net.Conn, h Handler, ic Interceptor, errs chan error) {
+func stream(ctx context.Context, dir Direction, r, w net.Conn, h Handler, ic Interceptor) error {
 	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
+
 		// Read from one connection.
 		pkt, err := packets.ReadPacket(r)
 		if err != nil {
-			errs <- wrap(ctx, err, dir)
-			return
+			return wrap(ctx, err, dir)
 		}
 
 		switch dir {
 		case Up:
 			if err = authorize(ctx, pkt, h); err != nil {
-				errs <- wrap(ctx, err, dir)
-				return
+				return wrap(ctx, err, dir)
 			}
 		default:
 			if p, ok := pkt.(*packets.PublishPacket); ok {
-				if err = h.AuthPublish(ctx, &p.TopicName, &p.Payload); err != nil {
+				topics := []string{p.TopicName}
+				if err = h.AuthSubscribe(ctx, &topics); err != nil {
 					pkt = packets.NewControlPacket(packets.Disconnect).(*packets.DisconnectPacket)
-					err = pkt.Write(w)
-					errs <- wrap(ctx, err, dir)
-					return
+					if wErr := pkt.Write(w); wErr != nil {
+						err = errors.Join(err, wErr)
+					}
+					return wrap(ctx, err, dir)
 				}
 			}
 		}
@@ -78,21 +88,19 @@ func stream(ctx context.Context, dir Direction, r, w net.Conn, h Handler, ic Int
 		if ic != nil {
 			pkt, err = ic.Intercept(ctx, pkt, dir)
 			if err != nil {
-				errs <- wrap(ctx, err, dir)
-				return
+				return wrap(ctx, err, dir)
 			}
 		}
 
 		// Send to another.
 		if err := pkt.Write(w); err != nil {
-			errs <- wrap(ctx, err, dir)
-			return
+			return wrap(ctx, err, dir)
 		}
 
 		// Notify only for packets sent from client to broker (incoming packets).
 		if dir == Up {
 			if err := notify(ctx, pkt, h); err != nil {
-				errs <- wrap(ctx, err, dir)
+				return wrap(ctx, err, dir)
 			}
 		}
 	}
