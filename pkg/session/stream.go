@@ -68,7 +68,7 @@ func stream(ctx context.Context, dir Direction, r, w net.Conn, h Handler, ic Int
 			if p, ok := pkt.(*packets.PublishPacket); ok {
 				topics := []string{p.TopicName}
 				// The broker sends subscription messages to the client as Publish Packets.
-				// We need to check if the Publish packet sent by the broker is allowed to be subscribed to by the client.
+				// We need to check if the Publish packet sent by the broker is allowed to be received to by the client.
 				// Therefore, we are using handler.AuthSubscribe instead of handler.AuthPublish.
 				if err = h.AuthSubscribe(ctx, &topics); err != nil {
 					pkt = packets.NewControlPacket(packets.Disconnect).(*packets.DisconnectPacket)
