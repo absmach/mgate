@@ -24,7 +24,7 @@ func (hpe *httpProxyError) Error() string {
 
 func (hpe *httpProxyError) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		Error string `json:"error"`
+		Error string `json:"message"`
 	}{
 		Error: hpe.err.Error(),
 	})
