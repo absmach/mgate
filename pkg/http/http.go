@@ -176,7 +176,6 @@ func (p *Proxy) stream(ctx context.Context, topic string, src, dest *websocket.C
 	for {
 		messageType, payload, err := src.ReadMessage()
 		if err != nil {
-
 			return handleStreamErr(err, upstream)
 		}
 		if upstream {
@@ -192,6 +191,7 @@ func (p *Proxy) stream(ctx context.Context, topic string, src, dest *websocket.C
 		}
 	}
 }
+
 func handleStreamErr(err error, upstream bool) error {
 	if err == nil {
 		return nil
@@ -210,6 +210,7 @@ func handleStreamErr(err error, upstream bool) error {
 	}
 	return fmt.Errorf("%s error: %w", prefix, err)
 }
+
 func encodeError(w http.ResponseWriter, defStatusCode int, err error) {
 	hpe, ok := err.(HTTPProxyError)
 	if !ok {

@@ -1,3 +1,6 @@
+// Copyright (c) Abstract Machines
+// SPDX-License-Identifier: Apache-2.0
+
 package common
 
 import (
@@ -23,6 +26,7 @@ func NewOriginChecker(logger *slog.Logger, allowedOrigins []string) OriginChecke
 
 	return o
 }
+
 func (o *OriginChecker) CheckOrigin(r *http.Request) bool {
 	if o.enabled {
 		origin := r.Header.Get("Origin")

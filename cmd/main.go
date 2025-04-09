@@ -134,7 +134,7 @@ func main() {
 	}
 
 	// mGate server for HTTP without TLS
-	httpProxy, err := http.NewProxy(httpConfig, handler, logger)
+	httpProxy, err := http.NewProxy(httpConfig, handler, logger, []string{}, []string{})
 	if err != nil {
 		panic(err)
 	}
@@ -149,7 +149,7 @@ func main() {
 	}
 
 	// mGate server for HTTP with TLS
-	httpTLSProxy, err := http.NewProxy(httpTLSConfig, handler, logger)
+	httpTLSProxy, err := http.NewProxy(httpTLSConfig, handler, logger, []string{}, []string{})
 	if err != nil {
 		panic(err)
 	}
@@ -164,7 +164,7 @@ func main() {
 	}
 
 	// mGate server for HTTP with mTLS
-	httpMTLSProxy, err := http.NewProxy(httpMTLSConfig, handler, logger)
+	httpMTLSProxy, err := http.NewProxy(httpMTLSConfig, handler, logger, []string{}, []string{})
 	if err != nil {
 		panic(err)
 	}
