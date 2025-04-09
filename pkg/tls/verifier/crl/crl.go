@@ -8,7 +8,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -150,7 +149,6 @@ func (c *config) loadOfflineCRL() (*x509.RevocationList, error) {
 	if len(offlineCRLBytes) == 0 {
 		return nil, nil
 	}
-	fmt.Println(c.OfflineCRLIssuerCertFile)
 	issuer, err := c.loadOfflineCRLIssuerCert()
 	if err != nil {
 		return nil, err
