@@ -16,14 +16,16 @@ type OriginChecker struct {
 }
 
 func NewOriginChecker(logger *slog.Logger, allowedOrigins []string) OriginChecker {
-	o := OriginChecker{}
+	o := OriginChecker{
+		logger:         logger,
+		allowedOrigins: make(map[string]struct{}),
+	}
 	if len(allowedOrigins) > 0 {
 		o.enabled = true
+		for _, allowedOrigin := range allowedOrigins {
+			o.allowedOrigins[allowedOrigin] = struct{}{}
+		}
 	}
-	for _, allowedOrigin := range allowedOrigins {
-		o.allowedOrigins[allowedOrigin] = struct{}{}
-	}
-
 	return o
 }
 
