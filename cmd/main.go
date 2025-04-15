@@ -47,7 +47,7 @@ func main() {
 
 	handler := simple.New(logger)
 
-	var interceptor session.Interceptor
+	var preInterceptor, postInterceptor session.Interceptor
 
 	// Loading .env file to environment
 	err := godotenv.Load()
@@ -62,7 +62,7 @@ func main() {
 	}
 
 	// mGate server for MQTT without TLS
-	mqttProxy := mqtt.New(mqttConfig, handler, interceptor, logger)
+	mqttProxy := mqtt.New(mqttConfig, handler, preInterceptor, postInterceptor, logger)
 	g.Go(func() error {
 		return mqttProxy.Listen(ctx)
 	})
@@ -74,7 +74,7 @@ func main() {
 	}
 
 	// mGate server for MQTT with TLS
-	mqttTLSProxy := mqtt.New(mqttTLSConfig, handler, interceptor, logger)
+	mqttTLSProxy := mqtt.New(mqttTLSConfig, handler, preInterceptor, postInterceptor, logger)
 	g.Go(func() error {
 		return mqttTLSProxy.Listen(ctx)
 	})
@@ -86,7 +86,7 @@ func main() {
 	}
 
 	// mGate server for MQTT with mTLS
-	mqttMTlsProxy := mqtt.New(mqttMTLSConfig, handler, interceptor, logger)
+	mqttMTlsProxy := mqtt.New(mqttMTLSConfig, handler, preInterceptor, postInterceptor, logger)
 	g.Go(func() error {
 		return mqttMTlsProxy.Listen(ctx)
 	})
@@ -98,7 +98,7 @@ func main() {
 	}
 
 	// mGate server for MQTT over Websocket without TLS
-	wsProxy := websocket.New(wsConfig, handler, interceptor, logger)
+	wsProxy := websocket.New(wsConfig, handler, preInterceptor, postInterceptor, logger)
 	g.Go(func() error {
 		return wsProxy.Listen(ctx)
 	})
@@ -110,7 +110,7 @@ func main() {
 	}
 
 	// mGate server for MQTT over Websocket with TLS
-	wsTLSProxy := websocket.New(wsTLSConfig, handler, interceptor, logger)
+	wsTLSProxy := websocket.New(wsTLSConfig, handler, preInterceptor, postInterceptor, logger)
 	g.Go(func() error {
 		return wsTLSProxy.Listen(ctx)
 	})
@@ -122,7 +122,7 @@ func main() {
 	}
 
 	// mGate server for MQTT over Websocket with mTLS
-	wsMTLSProxy := websocket.New(wsMTLSConfig, handler, interceptor, logger)
+	wsMTLSProxy := websocket.New(wsMTLSConfig, handler, preInterceptor, postInterceptor, logger)
 	g.Go(func() error {
 		return wsMTLSProxy.Listen(ctx)
 	})
