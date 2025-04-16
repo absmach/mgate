@@ -231,7 +231,7 @@ type Proxy struct {
 	session       session.Handler
 	logger        *slog.Logger
 	wsUpgrader    websocket.Upgrader
-	bypassMatcher *common.BypassMatcher
+	bypassMatcher common.BypassMatcher
 }
 
 func NewProxy(config mgate.Config, handler session.Handler, logger *slog.Logger, allowedOrigins []string, bypassPaths []string) (Proxy, error) {
