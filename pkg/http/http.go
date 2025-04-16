@@ -60,8 +60,7 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := p.bypassMatcher.ShouldBypass(r)
-	if err == nil {
+	if err := p.bypassMatcher.ShouldBypass(r); err == nil {
 		p.target.ServeHTTP(w, r)
 		return
 	}
