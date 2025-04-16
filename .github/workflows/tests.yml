@@ -25,6 +25,7 @@ jobs:
         with:
           go-version: 1.22.x
           cache-dependency-path: "go.sum"
+          check-latest: false  # Prevent automatic upgrade to a newer version
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
