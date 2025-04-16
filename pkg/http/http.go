@@ -216,6 +216,7 @@ func checkOrigin(oc common.OriginChecker) func(r *http.Request) bool {
 		return oc.CheckOrigin(r) == nil
 	}
 }
+
 func encodeError(w http.ResponseWriter, defStatusCode int, err error) {
 	hpe, ok := err.(HTTPProxyError)
 	if !ok {
