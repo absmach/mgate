@@ -3,7 +3,6 @@ module github.com/absmach/mgate
 go 1.22.7
 toolchain go1.24.1
 
-toolchain go1.23.7
 
 require (
 	github.com/caarlos0/env/v11 v11.3.1
