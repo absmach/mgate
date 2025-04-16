@@ -60,7 +60,8 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if p.bypassMatcher.ShouldBypass(r) {
+	err := p.bypassMatcher.ShouldBypass(r)
+	if err == nil {
 		p.target.ServeHTTP(w, r)
 		return
 	}
@@ -211,6 +212,11 @@ func handleStreamErr(err error, upstream bool) error {
 	return fmt.Errorf("%s error: %w", prefix, err)
 }
 
+func checkOrigin(oc common.OriginChecker) func(r *http.Request) bool {
+	return func(r *http.Request) bool {
+		return oc.CheckOrigin(r) == nil
+	}
+}
 func encodeError(w http.ResponseWriter, defStatusCode int, err error) {
 	hpe, ok := err.(HTTPProxyError)
 	if !ok {
@@ -241,7 +247,7 @@ func NewProxy(config mgate.Config, handler session.Handler, logger *slog.Logger,
 	}
 
 	oc := common.NewOriginChecker(logger, allowedOrigins)
-	wsUpgrader := websocket.Upgrader{CheckOrigin: oc.CheckOrigin}
+	wsUpgrader := websocket.Upgrader{CheckOrigin: checkOrigin(oc)}
 	bypassMatcher, err := common.NewBypassMatcher(bypassPaths)
 	if err != nil {
 		return Proxy{}, err

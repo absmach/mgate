@@ -4,12 +4,18 @@
 package common
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 	"regexp"
 )
 
+const errNotByPassed = "route - %s is not in bypass list"
+
+var errByPassDisabled = errors.New("bypass disabled")
+
 type BypassMatcher interface {
-	ShouldBypass(r *http.Request) bool
+	ShouldBypass(r *http.Request) error
 }
 
 type bypassMatcher struct {
@@ -32,14 +38,14 @@ func NewBypassMatcher(expressions []string) (BypassMatcher, error) {
 	return &bypassMatcher{enabled: enabled, patterns: patterns}, nil
 }
 
-func (b *bypassMatcher) ShouldBypass(r *http.Request) bool {
+func (b *bypassMatcher) ShouldBypass(r *http.Request) error {
 	if !b.enabled {
-		return false
+		return errByPassDisabled
 	}
 	for _, pattern := range b.patterns {
 		if pattern.MatchString(r.URL.Path) {
-			return true
+			return nil
 		}
 	}
-	return false
+	return fmt.Errorf(errNotByPassed, r.URL.Path)
 }

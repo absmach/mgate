@@ -9,13 +9,14 @@ import (
 	"net/http"
 )
 
+const errNotAllowed = "origin - %s is not allowed"
+
 type OriginChecker interface {
-	CheckOrigin(r *http.Request) bool
+	CheckOrigin(r *http.Request) error
 }
 
 type originChecker struct {
 	enabled        bool
-	logger         *slog.Logger
 	allowedOrigins map[string]struct{}
 }
 
@@ -29,19 +30,18 @@ func NewOriginChecker(logger *slog.Logger, allowedOrigins []string) OriginChecke
 	}
 	return &originChecker{
 		enabled:        enabled,
-		logger:         logger,
 		allowedOrigins: ao,
 	}
 }
 
-func (o *originChecker) CheckOrigin(r *http.Request) bool {
+func (o *originChecker) CheckOrigin(r *http.Request) error {
 	if !o.enabled {
-		return true
+		return nil
 	}
 	origin := r.Header.Get("Origin")
 	_, allowed := o.allowedOrigins[origin]
-	if !allowed {
-		o.logger.Debug(fmt.Sprintf("Blocked connection from origin: %s", origin))
+	if allowed {
+		return nil
 	}
-	return allowed
+	return fmt.Errorf(errNotAllowed, origin)
 }
