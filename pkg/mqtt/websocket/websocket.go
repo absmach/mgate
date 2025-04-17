@@ -22,21 +22,21 @@ import (
 
 // Proxy represents WS Proxy.
 type Proxy struct {
-	config          mgate.Config
-	handler         session.Handler
-	preInterceptor  session.Interceptor
-	postInterceptor session.Interceptor
-	logger          *slog.Logger
+	config        mgate.Config
+	handler       session.Handler
+	beforeHandler session.Interceptor
+	afterHandler  session.Interceptor
+	logger        *slog.Logger
 }
 
 // New - creates new WS proxy.
-func New(config mgate.Config, handler session.Handler, preIc, postIc session.Interceptor, logger *slog.Logger) *Proxy {
+func New(config mgate.Config, handler session.Handler, beforeHandler, afterHandler session.Interceptor, logger *slog.Logger) *Proxy {
 	return &Proxy{
-		config:          config,
-		handler:         handler,
-		preInterceptor:  preIc,
-		postInterceptor: postIc,
-		logger:          logger,
+		config:        config,
+		handler:       handler,
+		beforeHandler: beforeHandler,
+		afterHandler:  afterHandler,
+		logger:        logger,
 	}
 }
 
@@ -94,7 +94,7 @@ func (p Proxy) pass(in *websocket.Conn) {
 		return
 	}
 
-	err = session.Stream(ctx, inboundConn, outboundConn, p.handler, p.preInterceptor, p.postInterceptor, clientCert)
+	err = session.Stream(ctx, inboundConn, outboundConn, p.handler, p.beforeHandler, p.afterHandler, clientCert)
 	errc <- err
 	p.logger.Warn("Broken connection for client", slog.Any("error", err))
 }
