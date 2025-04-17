@@ -114,7 +114,7 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (p *Proxy) handleWebSocket(w http.ResponseWriter, r *http.Request, s *session.Session) {
 	headers := http.Header{}
 
-	targetUrl := p.targetUrl
+	targetUrl := *p.targetUrl
 	targetUrl.Scheme = "ws"
 	target := fmt.Sprintf("%s%s", targetUrl.String(), r.RequestURI)
 
@@ -241,9 +241,9 @@ type Proxy struct {
 }
 
 func NewProxy(config mgate.Config, handler session.Handler, logger *slog.Logger, allowedOrigins []string, bypassPaths []string) (Proxy, error) {
-	targetUrl, err := url.Parse(config.Target)
-	if err != nil {
-		return Proxy{}, err
+	targetUrl := &url.URL{
+		Host: config.Target,
+		Path: config.PathPrefix,
 	}
 
 	oc := common.NewOriginChecker(logger, allowedOrigins)

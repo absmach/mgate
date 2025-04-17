@@ -12,7 +12,7 @@ import (
 
 type Config struct {
 	Address    string `env:"ADDRESS"     envDefault:""`
-	PathPrefix string `env:"PATH_PREFIX" envDefault:"/"`
+	PathPrefix string `env:"PATH_PREFIX" envDefault:""`
 	Target     string `env:"TARGET"      envDefault:""`
 	TLSConfig  *tls.Config
 }
