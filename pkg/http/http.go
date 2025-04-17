@@ -114,7 +114,7 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (p *Proxy) handleWebSocket(w http.ResponseWriter, r *http.Request, s *session.Session) {
 	headers := http.Header{}
 
-	targetUrl := *p.targetUrl
+	targetUrl := p.targetUrl
 	targetUrl.Scheme = "ws"
 	target := fmt.Sprintf("%s%s", targetUrl.String(), r.RequestURI)
 
@@ -232,7 +232,7 @@ func encodeError(w http.ResponseWriter, defStatusCode int, err error) {
 // Proxy represents HTTP Proxy.
 type Proxy struct {
 	config        mgate.Config
-	targetUrl     *url.URL
+	targetUrl     url.URL
 	target        *httputil.ReverseProxy
 	session       session.Handler
 	logger        *slog.Logger
@@ -241,9 +241,12 @@ type Proxy struct {
 }
 
 func NewProxy(config mgate.Config, handler session.Handler, logger *slog.Logger, allowedOrigins []string, bypassPaths []string) (Proxy, error) {
-	targetUrl := &url.URL{
-		Host: config.Target,
-		Path: config.PathPrefix,
+	targetUrl := url.URL{
+		Scheme: "http",
+		Host:   config.Target,
+	}
+	if config.PathPrefix != "" {
+		targetUrl.Path = config.PathPrefix
 	}
 
 	oc := common.NewOriginChecker(logger, allowedOrigins)
@@ -256,7 +259,7 @@ func NewProxy(config mgate.Config, handler session.Handler, logger *slog.Logger,
 	return Proxy{
 		config:        config,
 		targetUrl:     targetUrl,
-		target:        httputil.NewSingleHostReverseProxy(targetUrl),
+		target:        httputil.NewSingleHostReverseProxy(&targetUrl),
 		session:       handler,
 		logger:        logger,
 		wsUpgrader:    wsUpgrader,
@@ -281,7 +284,12 @@ func (p Proxy) Listen(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
 
 	mux := http.NewServeMux()
-	mux.Handle(p.config.PathPrefix, p)
+
+	pattern := "/"
+	if p.config.PathPrefix != "" {
+		pattern = p.config.PathPrefix
+	}
+	mux.Handle(pattern, p)
 	server.Handler = mux
 
 	g.Go(func() error {
