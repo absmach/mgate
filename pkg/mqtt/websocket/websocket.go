@@ -113,7 +113,12 @@ func (p Proxy) Listen(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
 
 	mux := http.NewServeMux()
-	mux.Handle(p.config.PathPrefix, p)
+
+	pattern := "/"
+	if p.config.PathPrefix != "" {
+		pattern = p.config.PathPrefix
+	}
+	mux.Handle(pattern, p)
 	server.Handler = mux
 
 	g.Go(func() error {
