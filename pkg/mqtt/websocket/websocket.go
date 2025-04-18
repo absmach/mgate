@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/absmach/mgate"
+	"github.com/absmach/mgate/pkg/common"
 	"github.com/absmach/mgate/pkg/session"
 	mptls "github.com/absmach/mgate/pkg/tls"
 	"github.com/gorilla/websocket"
@@ -50,10 +51,13 @@ var upgrader = websocket.Upgrader{
 }
 
 func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if !strings.HasPrefix(r.URL.Path, p.config.PathPrefix) {
+	if !strings.HasPrefix(r.URL.Path, common.AddSuffixSlash(p.config.PathPrefix+p.config.TargetPath)) {
 		http.NotFound(w, r)
 		return
 	}
+
+	r.URL.Path = strings.TrimPrefix(r.URL.Path, p.config.PathPrefix)
+
 	cconn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		p.logger.Error("Error upgrading connection", slog.Any("error", err))
@@ -73,7 +77,9 @@ func (p Proxy) pass(in *websocket.Conn) {
 	dialer := &websocket.Dialer{
 		Subprotocols: []string{"mqtt"},
 	}
-	srv, _, err := dialer.Dial(p.config.Target, nil)
+	target := fmt.Sprintf("%s://%s:%s", p.config.TargetProtocol, p.config.TargetHost, p.config.TargetPath)
+
+	srv, _, err := dialer.Dial(target, nil)
 	if err != nil {
 		p.logger.Error("Unable to connect to broker", slog.Any("error", err))
 		return
@@ -98,7 +104,8 @@ func (p Proxy) pass(in *websocket.Conn) {
 }
 
 func (p Proxy) Listen(ctx context.Context) error {
-	l, err := net.Listen("tcp", p.config.Address)
+	listenAddress := net.JoinHostPort(p.config.Host, p.config.Port)
+	l, err := net.Listen("tcp", listenAddress)
 	if err != nil {
 		return err
 	}
@@ -111,7 +118,8 @@ func (p Proxy) Listen(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
 
 	mux := http.NewServeMux()
-	mux.Handle(p.config.PathPrefix, p)
+
+	mux.Handle(common.AddSuffixSlash(p.config.PathPrefix), p)
 	server.Handler = mux
 
 	g.Go(func() error {
@@ -119,16 +127,16 @@ func (p Proxy) Listen(ctx context.Context) error {
 	})
 	status := mptls.SecurityStatus(p.config.TLSConfig)
 
-	p.logger.Info(fmt.Sprintf("MQTT websocket proxy server started at %s%s with %s", p.config.Address, p.config.PathPrefix, status))
+	p.logger.Info(fmt.Sprintf("MQTT websocket proxy server started at %s%s with %s", listenAddress, p.config.PathPrefix, status))
 
 	g.Go(func() error {
 		<-ctx.Done()
 		return server.Close()
 	})
 	if err := g.Wait(); err != nil {
-		p.logger.Info(fmt.Sprintf("MQTT websocket proxy server at %s%s with %s exiting with errors", p.config.Address, p.config.PathPrefix, status), slog.String("error", err.Error()))
+		p.logger.Info(fmt.Sprintf("MQTT websocket proxy server at %s%s with %s exiting with errors", listenAddress, p.config.PathPrefix, status), slog.String("error", err.Error()))
 	} else {
-		p.logger.Info(fmt.Sprintf("MQTT websocket proxy server at %s%s with %s exiting...", p.config.Address, p.config.PathPrefix, status))
+		p.logger.Info(fmt.Sprintf("MQTT websocket proxy server at %s%s with %s exiting...", listenAddress, p.config.PathPrefix, status))
 	}
 	return nil
 }
