@@ -227,6 +227,7 @@ func wsScheme(scheme string) string {
 		return scheme
 	}
 }
+
 func encodeError(w http.ResponseWriter, defStatusCode int, err error) {
 	hpe, ok := err.(HTTPProxyError)
 	if !ok {

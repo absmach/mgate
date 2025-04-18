@@ -1,3 +1,6 @@
+// Copyright (c) Abstract Machines
+// SPDX-License-Identifier: Apache-2.0
+
 package websocket
 
 import (
@@ -31,7 +34,7 @@ func Connect(brokerAddress string, tlsCfg *tls.Config) (mqtt.Client, error) {
 	return client, nil
 }
 
-// Load return a TLS configuration that can be used in TLS servers
+// Load return a TLS configuration that can be used in TLS servers.
 func LoadTLS(certFile, keyFile, serverCAFile, clientCAFile string) (*tls.Config, error) {
 	tlsConfig := &tls.Config{}
 

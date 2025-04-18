@@ -133,8 +133,8 @@ func fileHandler(w http.ResponseWriter, r *http.Request, crlFile, fileName strin
 	}
 
 	logger.Info("Request complete successfully ", args...)
-
 }
+
 func ocspHandler(w http.ResponseWriter, r *http.Request, cert, issuerCert *x509.Certificate, privateKey interface{}, goodCerts, revokedCerts []*big.Int, logger slog.Logger) {
 	ocspStatus := ocsp.Unknown
 
