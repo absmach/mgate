@@ -1,3 +1,6 @@
+// Copyright (c) Abstract Machines
+// SPDX-License-Identifier: Apache-2.0
+
 package main
 
 import (
@@ -20,11 +23,12 @@ func notFoundHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Got request at  " + r.URL.Path)
 	http.NotFound(w, r)
 }
+
 func echoHandler(writer http.ResponseWriter, request *http.Request) {
 	log.Println("Echoing back request made to " + request.URL.Path + " to client (" + request.RemoteAddr + ")")
 	writer.Header().Set("Access-Control-Allow-Origin", "*")
 	writer.Header().Set("Content-Type", request.Header.Get("Content-Type"))
-	request.Write(writer)
+	_ = request.Write(writer)
 }
 
 func wsHandler(w http.ResponseWriter, r *http.Request) {
@@ -58,6 +62,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/messages/http", echoHandler)
 	mux.HandleFunc("/messages/ws", wsHandler)
+	mux.HandleFunc("/", notFoundHandler)
 	if err := http.ListenAndServe(":"+defaultPort, mux); err != nil {
 		panic(err)
 	}
