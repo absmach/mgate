@@ -11,10 +11,14 @@ import (
 )
 
 type Config struct {
-	Address    string `env:"ADDRESS"     envDefault:""`
-	PathPrefix string `env:"PATH_PREFIX" envDefault:""`
-	Target     string `env:"TARGET"      envDefault:""`
-	TLSConfig  *tls.Config
+	Host           string `env:"HOST"            envDefault:""`
+	Port           string `env:"PORT,required"            envDefault:""`
+	PathPrefix     string `env:"PATH_PREFIX"              envDefault:""`
+	TargetHost     string `env:"TARGET_HOST,required"     envDefault:""`
+	TargetPort     string `env:"TARGET_PORT,required"     envDefault:""`
+	TargetProtocol string `env:"TARGET_PROTOCOL,required" envDefault:""`
+	TargetPath     string `env:"TARGET_PATH"              envDefault:""`
+	TLSConfig      *tls.Config
 }
 
 func NewConfig(opts env.Options) (Config, error) {

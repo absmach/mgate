@@ -57,9 +57,10 @@ func (p Proxy) accept(ctx context.Context, l net.Listener) {
 
 func (p Proxy) handle(ctx context.Context, inbound net.Conn) {
 	defer p.close(inbound)
-	outbound, err := p.dialer.Dial("tcp", p.config.Target)
+	targetAddress := net.JoinHostPort(p.config.TargetHost, p.config.TargetPort)
+	outbound, err := p.dialer.Dial("tcp", targetAddress)
 	if err != nil {
-		p.logger.Error("Cannot connect to remote broker " + p.config.Target + " due to: " + err.Error())
+		p.logger.Error("Cannot connect to remote broker " + targetAddress + " due to: " + err.Error())
 		return
 	}
 	defer p.close(outbound)
@@ -77,7 +78,8 @@ func (p Proxy) handle(ctx context.Context, inbound net.Conn) {
 
 // Listen of the server, this will block.
 func (p Proxy) Listen(ctx context.Context) error {
-	l, err := net.Listen("tcp", p.config.Address)
+	listenAddress := net.JoinHostPort(p.config.Host, p.config.Port)
+	l, err := net.Listen("tcp", listenAddress)
 	if err != nil {
 		return err
 	}
@@ -86,7 +88,7 @@ func (p Proxy) Listen(ctx context.Context) error {
 		l = tls.NewListener(l, p.config.TLSConfig)
 	}
 	status := mptls.SecurityStatus(p.config.TLSConfig)
-	p.logger.Info(fmt.Sprintf("MQTT proxy server started at %s  with %s", p.config.Address, status))
+	p.logger.Info(fmt.Sprintf("MQTT proxy server started at %s  with %s", listenAddress, status))
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Acceptor loop
@@ -100,9 +102,9 @@ func (p Proxy) Listen(ctx context.Context) error {
 		return l.Close()
 	})
 	if err := g.Wait(); err != nil {
-		p.logger.Info(fmt.Sprintf("MQTT proxy server at %s with %s exiting with errors", p.config.Address, status), slog.String("error", err.Error()))
+		p.logger.Info(fmt.Sprintf("MQTT proxy server at %s with %s exiting with errors", listenAddress, status), slog.String("error", err.Error()))
 	} else {
-		p.logger.Info(fmt.Sprintf("MQTT proxy server at %s with %s exiting...", p.config.Address, status))
+		p.logger.Info(fmt.Sprintf("MQTT proxy server at %s with %s exiting...", listenAddress, status))
 	}
 	return nil
 }

@@ -55,10 +55,12 @@ func (p Proxy) getUserPass(r *http.Request) (string, string, error) {
 }
 
 func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if !strings.HasPrefix(r.URL.Path, p.config.PathPrefix) {
+	if !strings.HasPrefix(r.URL.Path, common.AddSuffixSlash(p.config.PathPrefix+p.config.TargetPath)) {
 		http.NotFound(w, r)
 		return
 	}
+
+	r.URL.Path = strings.TrimPrefix(r.URL.Path, p.config.PathPrefix)
 
 	if err := p.bypassMatcher.ShouldBypass(r); err == nil {
 		p.target.ServeHTTP(w, r)
@@ -114,9 +116,7 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (p *Proxy) handleWebSocket(w http.ResponseWriter, r *http.Request, s *session.Session) {
 	headers := http.Header{}
 
-	targetUrl := p.targetUrl
-	targetUrl.Scheme = "ws"
-	target := fmt.Sprintf("%s%s", targetUrl.String(), r.RequestURI)
+	target := fmt.Sprintf("%s://%s:%s%s", wsScheme(p.config.TargetProtocol), p.config.TargetHost, p.config.TargetPort, r.URL.Path)
 
 	targetConn, _, err := websocket.DefaultDialer.Dial(target, headers)
 	if err != nil {
@@ -169,7 +169,7 @@ func (p *Proxy) handleWebSocket(w http.ResponseWriter, r *http.Request, s *sessi
 		p.logger.Error("WS Proxy session terminated", slog.Any("error", gErr))
 		return
 	}
-	p.logger.Info("WS Proxy session terminated", slog.Any("error", gErr))
+	p.logger.Info("WS Proxy session terminated")
 }
 
 func (p *Proxy) stream(ctx context.Context, topic string, src, dest *websocket.Conn, upstream bool) error {
@@ -217,6 +217,16 @@ func checkOrigin(oc common.OriginChecker) func(r *http.Request) bool {
 	}
 }
 
+func wsScheme(scheme string) string {
+	switch scheme {
+	case "http":
+		return "ws"
+	case "https":
+		return "wss"
+	default:
+		return scheme
+	}
+}
 func encodeError(w http.ResponseWriter, defStatusCode int, err error) {
 	hpe, ok := err.(HTTPProxyError)
 	if !ok {
@@ -232,7 +242,6 @@ func encodeError(w http.ResponseWriter, defStatusCode int, err error) {
 // Proxy represents HTTP Proxy.
 type Proxy struct {
 	config        mgate.Config
-	targetUrl     url.URL
 	target        *httputil.ReverseProxy
 	session       session.Handler
 	logger        *slog.Logger
@@ -241,12 +250,9 @@ type Proxy struct {
 }
 
 func NewProxy(config mgate.Config, handler session.Handler, logger *slog.Logger, allowedOrigins []string, bypassPaths []string) (Proxy, error) {
-	targetUrl := url.URL{
-		Scheme: "http",
-		Host:   config.Target,
-	}
-	if config.PathPrefix != "" {
-		targetUrl.Path = config.PathPrefix
+	targetUrl := &url.URL{
+		Scheme: config.TargetProtocol,
+		Host:   net.JoinHostPort(config.TargetHost, config.TargetPort),
 	}
 
 	oc := common.NewOriginChecker(logger, allowedOrigins)
@@ -258,8 +264,7 @@ func NewProxy(config mgate.Config, handler session.Handler, logger *slog.Logger,
 
 	return Proxy{
 		config:        config,
-		targetUrl:     targetUrl,
-		target:        httputil.NewSingleHostReverseProxy(&targetUrl),
+		target:        httputil.NewSingleHostReverseProxy(targetUrl),
 		session:       handler,
 		logger:        logger,
 		wsUpgrader:    wsUpgrader,
@@ -268,7 +273,8 @@ func NewProxy(config mgate.Config, handler session.Handler, logger *slog.Logger,
 }
 
 func (p Proxy) Listen(ctx context.Context) error {
-	l, err := net.Listen("tcp", p.config.Address)
+	listenAddress := net.JoinHostPort(p.config.Host, p.config.Port)
+	l, err := net.Listen("tcp", listenAddress)
 	if err != nil {
 		return err
 	}
@@ -278,18 +284,14 @@ func (p Proxy) Listen(ctx context.Context) error {
 	}
 	status := mptls.SecurityStatus(p.config.TLSConfig)
 
-	p.logger.Info(fmt.Sprintf("HTTP proxy server started at %s%s with %s", p.config.Address, p.config.PathPrefix, status))
+	p.logger.Info(fmt.Sprintf("HTTP proxy server started at %s%s with %s", listenAddress, p.config.PathPrefix, status))
 
 	var server http.Server
 	g, ctx := errgroup.WithContext(ctx)
 
 	mux := http.NewServeMux()
 
-	pattern := "/"
-	if p.config.PathPrefix != "" {
-		pattern = p.config.PathPrefix
-	}
-	mux.Handle(pattern, p)
+	mux.Handle(common.AddSuffixSlash(p.config.PathPrefix), p)
 	server.Handler = mux
 
 	g.Go(func() error {
@@ -301,9 +303,9 @@ func (p Proxy) Listen(ctx context.Context) error {
 		return server.Close()
 	})
 	if err := g.Wait(); err != nil {
-		p.logger.Info(fmt.Sprintf("HTTP proxy server at %s%s with %s exiting with errors", p.config.Address, p.config.PathPrefix, status), slog.String("error", err.Error()))
+		p.logger.Info(fmt.Sprintf("HTTP proxy server at %s%s with %s exiting with errors", listenAddress, p.config.PathPrefix, status), slog.String("error", err.Error()))
 	} else {
-		p.logger.Info(fmt.Sprintf("HTTP proxy server at %s%s with %s exiting...", p.config.Address, p.config.PathPrefix, status))
+		p.logger.Info(fmt.Sprintf("HTTP proxy server at %s%s with %s exiting...", listenAddress, p.config.PathPrefix, status))
 	}
 	return nil
 }
