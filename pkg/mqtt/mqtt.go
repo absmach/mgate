@@ -19,20 +19,22 @@ import (
 
 // Proxy is main MQTT proxy struct.
 type Proxy struct {
-	config      mgate.Config
-	handler     session.Handler
-	interceptor session.Interceptor
-	logger      *slog.Logger
-	dialer      net.Dialer
+	config        mgate.Config
+	handler       session.Handler
+	beforeHandler session.Interceptor
+	afterHandler  session.Interceptor
+	logger        *slog.Logger
+	dialer        net.Dialer
 }
 
 // New returns a new MQTT Proxy instance.
-func New(config mgate.Config, handler session.Handler, interceptor session.Interceptor, logger *slog.Logger) *Proxy {
+func New(config mgate.Config, handler session.Handler, beforeHandler, afterHandler session.Interceptor, logger *slog.Logger) *Proxy {
 	return &Proxy{
-		config:      config,
-		handler:     handler,
-		logger:      logger,
-		interceptor: interceptor,
+		config:        config,
+		handler:       handler,
+		logger:        logger,
+		beforeHandler: beforeHandler,
+		afterHandler:  afterHandler,
 	}
 }
 
@@ -68,7 +70,7 @@ func (p Proxy) handle(ctx context.Context, inbound net.Conn) {
 		return
 	}
 
-	if err = session.Stream(ctx, inbound, outbound, p.handler, p.interceptor, clientCert); err != io.EOF {
+	if err = session.Stream(ctx, inbound, outbound, p.handler, p.beforeHandler, p.afterHandler, clientCert); err != io.EOF {
 		p.logger.Warn(err.Error())
 	}
 }

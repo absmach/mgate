@@ -29,15 +29,15 @@ var (
 )
 
 // Stream starts proxy between client and broker.
-func Stream(ctx context.Context, in, out net.Conn, h Handler, ic Interceptor, cert x509.Certificate) error {
+func Stream(ctx context.Context, in, out net.Conn, h Handler, preIc, postIc Interceptor, cert x509.Certificate) error {
 	s := Session{
 		Cert: cert,
 	}
 	ctx = NewContext(ctx, &s)
 	errs := make(chan error, 2)
 
-	go stream(ctx, Up, in, out, h, ic, errs)
-	go stream(ctx, Down, out, in, h, ic, errs)
+	go stream(ctx, Up, in, out, h, preIc, postIc, errs)
+	go stream(ctx, Down, out, in, h, preIc, postIc, errs)
 
 	// Handle whichever error happens first.
 	// The other routine won't be blocked when writing
@@ -49,13 +49,21 @@ func Stream(ctx context.Context, in, out net.Conn, h Handler, ic Interceptor, ce
 	return errors.Join(err, disconnectErr)
 }
 
-func stream(ctx context.Context, dir Direction, r, w net.Conn, h Handler, ic Interceptor, errs chan error) {
+func stream(ctx context.Context, dir Direction, r, w net.Conn, h Handler, preIc, postIc Interceptor, errs chan error) {
 	for {
 		// Read from one connection.
 		pkt, err := packets.ReadPacket(r)
 		if err != nil {
 			errs <- wrap(ctx, err, dir)
 			return
+		}
+
+		if preIc != nil {
+			pkt, err = preIc.Intercept(ctx, pkt, dir)
+			if err != nil {
+				errs <- wrap(ctx, err, dir)
+				return
+			}
 		}
 
 		switch dir {
@@ -81,8 +89,8 @@ func stream(ctx context.Context, dir Direction, r, w net.Conn, h Handler, ic Int
 			}
 		}
 
-		if ic != nil {
-			pkt, err = ic.Intercept(ctx, pkt, dir)
+		if postIc != nil {
+			pkt, err = postIc.Intercept(ctx, pkt, dir)
 			if err != nil {
 				errs <- wrap(ctx, err, dir)
 				return
