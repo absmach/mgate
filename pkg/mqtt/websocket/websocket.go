@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/absmach/mgate"
-	"github.com/absmach/mgate/pkg/common"
 	"github.com/absmach/mgate/pkg/session"
 	mptls "github.com/absmach/mgate/pkg/tls"
+	"github.com/absmach/mgate/pkg/transport"
 	"github.com/gorilla/websocket"
 	"golang.org/x/sync/errgroup"
 )
@@ -53,7 +53,7 @@ var upgrader = websocket.Upgrader{
 }
 
 func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if !strings.HasPrefix(r.URL.Path, common.AddSuffixSlash(p.config.PathPrefix+p.config.TargetPath)) {
+	if !strings.HasPrefix(r.URL.Path, transport.AddSuffixSlash(p.config.PathPrefix+p.config.TargetPath)) {
 		http.NotFound(w, r)
 		return
 	}
@@ -121,7 +121,7 @@ func (p Proxy) Listen(ctx context.Context) error {
 
 	mux := http.NewServeMux()
 
-	mux.Handle(common.AddSuffixSlash(p.config.PathPrefix), p)
+	mux.Handle(transport.AddSuffixSlash(p.config.PathPrefix), p)
 	server.Handler = mux
 
 	g.Go(func() error {
