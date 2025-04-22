@@ -107,6 +107,21 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (p *Proxy) handleWebSocket(w http.ResponseWriter, r *http.Request, s *session.Session) {
 
+	topic := r.URL.Path
+	ctx := session.NewContext(context.Background(), s)
+	if err := p.session.AuthConnect(ctx); err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	if err := p.session.AuthSubscribe(ctx, &[]string{topic}); err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	if err := p.session.Subscribe(ctx, &[]string{topic}); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	header := http.Header{}
 
 	if auth := r.Header.Get("Authorization"); auth != "" {
@@ -122,20 +137,6 @@ func (p *Proxy) handleWebSocket(w http.ResponseWriter, r *http.Request, s *sessi
 	}
 	defer targetConn.Close()
 
-	topic := r.URL.Path
-	ctx := session.NewContext(context.Background(), s)
-	if err := p.session.AuthConnect(ctx); err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
-	}
-	if err := p.session.AuthSubscribe(ctx, &[]string{topic}); err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
-	}
-	if err := p.session.Subscribe(ctx, &[]string{topic}); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 	inConn, err := p.wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
 		p.logger.Warn("WS Proxy failed to upgrade connection", slog.Any("error", err))
