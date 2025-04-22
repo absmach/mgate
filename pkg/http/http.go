@@ -36,22 +36,19 @@ func isWebSocketRequest(r *http.Request) bool {
 		strings.EqualFold(r.Header.Get("Upgrade"), "websocket")
 }
 
-func (p Proxy) getUserPass(r *http.Request) (string, string, error) {
+func (p Proxy) getUserPass(r *http.Request) (string, string) {
 	username, password, ok := r.BasicAuth()
-	var err error
 	switch {
 	case ok:
-		return username, password, nil
+		return username, password
 	case len(r.URL.Query()["authorization"]) != 0:
 		password = r.URL.Query()["authorization"][0]
-		return username, password, nil
+		return username, password
 	case r.Header.Get("Authorization") != "":
 		password = r.Header.Get("Authorization")
-		return username, password, nil
-	default:
-		err = ErrMissingAuthentication
+		return username, password
 	}
-	return username, password, err
+	return username, password
 }
 
 func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -67,12 +64,7 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username, password, err := p.getUserPass(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
-	}
-
+	username, password := p.getUserPass(r)
 	s := &session.Session{
 		Password: []byte(password),
 		Username: username,
