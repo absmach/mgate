@@ -114,11 +114,16 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Proxy) handleWebSocket(w http.ResponseWriter, r *http.Request, s *session.Session) {
-	headers := http.Header{}
 
-	target := fmt.Sprintf("%s://%s:%s%s", wsScheme(p.config.TargetProtocol), p.config.TargetHost, p.config.TargetPort, r.URL.Path)
+	header := http.Header{}
 
-	targetConn, _, err := websocket.DefaultDialer.Dial(target, headers)
+	if auth := r.Header.Get("Authorization"); auth != "" {
+		header.Set("Authorization", auth)
+	}
+
+	target := fmt.Sprintf("%s://%s:%s%s", wsScheme(p.config.TargetProtocol), p.config.TargetHost, p.config.TargetPort, r.URL.RequestURI())
+
+	targetConn, _, err := websocket.DefaultDialer.Dial(target, header)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
