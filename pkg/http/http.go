@@ -28,9 +28,6 @@ import (
 
 const contentType = "application/json"
 
-// ErrMissingAuthentication returned when no basic or Authorization header is set.
-var ErrMissingAuthentication = errors.New("missing authorization")
-
 func isWebSocketRequest(r *http.Request) bool {
 	return strings.EqualFold(r.Header.Get("Connection"), "Upgrade") &&
 		strings.EqualFold(r.Header.Get("Upgrade"), "websocket")
@@ -106,7 +103,6 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Proxy) handleWebSocket(w http.ResponseWriter, r *http.Request, s *session.Session) {
-
 	topic := r.URL.Path
 	ctx := session.NewContext(context.Background(), s)
 	if err := p.session.AuthConnect(ctx); err != nil {
