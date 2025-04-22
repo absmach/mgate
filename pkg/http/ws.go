@@ -62,15 +62,25 @@ func (p *Proxy) handleWebSocket(w http.ResponseWriter, r *http.Request, s *sessi
 	g, ctx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
-		err := p.stream(ctx, topic, inConn, targetConn, true)
-		_ = targetConn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "client closed"))
-		_ = targetConn.Close()
+		upstream := true
+		err := p.stream(ctx, topic, inConn, targetConn, upstream)
+		if err := targetConn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "client closed")); err != nil {
+			p.logger.Warn(fmt.Sprintf("failed to send close connection %s", getPrefix(upstream)), slog.Any("error", err))
+		}
+		if err := targetConn.Close(); err != nil {
+			p.logger.Warn("failed to send close connection to websocket server", slog.Any("error", err))
+		}
 		return err
 	})
 	g.Go(func() error {
-		err := p.stream(ctx, topic, targetConn, inConn, false)
-		_ = inConn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "client closed"))
-		_ = inConn.Close()
+		upstream := false
+		err := p.stream(ctx, topic, targetConn, inConn, upstream)
+		if err := inConn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "client closed")); err != nil {
+			p.logger.Warn(fmt.Sprintf("failed to send close connection %s", getPrefix(upstream)), slog.Any("error", err))
+		}
+		if err := inConn.Close(); err != nil {
+			p.logger.Warn("failed to send close connection to client", slog.Any("error", err))
+		}
 		return err
 	})
 
@@ -116,12 +126,15 @@ func handleStreamErr(err error, upstream bool) error {
 	if errors.Is(err, net.ErrClosed) {
 		return nil
 	}
+	return fmt.Errorf("%s error: %w", getPrefix(upstream), err)
+}
 
+func getPrefix(upstream bool) string {
 	prefix := downStreamDesc
 	if upstream {
 		prefix = upstreamDesc
 	}
-	return fmt.Errorf("%s error: %w", prefix, err)
+	return prefix
 }
 
 func wsScheme(scheme string) string {

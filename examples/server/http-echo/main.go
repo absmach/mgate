@@ -41,6 +41,11 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
+	conn.SetCloseHandler(func(code int, text string) error {
+		log.Printf("WebSocket closed by remote client code %d, text %s\n", code, text)
+		return nil
+	})
+
 	for {
 		messageType, message, err := conn.ReadMessage()
 		if err != nil {
