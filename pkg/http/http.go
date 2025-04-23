@@ -35,6 +35,10 @@ const (
 	upgradeHeaderVal = "websocket"
 )
 
+type Checker interface {
+	Check(r *http.Request) error
+}
+
 func isWebSocketRequest(r *http.Request) bool {
 	return strings.EqualFold(r.Header.Get(connHeaderKey), connHeaderVal) &&
 		strings.EqualFold(r.Header.Get(upgradeHeaderKey), upgradeHeaderVal)
@@ -45,8 +49,8 @@ func (p Proxy) getUserPass(r *http.Request) (string, string) {
 	switch {
 	case ok:
 		return username, password
-	case len(r.URL.Query()[authzQueryKey]) != 0:
-		password = r.URL.Query()[authzQueryKey][0]
+	case len(r.URL.Query().Get(authzQueryKey)) != 0:
+		password = r.URL.Query().Get(authzQueryKey)
 		return username, password
 	case r.Header.Get(authzHeaderKey) != "":
 		password = r.Header.Get(authzHeaderKey)
@@ -63,7 +67,7 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	r.URL.Path = strings.TrimPrefix(r.URL.Path, p.config.PathPrefix)
 
-	if err := p.checkers.ShouldBypass(r); err == nil {
+	if err := p.bypass.Check(r); err == nil {
 		p.target.ServeHTTP(w, r)
 		return
 	}
@@ -109,9 +113,10 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	p.target.ServeHTTP(w, r)
 }
 
-func checkOrigin(oc Checkers) func(r *http.Request) bool {
+func checkOrigin(allowedOrigins []string) func(r *http.Request) bool {
+	oc := NewOriginChecker(allowedOrigins)
 	return func(r *http.Request) bool {
-		return oc.CheckOrigin(r) == nil
+		return oc.Check(r) == nil
 	}
 }
 
@@ -134,7 +139,7 @@ type Proxy struct {
 	session    session.Handler
 	logger     *slog.Logger
 	wsUpgrader websocket.Upgrader
-	checkers   Checkers
+	bypass     Checker
 }
 
 func NewProxy(config mgate.Config, handler session.Handler, logger *slog.Logger, allowedOrigins []string, bypassPaths []string) (Proxy, error) {
@@ -143,11 +148,12 @@ func NewProxy(config mgate.Config, handler session.Handler, logger *slog.Logger,
 		Host:   net.JoinHostPort(config.TargetHost, config.TargetPort),
 	}
 
-	c, err := NewCheckers(allowedOrigins, bypassPaths)
+	bpc, err := NewByPassChecker(bypassPaths)
 	if err != nil {
 		return Proxy{}, err
 	}
-	wsUpgrader := websocket.Upgrader{CheckOrigin: checkOrigin(c)}
+
+	wsUpgrader := websocket.Upgrader{CheckOrigin: checkOrigin(allowedOrigins)}
 
 	return Proxy{
 		config:     config,
@@ -155,7 +161,7 @@ func NewProxy(config mgate.Config, handler session.Handler, logger *slog.Logger,
 		session:    handler,
 		logger:     logger,
 		wsUpgrader: wsUpgrader,
-		checkers:   c,
+		bypass:     bpc,
 	}, nil
 }
 
