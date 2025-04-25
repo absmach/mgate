@@ -49,7 +49,7 @@ func (p Proxy) getUserPass(r *http.Request) (string, string) {
 	switch {
 	case ok:
 		return username, password
-	case len(r.URL.Query().Get(authzQueryKey)) != 0:
+	case r.URL.Query().Get(authzQueryKey) != "":
 		password = r.URL.Query().Get(authzQueryKey)
 		return username, password
 	case r.Header.Get(authzHeaderKey) != "":
@@ -148,7 +148,7 @@ func NewProxy(config mgate.Config, handler session.Handler, logger *slog.Logger,
 		Host:   net.JoinHostPort(config.TargetHost, config.TargetPort),
 	}
 
-	bpc, err := NewByPassChecker(bypassPaths)
+	bpc, err := NewBypassChecker(bypassPaths)
 	if err != nil {
 		return Proxy{}, err
 	}
