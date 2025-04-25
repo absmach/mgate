@@ -2,7 +2,7 @@
 protocol=http
 host=localhost
 port=8086
-path="messages"
+path="mgate-http/messages/http"
 content="application/json"
 message="{\"message\": \"Hello mGate\"}"
 invalidPath="invalid_path"

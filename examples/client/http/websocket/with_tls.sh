@@ -1,8 +1,8 @@
 #!/bin/bash
-protocol=https
+protocol=wss
 host=localhost
 port=8087
-path="mgate-http/messages/http"
+path="mgate-http/messages/ws"
 content="application/json"
 message="{\"message\": \"Hello mGate\"}"
 invalidPath="invalid_path"
@@ -15,15 +15,15 @@ unknowncertfile=ssl/certs/client_unknown.crt
 unknownkeyfile=ssl/certs/client_unknown.key
 
 echo "Posting message to ${protocol}://${host}:${port}/${path} with tls, Authorization header, ca certificate ${cafile}..."
-curl -sSiX POST "${protocol}://${host}:${port}/${path}" -H "content-type:${content}" -H "Authorization:TOKEN" -d "${message}" --cacert $cafile
+# echo "${message}" | websocat  -H "content-type:${content}" -H "Authorization:TOKEN" --binary --ws-c-uri="${protocol}://${host}:${port}/${path}" - ws-c:cmd:"openssl s_client -connect ${host}:${port} -quiet -verify_quiet -CAfile ${cafile}"
+echo "${message}" | SSL_CERT_FILE="${cafile}"  websocat  "${protocol}://${host}:${port}/${path}" -H "content-type:${content}" -H "Authorization:TOKEN"
 
 
 echo -e "\nPosting message to ${protocol}://${host}:${port}/${path} with tls, basic authentication ca certificate ${cafile}...."
-curl -sSi -u username:password -X  POST "${protocol}://${host}:${port}/${path}" -H "content-type:${content}" -d "${message}"  --cacert $cafile
+encoded=$(printf "username:password" | base64)
+echo "${message}" | SSL_CERT_FILE="${cafile}" websocat "${protocol}://${host}:${port}/${path}" -H "content-type:${content}" -H "Authorization: Basic $encoded"
 
-echo -e "\nPosting message to invalid path ${protocol}://${host}:${port}/${invalidPath} with tls, Authorization header, ca certificate ${cafile}..."
-curl -sSiX POST "${protocol}://${host}:${port}/${invalidPath}" -H "content-type:${content}" -H "Authorization:TOKEN" -d "${message}" --cacert $cafile
 
 echo -e "\nPosting message to ${protocol}://${host}:${port}/${path} with tls, Authorization header, and without ca certificate.."
-curl -sSiX POST "${protocol}://${host}:${port}/${invalidPath}" -H "content-type:${content}" -H "Authorization:TOKEN" -d "${message}" 2>&1
+echo "${message}" |  websocat "${protocol}://${host}:${port}/${path}" -H "content-type:${content}" -H "Authorization: Basic $encoded"
 
