@@ -65,10 +65,10 @@ func (p *Proxy) handleWebSocket(w http.ResponseWriter, r *http.Request, s *sessi
 		upstream := true
 		err := p.stream(ctx, topic, inConn, targetConn, upstream)
 		if err := targetConn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "client closed")); err != nil {
-			p.logger.Warn(fmt.Sprintf("failed to send close connection %s", getPrefix(upstream)), slog.Any("error", err))
+			p.logger.Debug("mGate proxy unable to send close message to websocket server", slog.Any("error", err))
 		}
 		if err := targetConn.Close(); err != nil {
-			p.logger.Warn("failed to send close connection to websocket server", slog.Any("error", err))
+			p.logger.Debug("mGate proxy failed to close websocket connection with server", slog.Any("error", err))
 		}
 		return err
 	})
@@ -76,10 +76,10 @@ func (p *Proxy) handleWebSocket(w http.ResponseWriter, r *http.Request, s *sessi
 		upstream := false
 		err := p.stream(ctx, topic, targetConn, inConn, upstream)
 		if err := inConn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "client closed")); err != nil {
-			p.logger.Warn(fmt.Sprintf("failed to send close connection %s", getPrefix(upstream)), slog.Any("error", err))
+			p.logger.Debug("mGate proxy unable to send close message to websocket client", slog.Any("error", err))
 		}
 		if err := inConn.Close(); err != nil {
-			p.logger.Warn("failed to send close connection to client", slog.Any("error", err))
+			p.logger.Debug("mGate proxy failed to close websocket connection with client", slog.Any("error", err))
 		}
 		return err
 	})
