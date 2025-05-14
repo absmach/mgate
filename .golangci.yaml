@@ -1,10 +1,18 @@
+# Copyright (c) Abstract Machines
+# SPDX-License-Identifier: Apache-2.0
+
 version: "2"
+run:
+  timeout: 10m
+  build-tags:
+    - nats
 linters:
   default: none
   enable:
     - asasalint
     - asciicheck
     - bidichk
+    - contextcheck
     - copyloopvar
     - decorder
     - dogsled
@@ -70,6 +78,15 @@ linters:
       - common-false-positives
       - legacy
       - std-error-handling
+    rules:
+      - path: (.+)\.go$
+        text: |-
+          string `Usage:
+          ` has (\d+) occurrences, make it a constant
+      - path: (.+)\.go$
+        text: |-
+          string `For example:
+          ` has (\d+) occurrences, make it a constant
     paths:
       - third_party$
       - builtin$
