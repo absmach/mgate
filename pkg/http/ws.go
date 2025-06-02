@@ -101,11 +101,16 @@ func (p *Proxy) stream(ctx context.Context, topic string, src, dest *websocket.C
 		if err != nil {
 			return handleStreamErr(err, upstream)
 		}
-		if upstream {
+		switch upstream {
+		case true:
 			if err := p.session.AuthPublish(ctx, &topic, &payload); err != nil {
 				return err
 			}
 			if err := p.session.Publish(ctx, &topic, &payload); err != nil {
+				return err
+			}
+		default:
+			if err := p.session.AuthSubscribe(ctx, &[]string{topic}); err != nil {
 				return err
 			}
 		}
