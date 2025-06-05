@@ -79,7 +79,8 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if isWebSocketRequest(r) {
-		p.handleWebSocket(w, r, s) //nolint:contextcheck // handleWebSocket does not need context
+		//nolint:contextcheck // handleWebSocket does not need context
+		p.handleWebSocket(w, r, s)
 		return
 	}
 
