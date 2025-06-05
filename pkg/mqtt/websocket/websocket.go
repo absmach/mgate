@@ -67,6 +67,7 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//nolint:contextcheck // new context is created in pass method
 	go p.pass(cconn)
 }
 
