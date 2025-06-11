@@ -105,6 +105,11 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		p.logger.Error("Failed to authorize connect", slog.Any("error", err))
 		return
 	}
+	if err := p.session.AuthPublish(ctx, &r.RequestURI, &payload); err != nil {
+		encodeError(w, http.StatusForbidden, err)
+		p.logger.Error("Failed to authorize publish", slog.Any("error", err))
+		return
+	}
 	if err := p.session.Publish(ctx, &r.RequestURI, &payload); err != nil {
 		encodeError(w, http.StatusBadRequest, err)
 		p.logger.Error("Failed to publish", slog.Any("error", err))
