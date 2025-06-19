@@ -78,6 +78,16 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Username: username,
 	}
 
+	if p.interceptor != nil {
+		var err error
+		r, err = p.interceptor.Intercept(r.Context(), r)
+		if err != nil {
+			encodeError(w, http.StatusBadRequest, err)
+			p.logger.Error("failed to intercept request", slog.Any("error", err))
+			return
+		}
+	}
+
 	if isWebSocketRequest(r) {
 		//nolint:contextcheck // handleWebSocket does not need context
 		p.handleWebSocket(w, r, s)
@@ -140,15 +150,16 @@ func encodeError(w http.ResponseWriter, defStatusCode int, err error) {
 
 // Proxy represents HTTP Proxy.
 type Proxy struct {
-	config     mgate.Config
-	target     *httputil.ReverseProxy
-	session    session.Handler
-	logger     *slog.Logger
-	wsUpgrader websocket.Upgrader
-	bypass     Checker
+	config      mgate.Config
+	target      *httputil.ReverseProxy
+	session     session.Handler
+	logger      *slog.Logger
+	wsUpgrader  websocket.Upgrader
+	bypass      Checker
+	interceptor Interceptor
 }
 
-func NewProxy(config mgate.Config, handler session.Handler, logger *slog.Logger, allowedOrigins []string, bypassPaths []string) (Proxy, error) {
+func NewProxy(config mgate.Config, handler session.Handler, logger *slog.Logger, allowedOrigins []string, bypassPaths []string, interceptor Interceptor) (Proxy, error) {
 	targetUrl := &url.URL{
 		Scheme: config.TargetProtocol,
 		Host:   net.JoinHostPort(config.TargetHost, config.TargetPort),
@@ -162,12 +173,13 @@ func NewProxy(config mgate.Config, handler session.Handler, logger *slog.Logger,
 	wsUpgrader := websocket.Upgrader{CheckOrigin: checkOrigin(allowedOrigins)}
 
 	return Proxy{
-		config:     config,
-		target:     httputil.NewSingleHostReverseProxy(targetUrl),
-		session:    handler,
-		logger:     logger,
-		wsUpgrader: wsUpgrader,
-		bypass:     bpc,
+		config:      config,
+		target:      httputil.NewSingleHostReverseProxy(targetUrl),
+		session:     handler,
+		logger:      logger,
+		wsUpgrader:  wsUpgrader,
+		bypass:      bpc,
+		interceptor: interceptor,
 	}, nil
 }
 
