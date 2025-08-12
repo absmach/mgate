@@ -69,27 +69,10 @@ func stream(ctx context.Context, dir Direction, r, w net.Conn, h Handler, preIc,
 		switch dir {
 		case Up:
 			if err = authorize(ctx, pkt, h); err != nil {
-				if pub, ok := pkt.(*packets.PublishPacket); ok {
-					switch pub.Qos {
-					case 0:
-						pkt = packets.NewControlPacket(packets.Disconnect).(*packets.DisconnectPacket)
-						if wErr := pkt.Write(w); wErr != nil {
-							err = errors.Join(err, wErr)
-						}
-					case 1:
-						puback := packets.NewControlPacket(packets.Puback).(*packets.PubackPacket)
-						puback.MessageID = pub.MessageID
-						if wErr := puback.Write(w); wErr != nil {
-							err = errors.Join(err, wErr)
-						}
-
-					case 2:
-						pubrec := packets.NewControlPacket(packets.Pubrec).(*packets.PubrecPacket)
-						pubrec.MessageID = pub.MessageID
-
-						if wErr := pubrec.Write(w); wErr != nil {
-							err = errors.Join(err, wErr)
-						}
+				if _, ok := pkt.(*packets.PublishPacket); ok {
+					pkt = packets.NewControlPacket(packets.Disconnect).(*packets.DisconnectPacket)
+					if wErr := pkt.Write(w); wErr != nil {
+						err = errors.Join(err, wErr)
 					}
 				}
 				errs <- wrap(ctx, err, dir)
