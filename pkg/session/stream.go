@@ -70,7 +70,7 @@ func stream(ctx context.Context, dir Direction, r, w net.Conn, h Handler, preIc,
 		case Up:
 			if err = authorize(ctx, pkt, h); err != nil {
 				if _, ok := pkt.(*packets.PublishPacket); ok {
-					pkt = packets.NewControlPacket(packets.Disconnect).(*packets.DisconnectPacket)
+					pkt = packets.NewControlPacket(packets.Disconnect)
 					if wErr := pkt.Write(w); wErr != nil {
 						err = errors.Join(err, wErr)
 					}
