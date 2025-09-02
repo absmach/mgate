@@ -105,29 +105,6 @@ func LoadTLSConfig[sc TLSConfig](c *Config, s sc) (sc, error) {
 	}
 }
 
-// SecurityStatus returns log message from TLS config.
-func SecurityStatus[sc TLSConfig](s sc) string {
-	if s == nil {
-		return "no TLS"
-	}
-	switch c := any(s).(type) {
-	case *tls.Config:
-		ret := "TLS"
-		// It is possible to establish TLS with client certificates only.
-		if c.Certificates == nil || len(c.Certificates) == 0 {
-			ret = "no server certificates"
-		}
-		if c.ClientCAs != nil {
-			ret += " and " + c.ClientAuth.String()
-		}
-		return ret
-	case *dtls.Config:
-		return "DTLS"
-	default:
-		return "no TLS"
-	}
-}
-
 // ClientCert returns client certificate.
 func ClientCert(conn net.Conn) (x509.Certificate, error) {
 	switch connVal := conn.(type) {
@@ -150,19 +127,26 @@ func ClientCert(conn net.Conn) (x509.Certificate, error) {
 }
 
 // SecurityStatus returns log message from TLS config.
-func SecurityStatus(c *tls.Config) string {
-	if c == nil {
+func SecurityStatus[sc TLSConfig](s sc) string {
+	if s == nil {
 		return "no TLS"
 	}
-	ret := "TLS"
-	// It is possible to establish TLS with client certificates only.
-	if len(c.Certificates) == 0 {
-		ret = "no server certificates"
+	switch c := any(s).(type) {
+	case *tls.Config:
+		ret := "TLS"
+		// It is possible to establish TLS with client certificates only.
+		if len(c.Certificates) == 0 {
+			ret = "no server certificates"
+		}
+		if c.ClientCAs != nil {
+			ret += " and " + c.ClientAuth.String()
+		}
+		return ret
+	case *dtls.Config:
+		return "DTLS"
+	default:
+		return "no TLS"
 	}
-	if c.ClientCAs != nil {
-		ret += " and " + c.ClientAuth.String()
-	}
-	return ret
 }
 
 func loadCertFile(certFile string) ([]byte, error) {

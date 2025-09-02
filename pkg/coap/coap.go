@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/absmach/mproxy"
-	"github.com/absmach/mproxy/pkg/session"
-	mptls "github.com/absmach/mproxy/pkg/tls"
+	"github.com/absmach/mgate"
+	"github.com/absmach/mgate/pkg/session"
+	mptls "github.com/absmach/mgate/pkg/tls"
 	gocoap "github.com/dustin/go-coap"
 	"github.com/pion/dtls/v2"
 	"golang.org/x/sync/errgroup"
@@ -35,12 +35,12 @@ type Conn struct {
 }
 
 type Proxy struct {
-	config  mproxy.Config
+	config  mgate.Config
 	session session.Handler
 	logger  *slog.Logger
 }
 
-func NewProxy(config mproxy.Config, handler session.Handler, logger *slog.Logger) *Proxy {
+func NewProxy(config mgate.Config, handler session.Handler, logger *slog.Logger) *Proxy {
 	return &Proxy{
 		config:  config,
 		session: handler,
@@ -72,13 +72,14 @@ func (p *Proxy) proxyUDP(ctx context.Context, l *net.UDPConn) {
 				go p.downUDP(l, conn)
 			}
 			mutex.Unlock()
+			//nolint:contextcheck // upUDP does not need context
 			p.upUDP(conn, buffer[:n])
 		}
 	}
 }
 
 func (p *Proxy) Listen(ctx context.Context) error {
-	addr, err := net.ResolveUDPAddr("udp", p.config.Address)
+	addr, err := net.ResolveUDPAddr("udp", net.JoinHostPort(p.config.Host, p.config.Port))
 	if err != nil {
 		p.logger.Error("Failed to resolve UDP address", slog.Any("error", err))
 		return err
@@ -121,12 +122,12 @@ func (p *Proxy) Listen(ctx context.Context) error {
 	}
 
 	status := mptls.SecurityStatus(p.config.DTLSConfig)
-	p.logger.Info(fmt.Sprintf("COAP proxy server started at %s  with %s", p.config.Address, status))
+	p.logger.Info(fmt.Sprintf("COAP proxy server started at %s  with %s", net.JoinHostPort(p.config.Host, p.config.Port), status))
 
 	if err := g.Wait(); err != nil {
-		p.logger.Info(fmt.Sprintf("COAP proxy server at %s exiting with errors", p.config.Address), slog.String("error", err.Error()))
+		p.logger.Info(fmt.Sprintf("COAP proxy server at %s exiting with errors", net.JoinHostPort(p.config.Host, p.config.Port)), slog.String("error", err.Error()))
 	} else {
-		p.logger.Info(fmt.Sprintf("COAP proxy server at %s exiting...", p.config.Address))
+		p.logger.Info(fmt.Sprintf("COAP proxy server at %s exiting...", net.JoinHostPort(p.config.Host, p.config.Port)))
 	}
 	return nil
 }
@@ -134,7 +135,7 @@ func (p *Proxy) Listen(ctx context.Context) error {
 func (p *Proxy) newConn(clientAddr *net.UDPAddr) (*Conn, error) {
 	conn := new(Conn)
 	conn.clientAddr = clientAddr
-	addr, err := net.ResolveUDPAddr("udp", p.config.Target)
+	addr, err := net.ResolveUDPAddr("udp", net.JoinHostPort(p.config.TargetHost, p.config.TargetPort))
 	if err != nil {
 		return nil, err
 	}
@@ -192,20 +193,21 @@ func (p *Proxy) proxyDTLS(ctx context.Context, l net.Listener) {
 				continue
 			}
 			p.logger.Info("Accepted new client")
+			//nolint:contextcheck // p.handleDTLS does not need context
 			go p.handleDTLS(conn)
 		}
 	}
 }
 
 func (p *Proxy) handleDTLS(inbound net.Conn) {
-	outboundAddr, err := net.ResolveUDPAddr("udp", p.config.Address)
+	outboundAddr, err := net.ResolveUDPAddr("udp", net.JoinHostPort(p.config.Host, p.config.Port))
 	if err != nil {
 		return
 	}
 
 	outbound, err := net.DialUDP("udp", nil, outboundAddr)
 	if err != nil {
-		p.logger.Error("Cannot connect to remote broker " + p.config.Address + " due to: " + err.Error())
+		p.logger.Error("Cannot connect to remote broker " + net.JoinHostPort(p.config.Host, p.config.Port) + " due to: " + err.Error())
 		return
 	}
 

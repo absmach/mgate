@@ -20,7 +20,7 @@ type Config struct {
 	TargetProtocol string `env:"TARGET_PROTOCOL,required" envDefault:""`
 	TargetPath     string `env:"TARGET_PATH"              envDefault:""`
 	TLSConfig      *tls.Config
-	DTLSConfig *dtls.Config
+	DTLSConfig     *dtls.Config
 }
 
 func NewConfig(opts env.Options) (Config, error) {
