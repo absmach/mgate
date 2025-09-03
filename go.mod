@@ -1,8 +1,6 @@
 module github.com/absmach/mgate
 
-go 1.23.0
-
-toolchain go1.24.1
+go 1.25.0
 
 require (
 	github.com/caarlos0/env/v11 v11.3.1
@@ -14,4 +12,4 @@ require (
 	golang.org/x/sync v0.16.0
 )
 
-require golang.org/x/net v0.42.0 // indirect
+require golang.org/x/net v0.43.0 // indirect
