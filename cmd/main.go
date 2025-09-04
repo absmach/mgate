@@ -36,8 +36,8 @@ const (
 	httpWithTLS    = "MGATE_HTTP_WITH_TLS_"
 	httpWithmTLS   = "MGATE_HTTP_WITH_MTLS_"
 
-	coapWithoutDTLS = "MPROXY_COAP_WITHOUT_DTLS_"
-	coapWithDTLS    = "MPROXY_COAP_WITH_DTLS_"
+	coapWithoutDTLS = "MGATE_COAP_WITHOUT_DTLS_"
+	coapWithDTLS    = "MGATE_COAP_WITH_DTLS_"
 )
 
 func main() {

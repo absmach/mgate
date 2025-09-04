@@ -6,6 +6,7 @@ package coap
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"sync"
@@ -14,8 +15,10 @@ import (
 	"github.com/absmach/mgate"
 	"github.com/absmach/mgate/pkg/session"
 	mptls "github.com/absmach/mgate/pkg/tls"
-	gocoap "github.com/dustin/go-coap"
-	"github.com/pion/dtls/v2"
+	"github.com/pion/dtls/v3"
+	"github.com/plgd-dev/go-coap/v3/message/codes"
+	"github.com/plgd-dev/go-coap/v3/message/pool"
+	"github.com/plgd-dev/go-coap/v3/udp/coder"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -57,6 +60,7 @@ func (p *Proxy) proxyUDP(ctx context.Context, l *net.UDPConn) {
 		default:
 			n, clientAddr, err := l.ReadFromUDP(buffer)
 			if err != nil {
+				p.logger.Error("Failed to read from UDP", slog.Any("error", err))
 				return
 			}
 			mutex.Lock()
@@ -148,8 +152,11 @@ func (p *Proxy) newConn(clientAddr *net.UDPAddr) (*Conn, error) {
 }
 
 func (p *Proxy) upUDP(conn *Conn, buffer []byte) {
-	p.handleCoAPMessage(buffer)
-	_, err := conn.serverConn.Write(buffer)
+	err := p.handleCoAPMessage(context.Background(), buffer)
+	if err != nil {
+		p.logger.Error("Failed to handle CoAP message", slog.Any("err", err))
+	}
+	_, err = conn.serverConn.Write(buffer)
 	if err != nil {
 		return
 	}
@@ -193,45 +200,58 @@ func (p *Proxy) proxyDTLS(ctx context.Context, l net.Listener) {
 				continue
 			}
 			p.logger.Info("Accepted new client")
-			//nolint:contextcheck // p.handleDTLS does not need context
-			go p.handleDTLS(conn)
+			err = p.handleDTLS(ctx, conn)
+			if err != nil {
+				p.logger.Warn(err.Error())
+			}
 		}
 	}
 }
 
-func (p *Proxy) handleDTLS(inbound net.Conn) {
-	outboundAddr, err := net.ResolveUDPAddr("udp", net.JoinHostPort(p.config.Host, p.config.Port))
+func (p *Proxy) handleDTLS(ctx context.Context, inbound net.Conn) error {
+	outboundAddr, err := net.ResolveUDPAddr("udp", net.JoinHostPort(p.config.TargetHost, p.config.TargetPort))
 	if err != nil {
-		return
+		return err
 	}
 
 	outbound, err := net.DialUDP("udp", nil, outboundAddr)
 	if err != nil {
-		p.logger.Error("Cannot connect to remote broker " + net.JoinHostPort(p.config.Host, p.config.Port) + " due to: " + err.Error())
-		return
+		return err
 	}
+	defer outbound.Close()
 
-	go p.dtlsUp(outbound, inbound)
-	go p.dtlsDown(inbound, outbound)
+	errs := make(chan error, 2)
+
+	go p.dtlsUp(ctx, outbound, inbound, errs)
+	go p.dtlsDown(inbound, outbound, errs)
+
+	err = <-errs
+
+	return err
 }
 
-func (p *Proxy) dtlsUp(outbound *net.UDPConn, inbound net.Conn) {
+func (p *Proxy) dtlsUp(ctx context.Context, outbound *net.UDPConn, inbound net.Conn, errs chan error) {
 	buffer := make([]byte, bufferSize)
 	for {
 		n, err := inbound.Read(buffer)
 		if err != nil {
+			errs <- err
 			return
 		}
-		p.handleCoAPMessage(buffer[:n])
+		err = p.handleCoAPMessage(ctx, buffer[:n])
+		if err != nil {
+			p.logger.Error("Failed to handle CoAP message", slog.Any("err", err))
+		}
 
 		_, err = outbound.Write(buffer[:n])
 		if err != nil {
-			slog.Error("Failed to write to server", slog.Any("err", err))
+			errs <- err
+			return
 		}
 	}
 }
 
-func (p *Proxy) dtlsDown(inbound net.Conn, outbound *net.UDPConn) {
+func (p *Proxy) dtlsDown(inbound net.Conn, outbound *net.UDPConn, errs chan error) {
 	buffer := make([]byte, bufferSize)
 	for {
 		err := outbound.SetReadDeadline(time.Now().Add(1 * time.Minute))
@@ -241,50 +261,72 @@ func (p *Proxy) dtlsDown(inbound net.Conn, outbound *net.UDPConn) {
 		n, err := outbound.Read(buffer)
 		defer outbound.Close()
 		if err != nil {
+			errs <- err
 			return
 		}
 
 		_, err = inbound.Write(buffer[:n])
 		defer inbound.Close()
 		if err != nil {
+			errs <- err
 			return
 		}
 	}
 }
 
-func (p *Proxy) handleCoAPMessage(buffer []byte) {
-	msg, err := gocoap.ParseMessage(buffer)
+func (p *Proxy) handleCoAPMessage(ctx context.Context, buffer []byte) error {
+	var payload []byte
+	var path string
+	msg := pool.NewMessage(ctx)
+	_, err := msg.UnmarshalWithDecoder(coder.DefaultCoder, buffer)
 	if err != nil {
-		p.logger.Error("Failed to parse message", slog.Any("error", err))
-		return
+		return err
 	}
+	token := msg.Token()
 
-	token := msg.Token
-	path := msg.Path()
-	ctx := session.NewContext(context.Background(), &session.Session{Password: token})
-
-	switch msg.Code {
-	case gocoap.POST:
-		if err := p.session.AuthConnect(ctx); err != nil {
-			return
-		}
-		if err := p.session.AuthPublish(ctx, &path[0], &msg.Payload); err != nil {
-			return
-		}
-		if err := p.session.Publish(ctx, &path[0], &msg.Payload); err != nil {
-			return
-		}
-	case gocoap.GET:
-		if err := p.session.AuthConnect(ctx); err != nil {
-			return
-		}
-		if msg.Option(gocoap.Observe) == startObserve {
-			if err := p.session.AuthSubscribe(ctx, &path); err != nil {
-				return
-			}
-			if err := p.session.Subscribe(ctx, &path); err != nil {
-				return
-			}
+	if msg.Code() != codes.Empty {
+		path, err = msg.Path()
+		if err != nil {
+			return err
 		}
 	}
+	ctx = session.NewContext(ctx, &session.Session{Password: token})
+
+	if msg.Body() != nil {
+		payload, err = io.ReadAll(msg.Body())
+		if err != nil {
+			return err
+		}
+	}
+
+	switch msg.Code() {
+	case codes.POST:
+		if err := p.session.AuthConnect(ctx); err != nil {
+			return err
+		}
+		if err := p.session.AuthPublish(ctx, &path, &payload); err != nil {
+			return err
+		}
+		if err := p.session.Publish(ctx, &path, &payload); err != nil {
+			return err
+		}
+	case codes.GET:
+		if err := p.session.AuthConnect(ctx); err != nil {
+			return err
+		}
+		obs, err := msg.Options().Observe()
+		if err != nil {
+			return err
+		}
+		if obs == startObserve {
+			if err := p.session.AuthSubscribe(ctx, &[]string{path}); err != nil {
+				return err
+			}
+			if err := p.session.Subscribe(ctx, &[]string{path}); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }

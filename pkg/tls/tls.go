@@ -10,7 +10,7 @@ import (
 	"net"
 	"os"
 
-	"github.com/pion/dtls/v2"
+	"github.com/pion/dtls/v3"
 )
 
 var (

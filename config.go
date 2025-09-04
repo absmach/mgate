@@ -8,11 +8,11 @@ import (
 
 	mptls "github.com/absmach/mgate/pkg/tls"
 	"github.com/caarlos0/env/v11"
-	"github.com/pion/dtls/v2"
+	"github.com/pion/dtls/v3"
 )
 
 type Config struct {
-	Host           string `env:"HOST"            envDefault:""`
+	Host           string `env:"HOST"                     envDefault:""`
 	Port           string `env:"PORT,required"            envDefault:""`
 	PathPrefix     string `env:"PATH_PREFIX"              envDefault:""`
 	TargetHost     string `env:"TARGET_HOST,required"     envDefault:""`
