@@ -27,11 +27,6 @@ const (
 	startObserve uint32 = 0
 )
 
-var (
-	ConnMap = make(map[string]*Conn)
-	mutex   sync.Mutex
-)
-
 type Conn struct {
 	clientAddr *net.UDPAddr
 	serverConn *net.UDPConn
@@ -41,6 +36,8 @@ type Proxy struct {
 	config  mgate.Config
 	session session.Handler
 	logger  *slog.Logger
+	connMap map[string]*Conn
+	mutex   sync.Mutex
 }
 
 func NewProxy(config mgate.Config, handler session.Handler, logger *slog.Logger) *Proxy {
@@ -48,6 +45,7 @@ func NewProxy(config mgate.Config, handler session.Handler, logger *slog.Logger)
 		config:  config,
 		session: handler,
 		logger:  logger,
+		connMap: make(map[string]*Conn),
 	}
 }
 
@@ -63,19 +61,19 @@ func (p *Proxy) proxyUDP(ctx context.Context, l *net.UDPConn) {
 				p.logger.Error("Failed to read from UDP", slog.Any("error", err))
 				return
 			}
-			mutex.Lock()
-			conn, ok := ConnMap[clientAddr.String()]
+			p.mutex.Lock()
+			conn, ok := p.connMap[clientAddr.String()]
 			if !ok {
 				conn, err = p.newConn(clientAddr)
 				if err != nil {
 					p.logger.Error("Failed to create new connection", slog.Any("error", err))
-					mutex.Unlock()
+					p.mutex.Unlock()
 					return
 				}
-				ConnMap[clientAddr.String()] = conn
+				p.connMap[clientAddr.String()] = conn
 				go p.downUDP(l, conn)
 			}
-			mutex.Unlock()
+			p.mutex.Unlock()
 			//nolint:contextcheck // upUDP does not need context
 			p.upUDP(conn, buffer[:n])
 		}
@@ -83,7 +81,7 @@ func (p *Proxy) proxyUDP(ctx context.Context, l *net.UDPConn) {
 }
 
 func (p *Proxy) Listen(ctx context.Context) error {
-	addr, err := net.ResolveUDPAddr("udp", net.JoinHostPort(p.config.Host, p.config.Port))
+	addr, err := net.ResolveUDPAddr("udp6", net.JoinHostPort(p.config.Host, p.config.Port))
 	if err != nil {
 		p.logger.Error("Failed to resolve UDP address", slog.Any("error", err))
 		return err
@@ -91,7 +89,7 @@ func (p *Proxy) Listen(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
 	switch {
 	case p.config.DTLSConfig != nil:
-		l, err := dtls.Listen("udp", addr, p.config.DTLSConfig)
+		l, err := dtls.Listen("udp6", addr, p.config.DTLSConfig)
 		if err != nil {
 			return err
 		}
@@ -106,7 +104,6 @@ func (p *Proxy) Listen(ctx context.Context) error {
 			<-ctx.Done()
 			return l.Close()
 		})
-
 	default:
 		l, err := net.ListenUDP("udp", addr)
 		if err != nil {
@@ -155,6 +152,7 @@ func (p *Proxy) upUDP(conn *Conn, buffer []byte) {
 	err := p.handleCoAPMessage(context.Background(), buffer)
 	if err != nil {
 		p.logger.Error("Failed to handle CoAP message", slog.Any("err", err))
+		return
 	}
 	_, err = conn.serverConn.Write(buffer)
 	if err != nil {
@@ -171,7 +169,7 @@ func (p *Proxy) downUDP(l *net.UDPConn, conn *Conn) {
 		}
 		n, err := conn.serverConn.Read(buffer)
 		if err != nil {
-			p.close(conn)
+			p.closeConn(conn)
 			return
 		}
 		_, err = l.WriteToUDP(buffer[:n], conn.clientAddr)
@@ -181,10 +179,10 @@ func (p *Proxy) downUDP(l *net.UDPConn, conn *Conn) {
 	}
 }
 
-func (p *Proxy) close(conn *Conn) {
-	mutex.Lock()
-	defer mutex.Unlock()
-	delete(ConnMap, conn.clientAddr.String())
+func (p *Proxy) closeConn(conn *Conn) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	delete(p.connMap, conn.clientAddr.String())
 	conn.serverConn.Close()
 }
 
@@ -199,59 +197,66 @@ func (p *Proxy) proxyDTLS(ctx context.Context, l net.Listener) {
 				p.logger.Warn("Accept error " + err.Error())
 				continue
 			}
+			defer conn.Close()
 			p.logger.Info("Accepted new client")
-			err = p.handleDTLS(ctx, conn)
-			if err != nil {
-				p.logger.Warn(err.Error())
-			}
+			go p.handleDTLS(ctx, conn)
 		}
 	}
 }
 
-func (p *Proxy) handleDTLS(ctx context.Context, inbound net.Conn) error {
+func (p *Proxy) handleDTLS(ctx context.Context, inbound net.Conn) {
+	defer inbound.Close()
 	outboundAddr, err := net.ResolveUDPAddr("udp", net.JoinHostPort(p.config.TargetHost, p.config.TargetPort))
 	if err != nil {
-		return err
+		p.logger.Error("Cannot resolve remote broker address " + net.JoinHostPort(p.config.TargetHost, p.config.TargetPort) + " due to: " + err.Error())
+		return
 	}
 
 	outbound, err := net.DialUDP("udp", nil, outboundAddr)
 	if err != nil {
-		return err
+		p.logger.Error("Cannot connect to remote broker " + outboundAddr.String() + " due to: " + err.Error())
+		return
 	}
 	defer outbound.Close()
 
-	errs := make(chan error, 2)
+	g, gCtx := errgroup.WithContext(ctx)
 
-	go p.dtlsUp(ctx, outbound, inbound, errs)
-	go p.dtlsDown(inbound, outbound, errs)
+	g.Go(func() error {
+		p.dtlsUp(gCtx, outbound, inbound)
+		return nil
+	})
 
-	err = <-errs
+	g.Go(func() error {
+		p.dtlsDown(inbound, outbound)
+		return nil
+	})
 
-	return err
+	if err := g.Wait(); err != nil {
+		p.logger.Error("DTLS proxy error", slog.Any("error", err))
+	}
 }
 
-func (p *Proxy) dtlsUp(ctx context.Context, outbound *net.UDPConn, inbound net.Conn, errs chan error) {
+func (p *Proxy) dtlsUp(ctx context.Context, outbound *net.UDPConn, inbound net.Conn) {
 	buffer := make([]byte, bufferSize)
 	for {
 		n, err := inbound.Read(buffer)
 		if err != nil {
-			errs <- err
 			return
 		}
 		err = p.handleCoAPMessage(ctx, buffer[:n])
 		if err != nil {
 			p.logger.Error("Failed to handle CoAP message", slog.Any("err", err))
+			return
 		}
 
 		_, err = outbound.Write(buffer[:n])
 		if err != nil {
-			errs <- err
 			return
 		}
 	}
 }
 
-func (p *Proxy) dtlsDown(inbound net.Conn, outbound *net.UDPConn, errs chan error) {
+func (p *Proxy) dtlsDown(inbound net.Conn, outbound *net.UDPConn) {
 	buffer := make([]byte, bufferSize)
 	for {
 		err := outbound.SetReadDeadline(time.Now().Add(1 * time.Minute))
@@ -259,16 +264,12 @@ func (p *Proxy) dtlsDown(inbound net.Conn, outbound *net.UDPConn, errs chan erro
 			return
 		}
 		n, err := outbound.Read(buffer)
-		defer outbound.Close()
 		if err != nil {
-			errs <- err
 			return
 		}
 
 		_, err = inbound.Write(buffer[:n])
-		defer inbound.Close()
 		if err != nil {
-			errs <- err
 			return
 		}
 	}
@@ -283,7 +284,6 @@ func (p *Proxy) handleCoAPMessage(ctx context.Context, buffer []byte) error {
 		return err
 	}
 	token := msg.Token()
-
 	if msg.Code() != codes.Empty {
 		path, err = msg.Path()
 		if err != nil {
@@ -314,16 +314,14 @@ func (p *Proxy) handleCoAPMessage(ctx context.Context, buffer []byte) error {
 		if err := p.session.AuthConnect(ctx); err != nil {
 			return err
 		}
-		obs, err := msg.Options().Observe()
-		if err != nil {
-			return err
-		}
-		if obs == startObserve {
-			if err := p.session.AuthSubscribe(ctx, &[]string{path}); err != nil {
-				return err
-			}
-			if err := p.session.Subscribe(ctx, &[]string{path}); err != nil {
-				return err
+		if obs, err := msg.Options().Observe(); err == nil {
+			if obs == startObserve {
+				if err := p.session.AuthSubscribe(ctx, &[]string{path}); err != nil {
+					return err
+				}
+				if err := p.session.Subscribe(ctx, &[]string{path}); err != nil {
+					return err
+				}
 			}
 		}
 	}

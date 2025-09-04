@@ -182,13 +182,13 @@ func main() {
 		panic(err)
 	}
 
-	// mProxy server for CoAP without DTLS
+	// mGate server for CoAP without DTLS
 	coapProxy := coap.NewProxy(coapConfig, handler, logger)
 	g.Go(func() error {
 		return coapProxy.Listen(ctx)
 	})
 
-	// mProxy server Configuration for CoAP with DTLS
+	// mGate server Configuration for CoAP with DTLS
 	coapDTLSConfig, err := mgate.NewConfig(env.Options{Prefix: coapWithDTLS})
 	if err != nil {
 		panic(err)
