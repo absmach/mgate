@@ -71,7 +71,7 @@ func (p *Proxy) proxyUDP(ctx context.Context, l *net.UDPConn) {
 					return
 				}
 				p.connMap[clientAddr.String()] = conn
-				go p.downUDP(l, conn)
+				go p.downUDP(ctx, l, conn)
 			}
 			p.mutex.Unlock()
 			//nolint:contextcheck // upUDP does not need context
@@ -160,9 +160,15 @@ func (p *Proxy) upUDP(conn *Conn, buffer []byte) {
 	}
 }
 
-func (p *Proxy) downUDP(l *net.UDPConn, conn *Conn) {
+func (p *Proxy) downUDP(ctx context.Context, l *net.UDPConn, conn *Conn) {
 	buffer := make([]byte, bufferSize)
 	for {
+		select {
+		case <-ctx.Done():
+			p.closeConn(conn)
+			return
+		default:
+		}
 		err := conn.serverConn.SetReadDeadline(time.Now().Add(10 * time.Second))
 		if err != nil {
 			return
@@ -197,7 +203,6 @@ func (p *Proxy) proxyDTLS(ctx context.Context, l net.Listener) {
 				p.logger.Warn("Accept error " + err.Error())
 				continue
 			}
-			defer conn.Close()
 			p.logger.Info("Accepted new client")
 			go p.handleDTLS(ctx, conn)
 		}
