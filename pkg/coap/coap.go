@@ -66,8 +66,8 @@ func (p *Proxy) proxyUDP(ctx context.Context, l *net.UDPConn) {
 			if !ok {
 				conn, err = p.newConn(clientAddr)
 				if err != nil {
-					p.logger.Error("Failed to create new connection", slog.Any("error", err))
 					p.mutex.Unlock()
+					p.logger.Error("Failed to create new connection", slog.Any("error", err))
 					return
 				}
 				p.connMap[clientAddr.String()] = conn
