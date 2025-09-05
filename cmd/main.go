@@ -13,6 +13,7 @@ import (
 
 	"github.com/absmach/mgate"
 	"github.com/absmach/mgate/examples/simple"
+	"github.com/absmach/mgate/pkg/coap"
 	"github.com/absmach/mgate/pkg/http"
 	"github.com/absmach/mgate/pkg/mqtt"
 	"github.com/absmach/mgate/pkg/mqtt/websocket"
@@ -34,6 +35,9 @@ const (
 	httpWithoutTLS = "MGATE_HTTP_WITHOUT_TLS_"
 	httpWithTLS    = "MGATE_HTTP_WITH_TLS_"
 	httpWithmTLS   = "MGATE_HTTP_WITH_MTLS_"
+
+	coapWithoutDTLS = "MGATE_COAP_WITHOUT_DTLS_"
+	coapWithDTLS    = "MGATE_COAP_WITH_DTLS_"
 )
 
 func main() {
@@ -170,6 +174,30 @@ func main() {
 	}
 	g.Go(func() error {
 		return httpMTLSProxy.Listen(ctx)
+	})
+
+	// mGate server Configuration for CoAP without DTLS
+	coapConfig, err := mgate.NewConfig(env.Options{Prefix: coapWithoutDTLS})
+	if err != nil {
+		panic(err)
+	}
+
+	// mGate server for CoAP without DTLS
+	coapProxy := coap.NewProxy(coapConfig, handler, logger)
+	g.Go(func() error {
+		return coapProxy.Listen(ctx)
+	})
+
+	// mGate server Configuration for CoAP with DTLS
+	coapDTLSConfig, err := mgate.NewConfig(env.Options{Prefix: coapWithDTLS})
+	if err != nil {
+		panic(err)
+	}
+
+	// mGate server for CoAP with DTLS
+	coapDTLSProxy := coap.NewProxy(coapDTLSConfig, handler, logger)
+	g.Go(func() error {
+		return coapDTLSProxy.Listen(ctx)
 	})
 
 	g.Go(func() error {

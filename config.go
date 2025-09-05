@@ -8,10 +8,11 @@ import (
 
 	mptls "github.com/absmach/mgate/pkg/tls"
 	"github.com/caarlos0/env/v11"
+	"github.com/pion/dtls/v3"
 )
 
 type Config struct {
-	Host           string `env:"HOST"            envDefault:""`
+	Host           string `env:"HOST"                     envDefault:""`
 	Port           string `env:"PORT,required"            envDefault:""`
 	PathPrefix     string `env:"PATH_PREFIX"              envDefault:""`
 	TargetHost     string `env:"TARGET_HOST,required"     envDefault:""`
@@ -19,6 +20,7 @@ type Config struct {
 	TargetProtocol string `env:"TARGET_PROTOCOL,required" envDefault:""`
 	TargetPath     string `env:"TARGET_PATH"              envDefault:""`
 	TLSConfig      *tls.Config
+	DTLSConfig     *dtls.Config
 }
 
 func NewConfig(opts env.Options) (Config, error) {
@@ -31,8 +33,11 @@ func NewConfig(opts env.Options) (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-
-	c.TLSConfig, err = mptls.Load(&cfg)
+	c.TLSConfig, err = mptls.LoadTLSConfig(&cfg, &tls.Config{})
+	if err != nil {
+		return Config{}, err
+	}
+	c.DTLSConfig, err = mptls.LoadTLSConfig(&cfg, &dtls.Config{})
 	if err != nil {
 		return Config{}, err
 	}
