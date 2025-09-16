@@ -11,7 +11,7 @@ require (
 	github.com/pion/dtls/v3 v3.0.6
 	github.com/plgd-dev/go-coap/v3 v3.4.0
 	golang.org/x/crypto v0.42.0
-	golang.org/x/sync v0.16.0
+	golang.org/x/sync v0.17.0
 )
 
 require (
