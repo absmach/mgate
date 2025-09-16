@@ -61,29 +61,19 @@ func (p *Proxy) proxyUDP(ctx context.Context, l *net.UDPConn) {
 		case <-ctx.Done():
 			return
 		default:
-		}
-
-		n, clientAddr, err := l.ReadFromUDP(buffer)
-		if err != nil {
-			p.logger.Error("failed to read from UDP", slog.String("error", err.Error()))
-			return
-		}
-
-		p.mutex.Lock()
-		conn, ok := p.connMap[clientAddr.String()]
-		if !ok {
-			conn, err = p.newConn(clientAddr)
+			n, clientAddr, err := l.ReadFromUDP(buffer)
 			if err != nil {
-				p.mutex.Unlock()
+				p.logger.Error("failed to read from UDP", slog.String("error", err.Error()))
+				return
+			}
+			conn, err := p.newConn(clientAddr)
+			if err != nil {
 				p.logger.Error("failed to create new connection", slog.String("error", err.Error()))
 				continue
 			}
-			p.connMap[clientAddr.String()] = conn
+			//nolint:contextcheck // upUDP does not need context
+			p.upUDP(conn, buffer[:n], l)
 		}
-		p.mutex.Unlock()
-
-		//nolint:contextcheck // upUDP does not need context
-		p.upUDP(conn, buffer[:n], l)
 	}
 }
 
@@ -141,17 +131,22 @@ func (p *Proxy) Listen(ctx context.Context) error {
 }
 
 func (p *Proxy) newConn(clientAddr *net.UDPAddr) (*Conn, error) {
-	conn := new(Conn)
-	conn.clientAddr = clientAddr
-	addr, err := net.ResolveUDPAddr("udp", net.JoinHostPort(p.config.TargetHost, p.config.TargetPort))
-	if err != nil {
-		return nil, err
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	conn, ok := p.connMap[clientAddr.String()]
+	if !ok {
+		conn = &Conn{clientAddr: clientAddr}
+		addr, err := net.ResolveUDPAddr("udp", net.JoinHostPort(p.config.TargetHost, p.config.TargetPort))
+		if err != nil {
+			return nil, err
+		}
+		t, err := net.DialUDP("udp", nil, addr)
+		if err != nil {
+			return nil, err
+		}
+		conn.serverConn = t
+		p.connMap[clientAddr.String()] = conn
 	}
-	t, err := net.DialUDP("udp", nil, addr)
-	if err != nil {
-		return nil, err
-	}
-	conn.serverConn = t
 	return conn, nil
 }
 
